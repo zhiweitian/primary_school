@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>竖式除法练习</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee;
+    }
+
+    .container {
+      padding: 2.5rem 3rem;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      width: min(580px, 94vw);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #a8dadc;
+    }
+
+    .hint {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 0.75rem;
+    }
+
+    .option {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.85rem;
+      color: #aaa;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .option input {
+      width: 1rem;
+      height: 1rem;
+      accent-color: #a8dadc;
+      cursor: pointer;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      color: #888;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #06d6a0;
+    }
+
+    .worksheet {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 2rem;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.15rem;
+      padding: 1.5rem 2rem;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 12px;
+      cursor: text;
+      user-select: none;
+    }
+
+    .row { display: flex; align-items: center; }
+
+    .cell {
+      width: 2.2rem;
+      height: 2.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cell.place {
+      height: 1.5rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #666;
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+
+    .cell.place.active { color: #a8dadc; font-weight: 700; }
+
+    .cell.answer { border-bottom: 2px solid transparent; }
+    .cell.answer.active {
+      background: rgba(168, 218, 220, 0.15);
+      border-bottom-color: #a8dadc;
+      border-radius: 4px 4px 0 0;
+    }
+    .cell.answer.correct .digit { color: #06d6a0; }
+    .cell.answer.wrong { animation: shake 0.35s ease; }
+    .cell.answer.wrong .digit { color: #ef476f; }
+
+    .cell.done-product .digit { color: #aaa; }
+    .cell.done-rem .digit { color: #f4a261; }
+
+    .left-cell {
+      width: 2.2rem;
+      text-align: center;
+      color: #a8dadc;
+      flex-shrink: 0;
+    }
+
+    .line-row { width: 100%; padding: 0.2rem 0 0.4rem; }
+    .line-row hr {
+      border: none;
+      border-top: 3px solid rgba(255, 255, 255, 0.5);
+      width: 100%;
+    }
+
+    .step-line { width: 100%; padding: 0.1rem 0; }
+    .step-line hr {
+      border: none;
+      border-top: 2px solid rgba(255, 255, 255, 0.25);
+      width: 100%;
+    }
+
+    .digit { min-width: 1ch; text-align: center; }
+
+    .buffer {
+      text-align: center;
+      margin-top: 1.2rem;
+      font-size: 0.85rem;
+      color: #888;
+      min-height: 1.2rem;
+    }
+
+    .buffer span { color: #a8dadc; font-family: monospace; font-size: 1rem; }
+
+    .status {
+      text-align: center;
+      margin-top: 0.8rem;
+      min-height: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    .status.ok { color: #06d6a0; }
+    .status.err { color: #ef476f; }
+
+    #hiddenInput {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+
+    .worksheet.done { animation: pop 0.4s ease; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>➗ 竖式除法练习</h1>
+    <p class="hint">依次填写商、减数（乘积）、余数；每行从右往左输入</p>
+
+    <label class="option">
+      <input type="checkbox" id="allowRemainder">
+      <span>允许有余数</span>
+    </label>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">分数</span>
+        <span class="stat-value" id="score">0</span>
+      </div>
+    </div>
+
+    <div class="worksheet" id="worksheet" tabindex="0">
+      <div class="row" id="placeRow"></div>
+      <div class="row" id="quotientRow"></div>
+      <div class="line-row"><hr></div>
+      <div class="row" id="dividendRow"></div>
+      <div id="stepRows"></div>
+    </div>
+
+    <div class="buffer" id="buffer"></div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <input type="text" id="hiddenInput" inputmode="numeric" autocomplete="off">
+
+  <script>
+    const worksheet = document.getElementById("worksheet");
+    const hiddenInput = document.getElementById("hiddenInput");
+    const bufferEl = document.getElementById("buffer");
+    const statusEl = document.getElementById("status");
+    const scoreEl = document.getElementById("score");
+    const allowRemainderEl = document.getElementById("allowRemainder");
+
+    const PLACE_NAMES = ["个", "十", "百", "千", "万", "十万"];
+
+    let dividend = 0, divisor = 0, quotient = 0, remainder = 0;
+    let steps = [];
+    let colCount = 0;
+    let leftCols = 0;
+    let stepIdx = 0;
+    let phase = "quotient";
+    let inputIdx = 0;
+    let filledProduct = [];
+    let filledRemainder = [];
+    let score = 0;
+
+    function randomNumber(maxDigits) {
+      const digits = Math.floor(Math.random() * maxDigits) + 1;
+      const min = digits === 1 ? 2 : 10 ** (digits - 1);
+      const max = 10 ** digits - 1;
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function randomProblem() {
+      const divDigits = Math.floor(Math.random() * 2) + 1;
+      const qDigits = Math.floor(Math.random() * 3) + 1;
+      divisor = randomNumber(divDigits);
+      quotient = randomNumber(qDigits);
+      remainder = 0;
+      if (allowRemainderEl.checked) {
+        remainder = Math.floor(Math.random() * divisor);
+      }
+      dividend = quotient * divisor + remainder;
+    }
+
+    function padLeft(str, len) {
+      return str.padStart(len, " ");
+    }
+
+    function placeLabel(colFromRight) {
+      return PLACE_NAMES[colFromRight] ?? "";
+    }
+
+    function buildSteps() {
+      const qDigits = String(quotient).split("").map(Number);
+      const dStr = String(dividend);
+      const result = [];
+      let rem = 0;
+      let dIdx = 0;
+
+      for (const qd of qDigits) {
+        while (rem < divisor && dIdx < dStr.length) {
+          rem = rem * 10 + +dStr[dIdx++];
+        }
+        const product = qd * divisor;
+        result.push({
+          qDigit: qd,
+          product,
+          remAfter: rem - product,
+          consumedUpTo: dIdx,
+        });
+        rem = rem - product;
+      }
+      return result;
+    }
+
+    function alignedDigits(num, consumed) {
+      const nStr = String(num);
+      const rightCol = colCount - consumed;
+      const list = [];
+      for (let local = 0; local < nStr.length; local++) {
+        list.push({
+          localFromRight: local,
+          gridColFromRight: rightCol + local,
+          digit: +nStr[nStr.length - 1 - local],
+        });
+      }
+      return list;
+    }
+
+    function activeGridCol() {
+      if (stepIdx >= steps.length) return -1;
+      if (phase === "quotient") {
+        const qLen = String(quotient).length;
+        return qLen - 1 - stepIdx;
+      }
+      const step = steps[stepIdx];
+      const num = phase === "product" ? step.product : step.remAfter;
+      const digits = alignedDigits(num, step.consumedUpTo);
+      return inputIdx < digits.length ? digits[inputIdx].gridColFromRight : -1;
+    }
+
+    function expectedDigit() {
+      if (stepIdx >= steps.length) return -1;
+      if (phase === "quotient") return steps[stepIdx].qDigit;
+      const step = steps[stepIdx];
+      const num = phase === "product" ? step.product : step.remAfter;
+      return alignedDigits(num, step.consumedUpTo)[inputIdx].digit;
+    }
+
+    function makeCell(text, cls) {
+      const cell = document.createElement("div");
+      cell.className = "cell " + cls;
+      const span = document.createElement("span");
+      span.className = "digit";
+      span.textContent = text === " " ? "" : text;
+      cell.appendChild(span);
+      return cell;
+    }
+
+    function addLeftCells(row, text) {
+      for (const ch of text) {
+        const el = document.createElement("div");
+        el.className = "left-cell";
+        el.textContent = ch;
+        row.appendChild(el);
+      }
+    }
+
+    function addLeftPad(row) {
+      for (let i = 0; i < leftCols; i++) {
+        const el = document.createElement("div");
+        el.className = "left-cell";
+        row.appendChild(el);
+      }
+    }
+
+    function renderAlignedRow(row, num, consumed, opts) {
+      addLeftPad(row);
+      const digits = alignedDigits(num, consumed);
+      const map = new Map(digits.map((d, i) => [d.gridColFromRight, { ...d, localIdx: i }]));
+
+      for (let i = 0; i < colCount; i++) {
+        const colFromRight = colCount - 1 - i;
+        const info = map.get(colFromRight);
+        if (!info) {
+          row.appendChild(makeCell("", ""));
+          continue;
+        }
+
+        let ch = "";
+        let cls = "";
+
+        if (opts.done) {
+          ch = String(info.digit);
+          cls = opts.doneCls;
+        } else {
+          const filled = opts.filled;
+          const isFilled = info.localIdx < filled.length;
+          const isActive = opts.active && phase === opts.rowPhase && inputIdx === info.localIdx;
+
+          if (isFilled) {
+            ch = String(filled[info.localIdx]);
+            cls = "answer correct";
+          }
+          if (isActive) cls = "answer active";
+        }
+
+        row.appendChild(makeCell(ch, cls));
+      }
+    }
+
+    function render() {
+      const qLen = String(quotient).length;
+      const dStr = padLeft(String(dividend), colCount);
+      const divStr = String(divisor);
+      const isComplete = stepIdx >= steps.length;
+
+      const placeRow = document.getElementById("placeRow");
+      const quotientRow = document.getElementById("quotientRow");
+      const dividendRow = document.getElementById("dividendRow");
+      const stepRows = document.getElementById("stepRows");
+
+      placeRow.innerHTML = "";
+      quotientRow.innerHTML = "";
+      dividendRow.innerHTML = "";
+      stepRows.innerHTML = "";
+
+      leftCols = divStr.length + 1;
+      addLeftPad(placeRow);
+
+      const activeCol = isComplete ? -1 : activeGridCol();
+
+      for (let i = 0; i < colCount; i++) {
+        const colFromRight = colCount - 1 - i;
+        const pCell = makeCell(placeLabel(colFromRight), "place");
+        if (colFromRight === activeCol) pCell.classList.add("active");
+        placeRow.appendChild(pCell);
+      }
+
+      addLeftPad(quotientRow);
+      for (let i = 0; i < colCount; i++) {
+        const idxFromLeft = i - (colCount - qLen);
+        const inQuotient = i >= colCount - qLen;
+        let ch = "";
+        let cls = "";
+
+        if (inQuotient) {
+          if (isComplete || idxFromLeft < stepIdx || (idxFromLeft === stepIdx && phase !== "quotient")) {
+            ch = String(steps[idxFromLeft].qDigit);
+            cls = "answer correct";
+          } else if (idxFromLeft === stepIdx && phase === "quotient") {
+            cls = "answer active";
+          }
+        }
+        quotientRow.appendChild(makeCell(ch, cls));
+      }
+
+      addLeftCells(dividendRow, divStr + ")");
+      for (let i = 0; i < colCount; i++) {
+        dividendRow.appendChild(makeCell(dStr[i], ""));
+      }
+
+      for (let s = 0; s < steps.length; s++) {
+        if (!isComplete && s > stepIdx) break;
+        if (!isComplete && s === stepIdx && phase === "quotient") break;
+
+        const step = steps[s];
+        const isPast = isComplete || s < stepIdx;
+
+        const prodRow = document.createElement("div");
+        prodRow.className = "row";
+        renderAlignedRow(prodRow, step.product, step.consumedUpTo, isPast
+          ? { done: true, doneCls: "done-product" }
+          : { active: true, rowPhase: "product", filled: filledProduct });
+        stepRows.appendChild(prodRow);
+
+        const line = document.createElement("div");
+        line.className = "step-line";
+        line.innerHTML = "<hr>";
+        stepRows.appendChild(line);
+
+        if (isPast || phase === "remainder") {
+          const remRow = document.createElement("div");
+          remRow.className = "row";
+          renderAlignedRow(remRow, step.remAfter, step.consumedUpTo, isPast
+            ? { done: true, doneCls: "done-rem" }
+            : { active: true, rowPhase: "remainder", filled: filledRemainder });
+          stepRows.appendChild(remRow);
+        }
+      }
+    }
+
+    function resetStepInput() {
+      filledProduct = [];
+      filledRemainder = [];
+      inputIdx = 0;
+    }
+
+    function newProblem() {
+      randomProblem();
+      steps = buildSteps();
+      colCount = String(dividend).length;
+      stepIdx = 0;
+      phase = "quotient";
+      resetStepInput();
+      statusEl.textContent = "";
+      statusEl.className = "status";
+      worksheet.classList.remove("done");
+      updateBuffer();
+      render();
+      focusInput();
+    }
+
+    function focusInput() {
+      hiddenInput.value = "";
+      hiddenInput.focus();
+    }
+
+    function phaseLabel() {
+      if (phase === "quotient") return "商";
+      if (phase === "product") return "减数";
+      return "余数";
+    }
+
+    function updateBuffer() {
+      if (stepIdx >= steps.length) return;
+      const col = activeGridCol();
+      const place = col >= 0 ? placeLabel(col) : "—";
+      bufferEl.innerHTML = `第 ${stepIdx + 1} 步 · 填写<span>${phaseLabel()}</span> · <span>${place}</span>位`;
+    }
+
+    function finishProblem() {
+      stepIdx = steps.length;
+      score++;
+      scoreEl.textContent = score;
+      const remText = remainder > 0 ? ` ··· ${remainder}` : "";
+      statusEl.textContent = `正确！${dividend} ÷ ${divisor} = ${quotient}${remText}`;
+      statusEl.className = "status ok";
+      worksheet.classList.add("done");
+      bufferEl.innerHTML = "";
+      render();
+      setTimeout(newProblem, 1200);
+    }
+
+    function advancePhase() {
+      if (phase === "quotient") {
+        phase = "product";
+        inputIdx = 0;
+      } else if (phase === "product") {
+        phase = "remainder";
+        inputIdx = 0;
+      } else if (phase === "remainder") {
+        stepIdx++;
+        if (stepIdx >= steps.length) {
+          finishProblem();
+          return;
+        }
+        phase = "quotient";
+        resetStepInput();
+      }
+      updateBuffer();
+      render();
+    }
+
+    function tryDigit(d) {
+      if (worksheet.classList.contains("done") || stepIdx >= steps.length) return;
+
+      if (+d !== expectedDigit()) {
+        statusEl.textContent = "这一位不对，再试一次";
+        statusEl.className = "status err";
+        document.querySelectorAll(".cell.answer.active").forEach(c => {
+          c.classList.add("wrong");
+          setTimeout(() => c.classList.remove("wrong"), 350);
+        });
+        return;
+      }
+
+      statusEl.textContent = "";
+      statusEl.className = "status";
+
+      if (phase === "quotient") {
+        advancePhase();
+      } else if (phase === "product") {
+        filledProduct.push(+d);
+        inputIdx++;
+        if (inputIdx >= alignedDigits(steps[stepIdx].product, steps[stepIdx].consumedUpTo).length) {
+          advancePhase();
+        } else {
+          updateBuffer();
+          render();
+        }
+      } else if (phase === "remainder") {
+        filledRemainder.push(+d);
+        inputIdx++;
+        if (inputIdx >= alignedDigits(steps[stepIdx].remAfter, steps[stepIdx].consumedUpTo).length) {
+          advancePhase();
+        } else {
+          updateBuffer();
+          render();
+        }
+      }
+    }
+
+    hiddenInput.addEventListener("input", () => {
+      const val = hiddenInput.value.replace(/\D/g, "");
+      hiddenInput.value = "";
+      if (val.length > 0) tryDigit(val[val.length - 1]);
+    });
+
+    allowRemainderEl.addEventListener("change", () => {
+      if (!worksheet.classList.contains("done")) newProblem();
+    });
+
+    worksheet.addEventListener("click", focusInput);
+    document.addEventListener("click", (e) => {
+      if (e.target.closest(".option")) return;
+      if (!worksheet.contains(e.target)) focusInput();
+    });
+
+    newProblem();
+  </script>
+</body>
+</html>

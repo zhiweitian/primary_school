@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>竖式减法练习</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee;
+    }
+
+    .container {
+      padding: 2.5rem 3rem;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      width: min(560px, 94vw);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #a8dadc;
+    }
+
+    .hint {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 1rem;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      color: #888;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #06d6a0;
+    }
+
+    .worksheet {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 2rem;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.15rem;
+      padding: 1.5rem 2rem;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 12px;
+      cursor: text;
+      user-select: none;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .cell {
+      width: 2.2rem;
+      height: 2.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .cell.borrow {
+      height: 1.4rem;
+      font-size: 0.95rem;
+      color: #f4a261;
+      font-weight: 500;
+    }
+
+    .cell.borrow .digit { min-height: 1.2rem; }
+
+    .cell.answer {
+      border-bottom: 2px solid transparent;
+    }
+
+    .cell.answer.active {
+      background: rgba(168, 218, 220, 0.15);
+      border-bottom-color: #a8dadc;
+      border-radius: 4px 4px 0 0;
+    }
+
+    .cell.answer.correct .digit { color: #06d6a0; }
+    .cell.answer.wrong { animation: shake 0.35s ease; }
+    .cell.answer.wrong .digit { color: #ef476f; }
+
+    .cell.borrow.filled .digit { color: #ffd166; }
+
+    .cell.place {
+      height: 1.5rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #666;
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+
+    .cell.place.active {
+      color: #a8dadc;
+      font-weight: 700;
+    }
+
+    .sign-cell {
+      width: 2rem;
+      text-align: center;
+      color: #a8dadc;
+      margin-right: 0.3rem;
+    }
+
+    .sign-cell.empty { visibility: hidden; }
+
+    .line-row {
+      width: 100%;
+      padding: 0.2rem 0 0.4rem;
+    }
+
+    .line-row hr {
+      border: none;
+      border-top: 3px solid rgba(255, 255, 255, 0.5);
+      width: 100%;
+    }
+
+    .digit { min-width: 1ch; text-align: center; }
+
+    .buffer {
+      text-align: center;
+      margin-top: 1.2rem;
+      font-size: 0.85rem;
+      color: #888;
+      min-height: 1.2rem;
+    }
+
+    .buffer span { color: #a8dadc; font-family: monospace; font-size: 1rem; }
+
+    .status {
+      text-align: center;
+      margin-top: 0.8rem;
+      min-height: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    .status.ok { color: #06d6a0; }
+    .status.err { color: #ef476f; }
+
+    #hiddenInput {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+
+    .worksheet.done { animation: pop 0.4s ease; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>➖ 竖式减法练习</h1>
+    <p class="hint">从个位开始输入；连打两位时，前一位自动填入借位</p>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">分数</span>
+        <span class="stat-value" id="score">0</span>
+      </div>
+    </div>
+
+    <div class="worksheet" id="worksheet" tabindex="0">
+      <div class="row" id="placeRow"></div>
+      <div class="row" id="rowA"></div>
+      <div class="row" id="rowB"></div>
+      <div class="row" id="borrowRow"></div>
+      <div class="line-row"><hr></div>
+      <div class="row" id="answerRow"></div>
+    </div>
+
+    <div class="buffer" id="buffer"></div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <input type="text" id="hiddenInput" inputmode="numeric" autocomplete="off">
+
+  <script>
+    const worksheet = document.getElementById("worksheet");
+    const hiddenInput = document.getElementById("hiddenInput");
+    const bufferEl = document.getElementById("buffer");
+    const statusEl = document.getElementById("status");
+    const scoreEl = document.getElementById("score");
+
+    let a = 0, b = 0, diff = 0;
+    let colCount = 0;
+    let currentCol = 0;
+    let digitBuffer = "";
+    let borrowIn = [];
+    let answer = [];
+    let borrowOut = [];
+    let score = 0;
+
+    const PLACE_NAMES = ["个", "十", "百", "千", "万"];
+
+    function randomNumber() {
+      const digits = Math.floor(Math.random() * 5) + 1;
+      const min = digits === 1 ? 1 : 10 ** (digits - 1);
+      const max = Math.min(10 ** digits - 1, 99999);
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function randomPair() {
+      let x = randomNumber();
+      let y = randomNumber();
+      if (y > x) [x, y] = [y, x];
+      return [x, y];
+    }
+
+    function padLeft(str, len) {
+      return str.padStart(len, " ");
+    }
+
+    function digitAt(num, colFromRight) {
+      const s = String(num);
+      const i = s.length - 1 - colFromRight;
+      return i >= 0 ? +s[i] : 0;
+    }
+
+    function expectedAt(colFromRight) {
+      const dA = digitAt(a, colFromRight);
+      const dB = digitAt(b, colFromRight);
+      const bin = colFromRight === 0 ? 0 : borrowOut[colFromRight - 1];
+      let top = dA - bin;
+      let borrow = 0;
+      if (top < dB) {
+        top += 10;
+        borrow = 1;
+      }
+      return { result: top - dB, borrow };
+    }
+
+    function placeLabel(colFromRight) {
+      return PLACE_NAMES[colFromRight] ?? "";
+    }
+
+    function makeCell(text, cls) {
+      const cell = document.createElement("div");
+      cell.className = "cell " + cls;
+      const span = document.createElement("span");
+      span.className = "digit";
+      span.textContent = text === " " ? "" : text;
+      cell.appendChild(span);
+      return cell;
+    }
+
+    function render() {
+      const aStr = padLeft(String(a), colCount);
+      const bStr = padLeft(String(b), colCount);
+
+      const borrowRow = document.getElementById("borrowRow");
+      const placeRow = document.getElementById("placeRow");
+      const rowA = document.getElementById("rowA");
+      const rowB = document.getElementById("rowB");
+      const answerRow = document.getElementById("answerRow");
+
+      borrowRow.innerHTML = "";
+      placeRow.innerHTML = "";
+      rowA.innerHTML = "";
+      rowB.innerHTML = "";
+      answerRow.innerHTML = "";
+
+      placeRow.appendChild(Object.assign(document.createElement("div"), { className: "sign-cell empty" }));
+      borrowRow.appendChild(Object.assign(document.createElement("div"), { className: "sign-cell empty" }));
+      rowA.appendChild(Object.assign(document.createElement("div"), { className: "sign-cell empty" }));
+      rowB.appendChild(Object.assign(document.createElement("div"), { className: "sign-cell", textContent: "−" }));
+      answerRow.appendChild(Object.assign(document.createElement("div"), { className: "sign-cell empty" }));
+
+      for (let i = 0; i < colCount; i++) {
+        const colFromRight = colCount - 1 - i;
+
+        const pCell = makeCell(placeLabel(colFromRight), "place");
+        if (colFromRight === currentCol) pCell.classList.add("active");
+        placeRow.appendChild(pCell);
+
+        rowA.appendChild(makeCell(aStr[i], ""));
+
+        rowB.appendChild(makeCell(bStr[i], ""));
+
+        const showBorrow = colFromRight > 0;
+        const bCell = makeCell(showBorrow && borrowIn[colFromRight] !== null ? borrowIn[colFromRight] : "", "borrow");
+        if (showBorrow && borrowIn[colFromRight] !== null) bCell.classList.add("filled");
+        borrowRow.appendChild(bCell);
+
+        const aCell = makeCell(answer[colFromRight] ?? "", "answer");
+        if (colFromRight === currentCol) aCell.classList.add("active");
+        if (answer[colFromRight] !== null) {
+          const exp = expectedAt(colFromRight);
+          if (+answer[colFromRight] === exp.result) aCell.classList.add("correct");
+        }
+        answerRow.appendChild(aCell);
+      }
+    }
+
+    function newProblem() {
+      [a, b] = randomPair();
+      diff = a - b;
+      colCount = Math.max(String(a).length, String(b).length, String(diff).length);
+      currentCol = 0;
+      digitBuffer = "";
+      borrowIn = Array(colCount).fill(null);
+      answer = Array(colCount).fill(null);
+      borrowOut = Array(colCount).fill(0);
+      statusEl.textContent = "";
+      statusEl.className = "status";
+      worksheet.classList.remove("done");
+      updateBuffer();
+      render();
+      focusInput();
+    }
+
+    function focusInput() {
+      hiddenInput.value = "";
+      hiddenInput.focus();
+    }
+
+    function updateBuffer() {
+      const place = placeLabel(currentCol);
+      bufferEl.innerHTML = digitBuffer
+        ? `当前输入：<span>${digitBuffer}</span>`
+        : `正在计算<span>${place}</span>位`;
+    }
+
+    function processColumn() {
+      const exp = expectedAt(currentCol);
+      let resultDigit, borrowDigit;
+
+      if (digitBuffer.length === 2) {
+        borrowDigit = +digitBuffer[0];
+        resultDigit = +digitBuffer[1];
+      } else {
+        resultDigit = +digitBuffer[0];
+        borrowDigit = 0;
+      }
+
+      const resultOk = resultDigit === exp.result;
+      const borrowOk = exp.borrow === 0 ? borrowDigit === 0 : borrowDigit === exp.borrow;
+
+      if (!resultOk || !borrowOk) {
+        statusEl.textContent = "这一位不对，再试一次";
+        statusEl.className = "status err";
+        digitBuffer = "";
+        updateBuffer();
+        document.querySelectorAll(".cell.answer.active").forEach(c => {
+          c.classList.add("wrong");
+          setTimeout(() => c.classList.remove("wrong"), 350);
+        });
+        return;
+      }
+
+      answer[currentCol] = resultDigit;
+      borrowOut[currentCol] = exp.borrow;
+      if (exp.borrow > 0 && currentCol + 1 < borrowIn.length) {
+        borrowIn[currentCol + 1] = exp.borrow;
+      }
+
+      digitBuffer = "";
+      statusEl.textContent = "";
+      statusEl.className = "status";
+
+      if (currentCol + 1 >= colCount) {
+        score++;
+        scoreEl.textContent = score;
+        statusEl.textContent = `正确！${a} − ${b} = ${diff}`;
+        statusEl.className = "status ok";
+        worksheet.classList.add("done");
+        setTimeout(newProblem, 1200);
+      } else {
+        currentCol++;
+        updateBuffer();
+      }
+      render();
+    }
+
+    function onDigit(d) {
+      if (worksheet.classList.contains("done")) return;
+      digitBuffer += d;
+      updateBuffer();
+
+      const exp = expectedAt(currentCol);
+      const needTwo = exp.borrow > 0;
+
+      if (digitBuffer.length === 2 || (digitBuffer.length === 1 && !needTwo)) {
+        processColumn();
+      }
+    }
+
+    hiddenInput.addEventListener("input", () => {
+      const val = hiddenInput.value.replace(/\D/g, "");
+      hiddenInput.value = "";
+      for (const ch of val) onDigit(ch);
+    });
+
+    hiddenInput.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && digitBuffer.length > 0) {
+        e.preventDefault();
+        digitBuffer = digitBuffer.slice(0, -1);
+        updateBuffer();
+      }
+    });
+
+    worksheet.addEventListener("click", focusInput);
+    document.addEventListener("click", (e) => {
+      if (!worksheet.contains(e.target)) focusInput();
+    });
+
+    newProblem();
+  </script>
+</body>
+</html>

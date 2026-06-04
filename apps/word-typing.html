@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>键盘练习</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee;
+    }
+
+    .container {
+      text-align: center;
+      padding: 2.5rem 3rem;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      width: min(480px, 92vw);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: #a8dadc;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #888;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+
+    .stat-value.stars { color: #ffd166; }
+    .stat-value.total-stars { color: #06d6a0; }
+
+    .word {
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 1.5rem;
+      color: #fff;
+      min-height: 4rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+
+    .word.correct {
+      animation: pop 0.4s ease;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); color: #06d6a0; }
+      100% { transform: scale(1); }
+    }
+
+    .star-burst {
+      position: fixed;
+      pointer-events: none;
+      font-size: 1.5rem;
+      animation: float-up 1s ease forwards;
+      z-index: 100;
+    }
+
+    @keyframes float-up {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-80px) scale(1.5); }
+    }
+
+    input {
+      width: 100%;
+      padding: 0.9rem 1.2rem;
+      font-size: 1.25rem;
+      text-align: center;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      border-color: #a8dadc;
+    }
+
+    input.error {
+      border-color: #ef476f;
+      animation: shake 0.3s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    .total {
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⌨️ 键盘练习</h1>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">上次获得</span>
+        <span class="stat-value stars" id="lastStars">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">总星星</span>
+        <span class="stat-value total-stars" id="totalStars">0</span>
+      </div>
+    </div>
+
+    <div class="word" id="word">—</div>
+
+    <input type="text" id="input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="输入上面的单词…">
+
+    <div class="total">已完成 <span id="total">0</span> 个单词</div>
+  </div>
+
+  <script>
+    const WORDS = [
+      "the", "be", "to", "of", "and", "a", "in", "that", "have", "I",
+      "it", "for", "not", "on", "with", "he", "as", "you", "do", "at",
+      "this", "but", "his", "by", "from", "they", "we", "say", "her", "she",
+      "or", "an", "will", "my", "one", "all", "would", "there", "their", "what",
+      "so", "up", "out", "if", "about", "who", "get", "which", "go", "me",
+      "when", "make", "can", "like", "time", "no", "just", "him", "know", "take",
+      "cat", "dog", "run", "sun", "fun", "big", "red", "hot", "cup", "pen",
+      "book", "tree", "fish", "bird", "hand", "foot", "head", "food", "milk", "cake",
+      "apple", "water", "happy", "hello", "world", "good", "love", "home", "play", "work",
+      "read", "write", "learn", "teach", "help", "open", "close", "start", "stop", "walk",
+      "jump", "sing", "dance", "smile", "friend", "family", "school", "house", "green", "blue"
+    ];
+
+    let totalStars = 0;
+    let lastEarned = null;
+    let total = 0;
+    let currentWord = "";
+    let lastWord = "";
+
+    const wordEl = document.getElementById("word");
+    const inputEl = document.getElementById("input");
+    const lastStarsEl = document.getElementById("lastStars");
+    const totalStarsEl = document.getElementById("totalStars");
+    const totalEl = document.getElementById("total");
+
+    function pickWord() {
+      let word;
+      do {
+        word = WORDS[Math.floor(Math.random() * WORDS.length)];
+      } while (word === lastWord && WORDS.length > 1);
+      lastWord = word;
+      return word;
+    }
+
+    function nextWord() {
+      currentWord = pickWord();
+      wordEl.textContent = currentWord;
+      wordEl.classList.remove("correct");
+      inputEl.value = "";
+      inputEl.classList.remove("error");
+      inputEl.focus();
+    }
+
+    function updateUI() {
+      lastStarsEl.textContent = lastEarned === null ? "—" : lastEarned;
+      totalStarsEl.textContent = totalStars;
+      totalEl.textContent = total;
+    }
+
+    function spawnStarBurst(count) {
+      const rect = wordEl.getBoundingClientRect();
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement("div");
+        el.className = "star-burst";
+        el.textContent = "⭐";
+        el.style.left = (rect.left + rect.width / 2 + (Math.random() - 0.5) * 120) + "px";
+        el.style.top = (rect.top + Math.random() * 40) + "px";
+        el.style.animationDelay = (i * 0.08) + "s";
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 1200);
+      }
+    }
+
+    function onCorrect() {
+      const earned = Math.floor(Math.random() * 5) + 1;
+      lastEarned = earned;
+      totalStars += earned;
+      total++;
+
+      wordEl.classList.add("correct");
+      spawnStarBurst(earned);
+      updateUI();
+
+      setTimeout(nextWord, 400);
+    }
+
+    inputEl.addEventListener("input", () => {
+      const val = inputEl.value.trim().toLowerCase();
+      if (val === currentWord) {
+        onCorrect();
+      }
+    });
+
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && inputEl.value.trim().toLowerCase() !== currentWord) {
+        inputEl.classList.add("error");
+        setTimeout(() => inputEl.classList.remove("error"), 300);
+      }
+    });
+
+    nextWord();
+    updateUI();
+  </script>
+</body>
+</html>

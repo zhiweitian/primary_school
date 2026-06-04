@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>一年级数学 · 分支知识树</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      display: flex; flex-direction: column;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #faf8f5; color: #333;
+    }
+    .header {
+      padding: 0.75rem 1.1rem; background: #fff;
+      border-bottom: 1px solid #e0e0e0; flex-shrink: 0;
+    }
+    h1 { font-size: 1.1rem; color: #5d4037; }
+    .subtitle { font-size: 0.74rem; color: #888; margin-top: 0.2rem; }
+    .toolbar { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.55rem; }
+    .btn {
+      padding: 0.32rem 0.7rem; border: 1px solid #ccc; border-radius: 6px;
+      background: #fff; font-size: 0.78rem; cursor: pointer;
+    }
+    .search-wrap { flex: 1; max-width: 200px; }
+    .search-wrap input { width: 100%; padding: 0.32rem 0.6rem; border: 1px solid #ccc; border-radius: 6px; font-size: 0.8rem; }
+    .stats { font-size: 0.72rem; color: #aaa; margin-left: auto; }
+    .canvas-wrap { flex: 1 1 0; position: relative; min-height: 0; }
+    #tree-svg { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; }
+    #tree-svg.panning { cursor: grabbing; }
+    #tree-svg.node-drag { cursor: move; }
+    .link {
+      fill: none; stroke: #c4b5a5;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+    .link.dim { opacity: 0.06; }
+    .node { cursor: grab; }
+    .node:active { cursor: grabbing; }
+    .node.dim { opacity: 0.1; }
+    .node rect { stroke-width: 1.5; }
+    .node.match rect { stroke: #ff9800 !important; stroke-width: 2; }
+    .node text { pointer-events: none; font-family: inherit; text-anchor: middle; dominant-baseline: central; }
+    .ord { font-size: 10px; font-weight: 700; fill: #8d6e63; text-anchor: middle; }
+    .hint {
+      position: absolute; bottom: 8px; left: 8px; font-size: 0.68rem; color: #999;
+      background: rgba(255,255,255,0.92); padding: 0.3rem 0.5rem; border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>人教版一年级数学 · 分支优先级树</h1>
+    <p class="subtitle" id="edition-label"></p>
+    <div class="toolbar">
+      <div class="search-wrap"><input type="search" id="search" placeholder="搜索…" /></div>
+      <button class="btn" id="reset-layout">重置布局</button>
+      <button class="btn" id="fit-view">适应窗口</button>
+      <span class="stats" id="stats"></span>
+    </div>
+  </header>
+  <div class="canvas-wrap">
+    <svg id="tree-svg"><g id="tree-root"><g class="links"></g><g class="nodes"></g></g></svg>
+    <div class="hint">力导向（图数据库同款思路）· 拖节点 · 拖空白平移 · 滚轮缩放</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="grade1-math-priority-tree.js"></script>
+  <script>
+    const data = window.GRADE1_MATH_PRIORITY_TREE;
+    const ORD = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮";
+    const ST = {
+      root:   { h: 32, fs: 12, fw: 700, fill: "#5d4037", stroke: "#4e342e", tc: "#fff", pad: 14 },
+      domain: { h: 28, fs: 11, fw: 700, fill: "#1565c0", stroke: "#0d47a1", tc: "#fff", pad: 12 },
+      group:  { h: 28, fs: 11, fw: 700, fill: "#fff3e0", stroke: "#ef6c00", tc: "#e65100", pad: 12 },
+      scope:  { h: 26, fs: 10, fw: 600, fill: "#2e7d32", stroke: "#1b5e20", tc: "#fff", pad: 10 },
+      topic:  { h: 24, fs: 10, fw: 600, fill: "#546e7a", stroke: "#455a64", tc: "#fff", pad: 10 },
+      leaf:   { h: 20, fs: 8,  fw: 400, fill: "#fff",    stroke: "#cfd8dc", tc: "#455a64", pad: 8 }
+    };
+    const TREE_FILL_ROOT = "#6d4c35";
+    const TREE_FILL_LEAF = "#66bb6a";
+    const TREE_STROKE_ROOT = "#4e342e";
+    const TREE_STROKE_LEAF = "#2e7d32";
+
+    function treeColorAt(depth) {
+      const t = maxDepth > 0 ? depth / maxDepth : 0;
+      return {
+        fill: d3.interpolateRgb(TREE_FILL_ROOT, TREE_FILL_LEAF)(t),
+        stroke: d3.interpolateRgb(TREE_STROKE_ROOT, TREE_STROKE_LEAF)(t),
+        tc: t < 0.72 ? "#fff" : "#1b3d1f"
+      };
+    }
+    const LEAF_UNIT_W = 25;
+    const OVERLAP_MIN = 0.1;
+
+    function overlapCoef(scA, scB) {
+      const diff = Math.abs(scA - scB);
+      const sum = scA + scB;
+      return Math.max(OVERLAP_MIN, 1 - diff / (sum + 1));
+    }
+
+    function siblingXDelta(prev, cur) {
+      const sc0 = prev.subCount || 1;
+      const sc1 = cur.subCount || 1;
+      return 0.5 * (sc0 + sc1) * LEAF_UNIT_W * overlapCoef(sc0, sc1);
+    }
+
+    function shiftSubtree(id, dx) {
+      if (!dx) return;
+      byId.get(id).tx += dx;
+      childrenOf(id).forEach(k => shiftSubtree(k.id, dx));
+    }
+
+    function layoutChildrenX(kids) {
+      if (!kids.length) return;
+      const firstTx = 0.5 * (kids[0].subCount || 1) * LEAF_UNIT_W;
+      shiftSubtree(kids[0].id, firstTx - kids[0].tx);
+      for (let i = 1; i < kids.length; i++) {
+        const prev = kids[i - 1];
+        const cur = kids[i];
+        shiftSubtree(cur.id, prev.tx + siblingXDelta(prev, cur) - cur.tx);
+      }
+    }
+
+    function layoutNodeX(id) {
+      const n = byId.get(id);
+      const kids = childrenOf(id);
+      if (!kids.length) {
+        n.tx = 0;
+        return;
+      }
+      kids.forEach(k => layoutNodeX(k.id));
+      layoutChildrenX(kids);
+      n.tx = weightedCenterTx(kids);
+    }
+
+    function verticalGap(p, c) {
+      const sc = c.subCount || 1;
+      const minGap = (p.h + c.h) * 0.45 + 5;
+      return Math.max(minGap, 40 * Math.pow(sc, 0.6));
+    }
+
+    function trunkEdgeGap(p, c) {
+      return verticalGap(p, c);
+    }
+
+    function totalHeight() {
+      function rise(id) {
+        const n = byId.get(id);
+        const kids = childrenOf(id);
+        if (!kids.length) return n.h + 16;
+        if (kids.every(k => k.type === "leaf")) {
+          let max = 0;
+          kids.forEach(k => {
+            max = Math.max(max, verticalGap(n, k) + k.h);
+          });
+          return max + 16;
+        }
+        let max = 0;
+        kids.forEach(k => {
+          max = Math.max(max, verticalGap(n, k) + rise(k.id));
+        });
+        return max + 16;
+      }
+      return rise("0") + 60;
+    }
+
+    let nodes = [], links = [], maxDepth = 0, byId = new Map();
+    let transform = { x: 30, y: 30, scale: 1 };
+    let simulation = null;
+    let linkSel, nodeSel;
+
+    const svg = d3.select("#tree-svg");
+    const rootG = d3.select("#tree-root");
+    const lg = rootG.select(".links");
+    const ng = rootG.select(".nodes");
+
+    function kind(node, d) {
+      if (d === 0) return "root";
+      if (d === 1) return "domain";
+      if (node.leaf) return "leaf";
+      if (node.name === "20以内" || node.name === "100以内") return "group";
+      if (node.unit && node.children?.[0]?.topic) return "scope";
+      if (node.topic) return "topic";
+      if (!node.unit && node.children?.length) return "group";
+      return "scope";
+    }
+
+    const measureCtx = document.createElement("canvas").getContext("2d");
+
+    function measureLabelW(text, fs, fw) {
+      measureCtx.font = `${fw} ${fs}px "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif`;
+      return measureCtx.measureText(text).width;
+    }
+
+    function nw(node, type) {
+      const s = ST[type];
+      const label = node.name || "";
+      const minW = type === "leaf" ? 40 : 36;
+      return Math.ceil(Math.max(minW, measureLabelW(label, s.fs, s.fw) + s.pad * 2));
+    }
+
+    function hash(s, salt) {
+      let h = salt | 0;
+      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+      return (h >>> 0) / 4294967296;
+    }
+
+    function buildGraph(tree) {
+      nodes = [];
+      links = [];
+      maxDepth = 0;
+      function walk(node, depth, path, parentId, idx, showOrd) {
+        maxDepth = Math.max(maxDepth, depth);
+        const type = kind(node, depth);
+        const id = path;
+        nodes.push({
+          id, data: node, path, depth, type,
+          w: nw(node, type), h: ST[type].h,
+          idx, showOrd, parentId, x: 0, y: 0, tx: 0, ty: 0
+        });
+        if (parentId != null) links.push({ source: parentId, target: id });
+        (node.children || []).forEach((c, i) => walk(c, depth + 1, path + "/" + i, id, i, !!node.ordered));
+      }
+      walk(tree, 0, "0", null, 0, false);
+      byId = new Map(nodes.map(n => [n.id, n]));
+      fillSubCount("0");
+      totalLeaves = byId.get("0").subCount || 1;
+    }
+
+    function fillSubCount(id) {
+      const n = byId.get(id);
+      const kids = childrenOf(id);
+      if (!kids.length) {
+        n.subCount = 1;
+        return 1;
+      }
+      n.subCount = kids.reduce((s, k) => s + fillSubCount(k.id), 0);
+      return n.subCount;
+    }
+
+    function linkNode(l, end) {
+      const id = end === "t" ? (l.target.id || l.target) : (l.source.id || l.source);
+      return byId.get(id);
+    }
+
+    function branchStiffness(n) {
+      return Math.min(0.96, 0.1 + (n.subCount || 1) / 90);
+    }
+
+    let totalLeaves = 1;
+
+    const ANCHOR_SCALE = 0.1;
+
+    function anchorPull(n) {
+      if (n.depth === 0) return 1;
+      return ANCHOR_SCALE * (n.subCount || 1) / totalLeaves;
+    }
+
+    const CHARGE_STRENGTH = -9;
+    const CHARGE_RANGE = 480;
+
+    function chargeStrength(n) {
+      return n.depth === 0 ? 0 : CHARGE_STRENGTH;
+    }
+
+    function childrenOf(id) {
+      return nodes.filter(n => n.parentId === id).sort((a, b) => a.idx - b.idx);
+    }
+
+    function weightedCenterTx(kids) {
+      const w = kids.reduce((s, k) => s + (k.subCount || 1), 0);
+      return kids.reduce((s, k) => s + k.tx * (k.subCount || 1), 0) / w;
+    }
+
+    function initVerticalLayout() {
+      const anchorY = totalHeight();
+      const root = byId.get("0");
+
+      function applyNoise(n) {
+        const parent = n.parentId ? byId.get(n.parentId) : null;
+        const jitter = parent
+          ? (hash(n.path, 42) - 0.5) * verticalGap(parent, n) * 0.35
+          : 0;
+        const r = Math.sqrt(n.subCount || 1);
+        n.tx += (Math.random() - 0.5) * 14 * r;
+        n.ty += jitter + (Math.random() - 0.5) * 80 * r;
+      }
+
+      function setChildTy(child, parent) {
+        const gap = verticalGap(parent, child);
+        const sibs = childrenOf(parent.id);
+        const yOff = sibs.length > 1 ? (hash(child.path, 17) - 0.5) * gap * 0.35 : 0;
+        child.ty = parent.ty - gap + yOff;
+      }
+
+      function layoutNodeY(id) {
+        const n = byId.get(id);
+        const parent = n.parentId ? byId.get(n.parentId) : null;
+        if (parent) setChildTy(n, parent);
+        applyNoise(n);
+        childrenOf(id).forEach(k => layoutNodeY(k.id));
+      }
+
+      layoutNodeX("0");
+
+      root.ty = anchorY;
+      layoutNodeY("0");
+
+      nodes.forEach(n => {
+        n.x = n.tx;
+        n.y = n.ty;
+      });
+
+      const pad = 28;
+      const minX = Math.min(...nodes.map(n => n.x - n.w / 2)) - pad;
+      const minY = Math.min(...nodes.map(n => n.y - n.h / 2)) - pad;
+      nodes.forEach(n => {
+        n.x -= minX; n.y -= minY;
+        n.tx -= minX; n.ty -= minY;
+      });
+    }
+
+    function branchLink(p, c) {
+      const x1 = p.x, y1 = p.y - p.h / 2;
+      const x2 = c.x, y2 = c.y + c.h / 2;
+      const rise = y1 - y2;
+      const bend = Math.max(8, rise * 0.35);
+      if (Math.abs(x2 - x1) < 4) {
+        return `M ${x1} ${y1} C ${x1} ${y1 - bend}, ${x2} ${y2 + bend * 0.2}, ${x2} ${y2}`;
+      }
+      const midY = y1 - rise * 0.48;
+      return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+    }
+
+    function linkStyle(l) {
+      const c = linkNode(l, "t");
+      const n = c ? c.subCount : 1;
+      const width = 5 * Math.sqrt(n);
+      return {
+        width,
+        stroke: n > 50 ? "#6d4c35" : n > 15 ? "#8b6f5c" : n > 4 ? "#b5a090" : "#d8cfc4",
+        opacity: Math.max(0.3, 0.4 + Math.min(0.55, n / 80))
+      };
+    }
+
+    function queryState() {
+      const q = search.value.trim().toLowerCase();
+      const hit = new Set();
+      if (q) nodes.forEach(n => {
+        const d = n.data;
+        if ((d.name + (d.unit || "") + (d.topic || "")).toLowerCase().includes(q)) hit.add(n.path);
+      });
+      const visible = path => {
+        if (!q || !hit.size) return true;
+        return [...hit].some(h => path.startsWith(h) || h.startsWith(path));
+      };
+      return { q, hit, visible };
+    }
+
+    function updatePositions() {
+      const { q, hit, visible } = queryState();
+      linkSel
+        .classed("dim", l => q && !visible(byId.get(l.target).path))
+        .attr("d", l => {
+          const p = byId.get(l.source.id || l.source);
+          const c = byId.get(l.target.id || l.target);
+          return p && c && !p.data.leaf ? branchLink(p, c) : "";
+        })
+        .attr("stroke-width", l => linkStyle(l).width)
+        .attr("stroke", l => linkStyle(l).stroke)
+        .attr("stroke-opacity", l => linkStyle(l).opacity);
+      nodeSel
+        .classed("dim", n => q && !visible(n.path))
+        .classed("match", n => q && hit.has(n.path))
+        .attr("transform", n => `translate(${n.x - n.w / 2},${n.y - n.h / 2})`);
+    }
+
+    function bindNodes() {
+      nodeSel = ng.selectAll("g.node").data(nodes, d => d.id);
+      nodeSel.exit().remove();
+      const enter = nodeSel.enter().append("g").attr("class", "node");
+      enter.append("rect");
+      enter.append("text").attr("class", "label");
+      enter.append("text").attr("class", "ord");
+      nodeSel = enter.merge(nodeSel);
+
+      nodeSel.each(function(n) {
+        const s = ST[n.type];
+        const c = treeColorAt(n.depth);
+        const g = d3.select(this);
+        g.select("rect")
+          .attr("width", n.w).attr("height", n.h)
+          .attr("rx", n.type === "leaf" ? 3 : 6)
+          .attr("fill", c.fill).attr("stroke", c.stroke);
+        g.select("text.label")
+          .attr("x", n.w / 2).attr("y", n.h / 2)
+          .attr("fill", c.tc).attr("font-size", s.fs).attr("font-weight", s.fw)
+          .text(n.data.name);
+        const ord = g.select("text.ord");
+        if (n.showOrd && n.idx >= 0) {
+          ord.attr("x", n.w / 2).attr("y", -5).text(ORD[n.idx] || n.idx + 1).style("display", null);
+        } else ord.style("display", "none");
+      });
+
+      nodeSel.call(d3.drag()
+        .on("start", (event, d) => {
+          if (!event.active && simulation) simulation.alphaTarget(0.25).restart();
+          d.fx = d.x; d.fy = d.y;
+          svg.classed("node-drag", true);
+        })
+        .on("drag", (event, d) => {
+          const [px, py] = d3.pointer(event, rootG.node());
+          d.fx = px; d.fy = py;
+        })
+        .on("end", (event, d) => {
+          if (!event.active && simulation) simulation.alphaTarget(0);
+          d.fx = null; d.fy = null;
+          svg.classed("node-drag", false);
+        }));
+    }
+
+    function bindLinks() {
+      linkSel = lg.selectAll("path.link").data(links, l => l.source + ">" + l.target);
+      linkSel.exit().remove();
+      linkSel = linkSel.enter().append("path").attr("class", "link").merge(linkSel);
+    }
+
+    function startSimulation() {
+      if (simulation) simulation.stop();
+
+      const root = byId.get("0");
+      simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id(d => d.id)
+          .distance(l => {
+            const p = linkNode(l, "s"), c = linkNode(l, "t");
+            const base = Math.max(36, (p.h + c.h) * 0.55 + 24);
+            return base + trunkEdgeGap(p, c) * 0.55;
+          })
+          .strength(l => branchStiffness(linkNode(l, "t"))))
+        .force("y", d3.forceY(d => d.ty).strength(d => anchorPull(d)))
+        .force("x", d3.forceX(d => d.tx).strength(d => anchorPull(d)))
+        .force("collide", d3.forceCollide().radius(d => Math.hypot(d.w, d.h) * 0.55 + 12).iterations(3))
+        .force("charge", d3.forceManyBody()
+          .strength(chargeStrength)
+          .distanceMax(CHARGE_RANGE).distanceMin(10))
+        .alphaDecay(0.028)
+        .velocityDecay(0.35)
+        .on("tick", updatePositions);
+
+      root.fx = root.x;
+      root.fy = root.y;
+
+      simulation.on("end", () => {
+        root.fx = root.fy = null;
+      });
+    }
+
+    function applyTransform() {
+      rootG.attr("transform", `translate(${transform.x},${transform.y}) scale(${transform.scale})`);
+    }
+
+    function fitView() {
+      if (!nodes.length) return;
+      const pad = 36;
+      const minX = Math.min(...nodes.map(n => n.x - n.w / 2)) - pad;
+      const maxX = Math.max(...nodes.map(n => n.x + n.w / 2)) + pad;
+      const minY = Math.min(...nodes.map(n => n.y - n.h / 2)) - pad;
+      const maxY = Math.max(...nodes.map(n => n.y + n.h / 2)) + pad;
+      const rect = svg.node().getBoundingClientRect();
+      const sc = Math.min(rect.width / (maxX - minX), rect.height / (maxY - minY), 1);
+      transform.scale = Math.max(0.06, sc);
+      transform.x = (rect.width - (maxX - minX) * transform.scale) / 2 - minX * transform.scale;
+      transform.y = (rect.height - (maxY - minY) * transform.scale) / 2 - minY * transform.scale;
+      applyTransform();
+    }
+
+    function relayout() {
+      initVerticalLayout();
+      nodes.forEach(n => { n.fx = n.fy = null; });
+      bindLinks();
+      bindNodes();
+      startSimulation();
+      updatePositions();
+      fitView();
+      document.getElementById("stats").textContent = nodes.length + " 节点";
+    }
+
+    document.getElementById("edition-label").textContent =
+      data.edition + " · D3 力导向（Neo4j / vis.js 同类方案）· 可拖节点";
+    document.getElementById("fit-view").onclick = fitView;
+    document.getElementById("reset-layout").onclick = relayout;
+    document.getElementById("search").addEventListener("input", updatePositions);
+
+    let panning = false, panLast = { x: 0, y: 0 };
+    svg.on("mousedown", event => {
+      if (event.target.closest(".node")) return;
+      panning = true;
+      panLast = { x: event.clientX, y: event.clientY };
+      svg.classed("panning", true);
+    });
+    window.addEventListener("mousemove", event => {
+      if (!panning) return;
+      transform.x += event.clientX - panLast.x;
+      transform.y += event.clientY - panLast.y;
+      panLast = { x: event.clientX, y: event.clientY };
+      applyTransform();
+    });
+    window.addEventListener("mouseup", () => { panning = false; svg.classed("panning", false); });
+    svg.on("wheel", event => {
+      event.preventDefault();
+      const rect = svg.node().getBoundingClientRect();
+      const mx = event.clientX - rect.left, my = event.clientY - rect.top;
+      const ns = Math.min(3, Math.max(0.05, transform.scale * (event.deltaY > 0 ? 0.9 : 1.1)));
+      transform.x = mx - (mx - transform.x) * (ns / transform.scale);
+      transform.y = my - (my - transform.y) * (ns / transform.scale);
+      transform.scale = ns;
+      applyTransform();
+    }, { passive: false });
+
+    buildGraph(data.tree);
+    relayout();
+  </script>
+</body>
+</html>

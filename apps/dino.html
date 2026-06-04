@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>抓恐龙</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(180deg, #87ceeb 0%, #98d8aa 55%, #6aaa64 55%, #5a9a54 100%);
+      color: #333;
+    }
+
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2rem;
+      padding: 1rem 1.5rem;
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(8px);
+      color: #fff;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #ffd166;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      color: #aaa;
+    }
+
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #06d6a0;
+    }
+
+    .hint {
+      position: fixed;
+      bottom: 1rem;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.7);
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    #game {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .dino {
+      position: absolute;
+      left: -90px;
+      z-index: 8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: drift linear forwards;
+      cursor: default;
+      will-change: transform;
+    }
+
+    .dino .letter {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #fff;
+      background: #e63946;
+      width: 2.4rem;
+      height: 2.4rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid #fff;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+      margin-bottom: 0.2rem;
+    }
+
+    .dino .sprite {
+      font-size: 3rem;
+      line-height: 1;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+      transform: scaleX(-1);
+    }
+
+    .dino.caught {
+      animation: caught 0.45s ease forwards !important;
+      pointer-events: none;
+    }
+
+    .dino.caught .letter {
+      background: #06d6a0;
+    }
+
+    @keyframes drift {
+      from { transform: translateX(0); }
+      to { transform: translateX(calc(100vw + 180px)); }
+    }
+
+    @keyframes caught {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 1; }
+      100% { transform: scale(0); opacity: 0; }
+    }
+
+    .flash {
+      position: fixed;
+      pointer-events: none;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #ffd166;
+      animation: float-up 0.8s ease forwards;
+      z-index: 20;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes float-up {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-50px); }
+    }
+
+    .wrong-flash {
+      position: fixed;
+      inset: 0;
+      background: rgba(239, 71, 111, 0.15);
+      pointer-events: none;
+      opacity: 0;
+      z-index: 5;
+    }
+
+    .wrong-flash.show {
+      animation: wrong-blink 0.3s ease;
+    }
+
+    @keyframes wrong-blink {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🦕 抓恐龙</h1>
+    <div class="stat">
+      <span class="stat-label">已抓住</span>
+      <span class="stat-value" id="caught">0</span>
+    </div>
+  </div>
+
+  <div id="game"></div>
+  <div class="wrong-flash" id="wrongFlash"></div>
+  <p class="hint">按下恐龙上的字母键即可抓住它</p>
+
+  <script>
+    const game = document.getElementById("game");
+    const caughtEl = document.getElementById("caught");
+    const wrongFlash = document.getElementById("wrongFlash");
+
+    const dinos = new Map();
+    let caught = 0;
+    let spawnTimer = null;
+
+    const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    const SPRITES = ["🦕", "🦖", "🐊"];
+
+    function randomLetter() {
+      return LETTERS[Math.floor(Math.random() * LETTERS.length)];
+    }
+
+    function spawnDino() {
+      const id = String(Date.now()) + Math.random();
+      const letter = randomLetter();
+      const el = document.createElement("div");
+      el.className = "dino";
+      el.dataset.id = id;
+      el.dataset.letter = letter;
+      el.innerHTML = `<span class="letter">${letter}</span><span class="sprite">${SPRITES[Math.floor(Math.random() * SPRITES.length)]}</span>`;
+      el.style.top = (12 + Math.random() * 68) + "%";
+      el.style.animationDuration = (10 + Math.random() * 8) + "s";
+
+      el.addEventListener("animationend", (e) => {
+        if (e.animationName === "drift") {
+          dinos.delete(id);
+          el.remove();
+        }
+      });
+
+      game.appendChild(el);
+      dinos.set(id, el);
+    }
+
+    function scheduleSpawn() {
+      const delay = 2000 + Math.random() * 8000;
+      spawnTimer = setTimeout(() => {
+        spawnDino();
+        scheduleSpawn();
+      }, delay);
+    }
+
+    function catchDino(el) {
+      const id = el.dataset.id;
+      if (!dinos.has(id)) return;
+
+      dinos.delete(id);
+      const rect = el.getBoundingClientRect();
+      el.style.animation = "none";
+      el.style.left = rect.left + "px";
+      el.style.top = rect.top + "px";
+      el.classList.add("caught");
+
+      caught++;
+      caughtEl.textContent = caught;
+
+      const flash = document.createElement("div");
+      flash.className = "flash";
+      flash.textContent = "+1 🦕";
+      flash.style.left = rect.left + rect.width / 2 + "px";
+      flash.style.top = rect.top + "px";
+      document.body.appendChild(flash);
+      setTimeout(() => flash.remove(), 800);
+
+      setTimeout(() => el.remove(), 450);
+    }
+
+    function tryCatch(key) {
+      const matches = [...dinos.values()].filter(d => d.dataset.letter === key);
+      if (matches.length === 0) {
+        wrongFlash.classList.remove("show");
+        void wrongFlash.offsetWidth;
+        wrongFlash.classList.add("show");
+        return;
+      }
+      matches.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+      catchDino(matches[0]);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const key = e.key.toUpperCase();
+      if (key.length === 1 && key >= "A" && key <= "Z") {
+        e.preventDefault();
+        tryCatch(key);
+      }
+    });
+
+    spawnDino();
+    scheduleSpawn();
+  </script>
+</body>
+</html>

@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>竖式乘法练习</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee;
+    }
+
+    .container {
+      padding: 2.5rem 3rem;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      width: min(560px, 94vw);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #a8dadc;
+    }
+
+    .hint {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 1rem;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      color: #888;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #06d6a0;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .worksheet {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 2rem;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.15rem;
+      padding: 1.5rem 2rem;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 12px;
+      cursor: text;
+      user-select: none;
+    }
+
+    .row { display: flex; align-items: center; }
+
+    .cell {
+      width: 2.2rem;
+      height: 2.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cell.carry {
+      height: 1.4rem;
+      font-size: 0.95rem;
+      color: #f4a261;
+      font-weight: 500;
+    }
+
+    .cell.carry.filled .digit { color: #ffd166; }
+    .cell.carry .digit { min-height: 1.2rem; }
+
+    .cell.partial .digit { color: #c9d1d9; }
+    .cell.partial.done .digit { color: #aaa; }
+
+    .cell.answer { border-bottom: 2px solid transparent; }
+    .cell.answer.active {
+      background: rgba(168, 218, 220, 0.15);
+      border-bottom-color: #a8dadc;
+      border-radius: 4px 4px 0 0;
+    }
+    .cell.answer.correct .digit { color: #06d6a0; }
+    .cell.answer.wrong { animation: shake 0.35s ease; }
+    .cell.answer.wrong .digit { color: #ef476f; }
+
+    .cell.place {
+      height: 1.5rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #666;
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+    .cell.place.active { color: #a8dadc; font-weight: 700; }
+
+    .sign-cell {
+      width: 2rem;
+      text-align: center;
+      color: #a8dadc;
+      margin-right: 0.3rem;
+    }
+    .sign-cell.empty { visibility: hidden; }
+
+    .line-row { width: 100%; padding: 0.2rem 0 0.4rem; }
+    .line-row hr {
+      border: none;
+      border-top: 3px solid rgba(255, 255, 255, 0.5);
+      width: 100%;
+    }
+
+    .digit { min-width: 1ch; text-align: center; }
+
+    .buffer {
+      text-align: center;
+      margin-top: 1.2rem;
+      font-size: 0.85rem;
+      color: #888;
+      min-height: 1.2rem;
+    }
+    .buffer span { color: #a8dadc; font-family: monospace; font-size: 1rem; }
+
+    .status {
+      text-align: center;
+      margin-top: 0.8rem;
+      min-height: 1.5rem;
+      font-size: 0.95rem;
+    }
+    .status.ok { color: #06d6a0; }
+    .status.err { color: #ef476f; }
+
+    #hiddenInput {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+    .worksheet.done { animation: pop 0.4s ease; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>✖️ 竖式乘法练习</h1>
+    <p class="hint">从个位开始输入；连打两位时，前一位自动填入进位</p>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">分数</span>
+        <span class="stat-value" id="score">0</span>
+      </div>
+    </div>
+
+    <div class="worksheet" id="worksheet" tabindex="0">
+      <div class="row" id="placeRow"></div>
+      <div class="row" id="rowA"></div>
+      <div class="row" id="rowB"></div>
+      <div class="row" id="carryRow"></div>
+      <div id="partialRows"></div>
+      <div class="line-row" id="sumLine" style="display:none"><hr></div>
+      <div class="row" id="answerRow"></div>
+    </div>
+
+    <div class="buffer" id="buffer"></div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <input type="text" id="hiddenInput" inputmode="numeric" autocomplete="off">
+
+  <script>
+    const worksheet = document.getElementById("worksheet");
+    const hiddenInput = document.getElementById("hiddenInput");
+    const bufferEl = document.getElementById("buffer");
+    const statusEl = document.getElementById("status");
+    const scoreEl = document.getElementById("score");
+    const sumLine = document.getElementById("sumLine");
+
+    const PLACE_NAMES = ["个", "十", "百", "千", "万", "十万"];
+
+    let a = 0, b = 0, product = 0;
+    let bDigits = [];
+    let partials = [];
+    let colCount = 0;
+    let phase = "partial";
+    let partialIdx = 0;
+    let currentCol = 0;
+    let digitBuffer = "";
+    let carryIn = [];
+    let answer = [];
+    let carryOut = [];
+    let completedPartials = [];
+    let score = 0;
+
+    function randomNumber(maxDigits) {
+      const digits = Math.floor(Math.random() * maxDigits) + 1;
+      const min = digits === 1 ? 1 : 10 ** (digits - 1);
+      const max = 10 ** digits - 1;
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function randomProblem() {
+      const aDigits = Math.floor(Math.random() * 4) + 1;
+      const bDigitsCount = Math.floor(Math.random() * 2) + 1;
+      a = randomNumber(aDigits);
+      b = randomNumber(bDigitsCount);
+    }
+
+    function padLeft(str, len) {
+      return str.padStart(len, " ");
+    }
+
+    function digitAt(num, colFromRight) {
+      const s = String(num);
+      const i = s.length - 1 - colFromRight;
+      return i >= 0 ? +s[i] : 0;
+    }
+
+    function placeLabel(colFromRight) {
+      return PLACE_NAMES[colFromRight] ?? "";
+    }
+
+    function activeGridCol() {
+      return phase === "partial" ? partialIdx + currentCol : currentCol;
+    }
+
+    function partialColCount(idx) {
+      return String(partials[idx]).length;
+    }
+
+    function sumColCount() {
+      return String(product).length;
+    }
+
+    function expectedPartial(col) {
+      const d = bDigits[partialIdx];
+      const dA = digitAt(a, col);
+      const cin = col === 0 ? 0 : carryOut[col - 1];
+      const total = dA * d + cin;
+      return { result: total % 10, carry: Math.floor(total / 10) };
+    }
+
+    function expectedSum(colFromRight) {
+      let total = colFromRight === 0 ? 0 : carryOut[colFromRight - 1];
+      for (let k = 0; k < completedPartials.length; k++) {
+        if (colFromRight >= k) {
+          total += digitAt(completedPartials[k], colFromRight - k);
+        }
+      }
+      return { result: total % 10, carry: Math.floor(total / 10) };
+    }
+
+    function expectedAt() {
+      return phase === "partial" ? expectedPartial(currentCol) : expectedSum(currentCol);
+    }
+
+    function maxColForPhase() {
+      return phase === "partial" ? partialColCount(partialIdx) : sumColCount();
+    }
+
+    function makeCell(text, cls) {
+      const cell = document.createElement("div");
+      cell.className = "cell " + cls;
+      const span = document.createElement("span");
+      span.className = "digit";
+      span.textContent = text === " " ? "" : text;
+      cell.appendChild(span);
+      return cell;
+    }
+
+    function addSignCell(row, text, empty) {
+      const el = document.createElement("div");
+      el.className = "sign-cell" + (empty ? " empty" : "");
+      if (text) el.textContent = text;
+      row.appendChild(el);
+    }
+
+    function render() {
+      const aStr = padLeft(String(a), colCount);
+      const bStr = padLeft(String(b), colCount);
+
+      const placeRow = document.getElementById("placeRow");
+      const rowA = document.getElementById("rowA");
+      const rowB = document.getElementById("rowB");
+      const carryRow = document.getElementById("carryRow");
+      const partialRows = document.getElementById("partialRows");
+      const answerRow = document.getElementById("answerRow");
+
+      placeRow.innerHTML = "";
+      rowA.innerHTML = "";
+      rowB.innerHTML = "";
+      carryRow.innerHTML = "";
+      partialRows.innerHTML = "";
+      answerRow.innerHTML = "";
+
+      addSignCell(placeRow, "", true);
+      addSignCell(rowA, "", true);
+      addSignCell(rowB, "×", false);
+      addSignCell(carryRow, "", true);
+
+      const gridActive = activeGridCol();
+
+      for (let i = 0; i < colCount; i++) {
+        const colFromRight = colCount - 1 - i;
+
+        const pCell = makeCell(placeLabel(colFromRight), "place");
+        if (colFromRight === gridActive) pCell.classList.add("active");
+        placeRow.appendChild(pCell);
+
+        rowA.appendChild(makeCell(aStr[i], ""));
+        rowB.appendChild(makeCell(bStr[i], ""));
+
+        const showCarry = colFromRight > 0;
+        const cCell = makeCell(showCarry && carryIn[colFromRight] !== null ? carryIn[colFromRight] : "", "carry");
+        if (showCarry && carryIn[colFromRight] !== null) cCell.classList.add("filled");
+        carryRow.appendChild(cCell);
+      }
+
+      for (let k = 0; k < bDigits.length; k++) {
+        const row = document.createElement("div");
+        row.className = "row";
+        addSignCell(row, "", true);
+
+        for (let i = 0; i < colCount; i++) {
+          const colFromRight = colCount - 1 - i;
+          const shift = k;
+
+          if (k < partialIdx || (k === partialIdx && phase === "sum")) {
+            const val = colFromRight >= shift
+              ? digitAt(completedPartials[k], colFromRight - shift)
+              : null;
+            const cell = makeCell(val === 0 && colFromRight < shift ? "" : (val ?? ""), "partial done");
+            row.appendChild(cell);
+          } else if (k === partialIdx && phase === "partial") {
+            const gridCol = partialIdx + currentCol;
+            if (colFromRight < shift) {
+              row.appendChild(makeCell("", "partial"));
+            } else {
+              const localCol = colFromRight - shift;
+              const filled = answer[localCol];
+              const cell = makeCell(filled ?? "", localCol === currentCol ? "answer" : "partial");
+              if (localCol === currentCol) cell.classList.add("active");
+              if (filled !== null) {
+                const exp = expectedPartial(localCol);
+                if (+filled === exp.result) cell.classList.add("correct");
+              }
+              row.appendChild(cell);
+            }
+          } else {
+            row.appendChild(makeCell("", "partial"));
+          }
+        }
+        partialRows.appendChild(row);
+      }
+
+      const showSum = bDigits.length > 1;
+      sumLine.style.display = showSum ? "" : "none";
+      addSignCell(answerRow, "", true);
+
+      if (showSum) {
+        for (let i = 0; i < colCount; i++) {
+          const colFromRight = colCount - 1 - i;
+          if (phase === "sum") {
+            const cell = makeCell(answer[colFromRight] ?? "", "answer");
+            if (colFromRight === currentCol) cell.classList.add("active");
+            if (answer[colFromRight] !== null) {
+              const exp = expectedSum(colFromRight);
+              if (+answer[colFromRight] === exp.result) cell.classList.add("correct");
+            }
+            answerRow.appendChild(cell);
+          } else {
+            answerRow.appendChild(makeCell("", "answer"));
+          }
+        }
+      } else {
+        answerRow.style.display = "none";
+      }
+    }
+
+    function resetRowState(cols) {
+      currentCol = 0;
+      digitBuffer = "";
+      carryIn = Array(colCount).fill(null);
+      answer = Array(cols).fill(null);
+      carryOut = Array(cols).fill(0);
+    }
+
+    function newProblem() {
+      randomProblem();
+      product = a * b;
+      bDigits = String(b).split("").reverse().map(Number);
+      partials = bDigits.map(d => a * d);
+      colCount = Math.max(String(product).length, String(a).length + String(b).length - 1);
+      phase = "partial";
+      partialIdx = 0;
+      completedPartials = [];
+      resetRowState(partialColCount(0));
+      statusEl.textContent = "";
+      statusEl.className = "status";
+      worksheet.classList.remove("done");
+      answerRow.style.display = bDigits.length > 1 ? "" : "none";
+      updateBuffer();
+      render();
+      focusInput();
+    }
+
+    function focusInput() {
+      hiddenInput.value = "";
+      hiddenInput.focus();
+    }
+
+    function stepLabel() {
+      if (phase === "partial") {
+        const d = bDigits[partialIdx];
+        const place = placeLabel(currentCol);
+        return `用 ${d} 乘：正在算<span>${place}</span>位`;
+      }
+      return `相加：正在算<span>${placeLabel(currentCol)}</span>位`;
+    }
+
+    function updateBuffer() {
+      bufferEl.innerHTML = digitBuffer
+        ? `当前输入：<span>${digitBuffer}</span>`
+        : stepLabel();
+    }
+
+    function finishProblem() {
+      score++;
+      scoreEl.textContent = score;
+      statusEl.textContent = `正确！${a} × ${b} = ${product}`;
+      statusEl.className = "status ok";
+      worksheet.classList.add("done");
+      setTimeout(newProblem, 1200);
+    }
+
+    function advanceAfterColumn() {
+      const maxCol = maxColForPhase();
+
+      if (currentCol + 1 >= maxCol) {
+        if (phase === "partial") {
+          completedPartials.push(partials[partialIdx]);
+          if (partialIdx + 1 < bDigits.length) {
+            partialIdx++;
+            resetRowState(partialColCount(partialIdx));
+          } else if (bDigits.length > 1) {
+            phase = "sum";
+            resetRowState(sumColCount());
+          } else {
+            finishProblem();
+            return;
+          }
+        } else {
+          finishProblem();
+          return;
+        }
+      } else {
+        currentCol++;
+      }
+      updateBuffer();
+      render();
+    }
+
+    function processColumn() {
+      const exp = expectedAt();
+      let resultDigit, carryDigit;
+
+      if (digitBuffer.length === 2) {
+        carryDigit = +digitBuffer[0];
+        resultDigit = +digitBuffer[1];
+      } else {
+        resultDigit = +digitBuffer[0];
+        carryDigit = 0;
+      }
+
+      const resultOk = resultDigit === exp.result;
+      const carryOk = exp.carry === 0 ? carryDigit === 0 : carryDigit === exp.carry;
+
+      if (!resultOk || !carryOk) {
+        statusEl.textContent = "这一位不对，再试一次";
+        statusEl.className = "status err";
+        digitBuffer = "";
+        updateBuffer();
+        document.querySelectorAll(".cell.answer.active").forEach(c => {
+          c.classList.add("wrong");
+          setTimeout(() => c.classList.remove("wrong"), 350);
+        });
+        return;
+      }
+
+      if (phase === "partial") {
+        answer[currentCol] = resultDigit;
+      } else {
+        answer[currentCol] = resultDigit;
+      }
+
+      carryOut[currentCol] = exp.carry;
+      const gridCol = phase === "partial" ? partialIdx + currentCol : currentCol;
+      if (exp.carry > 0 && gridCol + 1 < carryIn.length) {
+        carryIn[gridCol + 1] = exp.carry;
+      }
+
+      digitBuffer = "";
+      statusEl.textContent = "";
+      statusEl.className = "status";
+      advanceAfterColumn();
+    }
+
+    function onDigit(d) {
+      if (worksheet.classList.contains("done")) return;
+      digitBuffer += d;
+      updateBuffer();
+
+      const exp = expectedAt();
+      const needTwo = exp.carry > 0;
+
+      if (digitBuffer.length === 2 || (digitBuffer.length === 1 && !needTwo)) {
+        processColumn();
+      }
+    }
+
+    hiddenInput.addEventListener("input", () => {
+      const val = hiddenInput.value.replace(/\D/g, "");
+      hiddenInput.value = "";
+      for (const ch of val) onDigit(ch);
+    });
+
+    hiddenInput.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && digitBuffer.length > 0) {
+        e.preventDefault();
+        digitBuffer = digitBuffer.slice(0, -1);
+        updateBuffer();
+      }
+    });
+
+    worksheet.addEventListener("click", focusInput);
+    document.addEventListener("click", (e) => {
+      if (!worksheet.contains(e.target)) focusInput();
+    });
+
+    newProblem();
+  </script>
+</body>
+</html>
