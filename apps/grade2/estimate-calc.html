@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>估算</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee; padding: 1rem;
+    }
+    .container {
+      padding: 2rem 2rem; width: min(500px, 96vw);
+      background: rgba(255,255,255,0.06); border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 { text-align: center; font-size: 1.4rem; color: #ffd166; margin-bottom: 0.3rem; }
+    .hint { text-align: center; font-size: 0.78rem; color: #888; margin-bottom: 1rem; }
+    .stats { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem 1.6rem; margin-bottom: 1rem; }
+    .stat-value.prof { color: #ffd166; }
+    .stat-label { font-size: 0.72rem; color: #888; text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #06d6a0; text-align: center; }
+    .card {
+      padding: 1.2rem 1rem; background: rgba(0,0,0,0.25); border-radius: 14px; margin-bottom: 0.9rem;
+    }
+    .expr {
+      text-align: center; font-family: "Courier New", monospace;
+      font-size: 1.8rem; font-weight: 700; color: #a8dadc; margin-bottom: 0.3rem;
+    }
+    .sub { text-align: center; font-size: 0.82rem; color: #888; margin-bottom: 0.8rem; }
+    .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .btn {
+      padding: 0.7rem; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: 600;
+      cursor: pointer; background: #a8dadc; color: #1a1a2e;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .reason {
+      margin-top: 0.9rem; padding: 0.85rem 1rem; background: rgba(0,0,0,0.22);
+      border-radius: 10px; border-left: 3px solid #ffd166;
+      font-size: 0.86rem; line-height: 1.65; color: #ccc; min-height: 2.5rem;
+    }
+    .reason strong { color: #ffd166; }
+    .reason p + p { margin-top: 0.4rem; }
+    .status { text-align: center; margin-top: 0.7rem; min-height: 1.3rem; font-size: 0.92rem; }
+    .status.ok { color: #06d6a0; } .status.err { color: #ef476f; }
+    .btn-next {
+      display: none; margin: 0.7rem auto 0; padding: 0.5rem 1.4rem;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: transparent;
+      color: #a8dadc; cursor: pointer;
+    }
+    .btn-next.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧮 估算</h1>
+    <p class="hint">先把每个数近似成整百数，再口算</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card">
+      <div class="expr" id="expr"></div>
+      <div class="sub" id="sub"></div>
+      <div class="choices" id="choices"></div>
+    </div>
+    <div class="reason" id="reason">选出合理的估算结果。</div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script>
+    let prof, profUI;
+    let a = 0, b = 0, op = "+", answered = false, timer = null;
+    let answer = 0, ra = 0, rb = 0;
+    const AUTO_MS = 1400;
+
+    function round100(x) { return Math.round(x / 100) * 100; }
+
+    function rand100to9999() {
+      return Math.floor(Math.random() * 9900) + 100;
+    }
+
+    function buildReason() {
+      const sym = op === "+" ? "+" : "−";
+      const est = op === "+" ? ra + rb : ra - rb;
+      const lines = [
+        `把每个数<strong>近似成整百数</strong>：${a} ≈ ${ra}，${b} ≈ ${rb}。`,
+        `估算：${ra} ${sym} ${rb} = <strong>${est}</strong>。`,
+        `（准确算是 ${a} ${sym} ${b} = ${op === "+" ? a + b : a - b}，估算只要接近即可。）`
+      ];
+      return lines;
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function makeOptions(correct) {
+      const s = new Set([correct]);
+      const exact = op === "+" ? a + b : a - b;
+      [exact, correct + 100, correct - 100, correct + 200, correct - 200, round100(exact)]
+        .forEach(v => { if (v > 0 && v <= 20000) s.add(v); });
+      while (s.size < 4) s.add(correct + (Math.random() < 0.5 ? -1 : 1) * 100);
+      return shuffle([...s].slice(0, 4));
+    }
+
+    function newProblem() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      answered = false;
+      document.getElementById("status").textContent = "";
+      document.getElementById("status").className = "status";
+      document.getElementById("nextBtn").classList.remove("show");
+      document.getElementById("reason").textContent = "选出合理的估算结果。";
+
+      op = Math.random() < 0.55 ? "+" : "−";
+      a = rand100to9999();
+      b = rand100to9999();
+      if (op === "−" && b > a) [a, b] = [b, a];
+      ra = round100(a);
+      rb = round100(b);
+      answer = op === "+" ? ra + rb : ra - rb;
+
+      document.getElementById("expr").textContent = `${a} ${op} ${b} ≈ ?`;
+      document.getElementById("sub").textContent = "（每个数先近似成整百数）";
+
+      const box = document.getElementById("choices");
+      box.innerHTML = "";
+      makeOptions(answer).forEach(v => {
+        const btn = document.createElement("button");
+        btn.className = "btn";
+        btn.textContent = v;
+        btn.onclick = () => pick(v);
+        box.appendChild(btn);
+      });
+    }
+
+    function pick(v) {
+      if (answered) return;
+      answered = true;
+      document.querySelectorAll(".btn").forEach(b => b.disabled = true);
+      const st = document.getElementById("status");
+      const ok = v === answer;
+      prof.record(ok);
+      profUI.render();
+      if (ok) {
+        st.textContent = "答对了！";
+        st.className = "status ok";
+        timer = setTimeout(() => newProblem(), AUTO_MS);
+      } else {
+        st.textContent = `估算结果约为 ${answer}`;
+        st.className = "status err";
+        document.getElementById("nextBtn").classList.add("show");
+      }
+      document.getElementById("reason").innerHTML =
+        buildReason().map(t => `<p>${t}</p>`).join("");
+    }
+
+    document.getElementById("nextBtn").onclick = () => newProblem();
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      newProblem();
+    });
+  </script>
+</body>
+</html>

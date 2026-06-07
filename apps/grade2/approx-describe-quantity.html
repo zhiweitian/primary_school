@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用近似数描述数量</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee; padding: 1rem;
+    }
+    .container {
+      padding: 2rem 2rem; width: min(520px, 96vw);
+      background: rgba(255,255,255,0.06); border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 { text-align: center; font-size: 1.4rem; color: #ffd166; margin-bottom: 0.3rem; }
+    .hint { text-align: center; font-size: 0.78rem; color: #888; margin-bottom: 1rem; }
+    .stats { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem 1.6rem; margin-bottom: 1rem; }
+    .stat-value.prof { color: #ffd166; }
+    .stat-label { font-size: 0.72rem; color: #888; text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #06d6a0; text-align: center; }
+    .card {
+      padding: 1.2rem 1rem; background: rgba(0,0,0,0.25); border-radius: 14px; margin-bottom: 0.9rem;
+    }
+    .scene {
+      text-align: center; font-size: 1rem; line-height: 1.7; color: #ddd; margin-bottom: 0.8rem;
+    }
+    .exact { color: #a8dadc; font-weight: 700; font-family: "Courier New", monospace; }
+    .choices { display: flex; flex-direction: column; gap: 0.45rem; }
+    .btn {
+      padding: 0.65rem 0.8rem; border: none; border-radius: 10px; font-size: 0.95rem;
+      text-align: left; cursor: pointer; background: rgba(168,218,220,0.15); color: #e8f4f4;
+      border: 1px solid rgba(168,218,220,0.25);
+    }
+    .btn:hover:not(:disabled) { background: rgba(168,218,220,0.28); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .reason {
+      margin-top: 0.9rem; padding: 0.85rem 1rem; background: rgba(0,0,0,0.22);
+      border-radius: 10px; border-left: 3px solid #ffd166;
+      font-size: 0.86rem; line-height: 1.65; color: #ccc; min-height: 2.5rem;
+    }
+    .reason strong { color: #ffd166; }
+    .reason p + p { margin-top: 0.4rem; }
+    .status { text-align: center; margin-top: 0.7rem; min-height: 1.3rem; font-size: 0.92rem; }
+    .status.ok { color: #06d6a0; } .status.err { color: #ef476f; }
+    .btn-next {
+      display: none; margin: 0.7rem auto 0; padding: 0.5rem 1.4rem;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: transparent;
+      color: #a8dadc; cursor: pointer;
+    }
+    .btn-next.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 用近似数描述数量</h1>
+    <p class="hint">生活中常用「大约」来说一个接近的整十、整百数</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card">
+      <div class="scene" id="scene"></div>
+      <div class="choices" id="choices"></div>
+    </div>
+    <div class="reason" id="reason">选出最合适的说法。</div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script>
+    let prof, profUI;
+    const SCENES = [
+      { thing: "本", unit: "书", step: 100 },
+      { thing: "名", unit: "学生", step: 100 },
+      { thing: "棵", unit: "树", step: 10 },
+      { thing: "张", unit: "邮票", step: 10 },
+      { thing: "个", unit: "座位", step: 100 },
+      { thing: "页", unit: "练习纸", step: 10 }
+    ];
+
+    let answered = false, timer = null;
+    let exact = 0, approx = 0, step = 100, scene = null;
+    const AUTO_MS = 1400;
+
+    function roundTo(x, s) { return Math.round(x / s) * s; }
+
+    function buildReason() {
+      const u = step === 10 ? "整十" : step === 100 ? "整百" : "整千";
+      return [
+        `准确数量是 <strong>${exact}</strong> ${scene.unit}。`,
+        `说「大约有 …」时，一般近似成<strong>${u}数</strong>，方便表达。`,
+        `<strong>${approx}</strong> 与 ${exact} 最接近，所以选「大约有 ${approx} ${scene.unit}」。`
+      ];
+    }
+
+    function shuffle(a) {
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function wrongOptions() {
+      const w = new Set();
+      const tries = [
+        roundTo(exact, step === 10 ? 100 : 10),
+        approx + step * 2,
+        approx - step * 2,
+        exact,
+        Math.max(step, approx + step)
+      ];
+      for (const v of tries) {
+        if (v > 0 && v !== approx && v <= 9999) w.add(v);
+      }
+      while (w.size < 3) w.add(approx + (Math.random() < 0.5 ? -1 : 1) * step * 3);
+      return [...w].slice(0, 3);
+    }
+
+    function newProblem() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      answered = false;
+      document.getElementById("status").textContent = "";
+      document.getElementById("status").className = "status";
+      document.getElementById("nextBtn").classList.remove("show");
+      document.getElementById("reason").textContent = "选出最合适的说法。";
+
+      scene = SCENES[Math.floor(Math.random() * SCENES.length)];
+      step = scene.step;
+      const min = step === 10 ? 18 : 105;
+      exact = Math.floor(Math.random() * (9999 - min)) + min;
+      approx = roundTo(exact, step);
+      if (approx === exact) exact += step === 10 ? 3 : 37;
+
+      document.getElementById("scene").innerHTML =
+        `数一数，有 <span class="exact">${exact}</span> ${scene.unit}。<br>下面哪种说法最合适？`;
+
+      const opts = shuffle([
+        { text: `大约有 ${approx} ${scene.unit}`, ok: true },
+        ...wrongOptions().map(v => ({ text: `大约有 ${v} ${scene.unit}`, ok: false }))
+      ]);
+
+      const box = document.getElementById("choices");
+      box.innerHTML = "";
+      opts.forEach(o => {
+        const b = document.createElement("button");
+        b.className = "btn";
+        b.textContent = o.text;
+        b.onclick = () => pick(o.ok, b);
+        box.appendChild(b);
+      });
+    }
+
+    function pick(ok, btn) {
+      if (answered) return;
+      answered = true;
+      document.querySelectorAll(".btn").forEach(b => b.disabled = true);
+      const st = document.getElementById("status");
+      prof.record(ok);
+      profUI.render();
+      if (ok) {
+        st.textContent = "答对了！";
+        st.className = "status ok";
+        timer = setTimeout(() => newProblem(), AUTO_MS);
+      } else {
+        st.textContent = `应选：大约有 ${approx} ${scene.unit}`;
+        st.className = "status err";
+        document.getElementById("nextBtn").classList.add("show");
+      }
+      document.getElementById("reason").innerHTML =
+        buildReason().map(t => `<p>${t}</p>`).join("");
+    }
+
+    document.getElementById("nextBtn").onclick = () => newProblem();
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      newProblem();
+    });
+  </script>
+</body>
+</html>

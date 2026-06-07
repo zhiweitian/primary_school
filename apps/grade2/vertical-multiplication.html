@@ -45,8 +45,12 @@
     .stats {
       display: flex;
       justify-content: center;
+      flex-wrap: wrap;
+      gap: 1rem 2rem;
       margin-bottom: 1.5rem;
     }
+
+    .stat-value.prof { color: #ffd166; }
 
     .stat-label {
       font-size: 0.75rem;
@@ -187,8 +191,12 @@
 
     <div class="stats">
       <div class="stat">
-        <span class="stat-label">分数</span>
-        <span class="stat-value" id="score">0</span>
+        <span class="stat-label">做题数</span>
+        <span class="stat-value" id="totalDone">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">熟练度</span>
+        <span class="stat-value prof" id="proficiency">—</span>
       </div>
     </div>
 
@@ -208,12 +216,13 @@
 
   <input type="text" id="hiddenInput" inputmode="numeric" autocomplete="off">
 
+  <script src="../../practice-stats-store.js"></script>
   <script>
+    let prof, profUI;
     const worksheet = document.getElementById("worksheet");
     const hiddenInput = document.getElementById("hiddenInput");
     const bufferEl = document.getElementById("buffer");
     const statusEl = document.getElementById("status");
-    const scoreEl = document.getElementById("score");
     const sumLine = document.getElementById("sumLine");
 
     const PLACE_NAMES = ["个", "十", "百", "千", "万", "十万"];
@@ -230,7 +239,6 @@
     let answer = [];
     let carryOut = [];
     let completedPartials = [];
-    let score = 0;
 
     function randomNumber(maxDigits) {
       const digits = Math.floor(Math.random() * maxDigits) + 1;
@@ -465,8 +473,8 @@
     }
 
     function finishProblem() {
-      score++;
-      scoreEl.textContent = score;
+      prof.record(true);
+      profUI.render();
       statusEl.textContent = `正确！${a} × ${b} = ${product}`;
       statusEl.className = "status ok";
       worksheet.classList.add("done");
@@ -577,7 +585,14 @@
       if (!worksheet.contains(e.target)) focusInput();
     });
 
-    newProblem();
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      newProblem();
+    });
   </script>
 </body>
 </html>

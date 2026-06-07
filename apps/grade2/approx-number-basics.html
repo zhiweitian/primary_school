@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>认识近似数</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee; padding: 1rem;
+    }
+    .container {
+      padding: 2rem 2rem; width: min(520px, 96vw);
+      background: rgba(255,255,255,0.06); border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 { text-align: center; font-size: 1.4rem; color: #ffd166; margin-bottom: 0.3rem; }
+    .hint { text-align: center; font-size: 0.78rem; color: #888; margin-bottom: 1rem; }
+    .stats { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem 1.6rem; margin-bottom: 1rem; }
+    .stat-value.prof { color: #ffd166; }
+    .stat-label { font-size: 0.72rem; color: #888; text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #06d6a0; text-align: center; }
+    .step-bar {
+      display: flex; justify-content: center; gap: 0.35rem; margin-bottom: 0.85rem;
+    }
+    .step-dot {
+      width: 2rem; height: 0.28rem; border-radius: 2px; background: rgba(255,255,255,0.15);
+    }
+    .step-dot.on { background: #ffd166; }
+    .step-dot.done { background: #06d6a0; }
+    .card {
+      padding: 1.2rem 1rem; background: rgba(0,0,0,0.25); border-radius: 14px; margin-bottom: 0.9rem;
+    }
+    .goal { text-align: center; font-size: 0.9rem; color: #e8e8e8; margin-bottom: 0.35rem; }
+    .goal .num-hl { color: #ffd166; font-weight: 700; font-family: "Courier New", monospace; }
+    .goal .unit-hl { color: #a8dadc; font-weight: 600; }
+    .num-grid {
+      display: flex; justify-content: center; gap: 0.25rem; margin-bottom: 0.55rem;
+    }
+    .action-area { margin-top: 0.15rem; }
+    .prompt {
+      text-align: center; font-size: 0.98rem; color: #ddd;
+      margin-bottom: 0.55rem; line-height: 1.5;
+    }
+    .goal + .prompt { margin-top: 0.1rem; margin-bottom: 0.45rem; }
+    .num-col {
+      display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+      min-width: 2rem;
+    }
+    .num-col .d {
+      width: 2rem; height: 2.6rem; display: flex; align-items: center; justify-content: center;
+      font-family: "Courier New", monospace; font-size: 2.4rem; font-weight: 700;
+      color: #a8dadc; border-radius: 8px; border: 2px solid transparent; box-sizing: border-box;
+    }
+    .num-col .d.hi { background: rgba(255, 209, 102, 0.25); color: #ffd166; border-color: rgba(255,209,102,0.55); }
+    .num-col .d.hi-picked {
+      background: rgba(168, 218, 220, 0.12); color: #a8dadc;
+      border-color: rgba(168, 218, 220, 0.35);
+    }
+    .num-col .d.tap { cursor: pointer; }
+    .num-col .d.tap:hover { background: rgba(168, 218, 220, 0.18); border-color: rgba(168,218,220,0.35); }
+    .num-col .d.tap.err { border-color: #ef476f; background: rgba(239, 71, 111, 0.15); }
+    .num-col .pl { font-size: 0.68rem; color: #888; line-height: 1; }
+    .num-col .pl.hi { color: #ffd166; font-weight: 700; }
+    .num-col .pl.hi-picked { color: #a8dadc; font-weight: 600; }
+    .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .choices.one-col { grid-template-columns: 1fr; }
+    .btn {
+      padding: 0.7rem; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600;
+      cursor: pointer; background: #a8dadc; color: #1a1a2e;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .fill-row { display: flex; gap: 0.5rem; justify-content: center; align-items: center; }
+    .fill-row input {
+      width: 8rem; padding: 0.65rem 0.5rem; border: 2px solid rgba(168,218,220,0.35);
+      border-radius: 10px; background: rgba(0,0,0,0.3); color: #a8dadc;
+      font-family: "Courier New", monospace; font-size: 1.4rem; font-weight: 700; text-align: center;
+    }
+    .fill-row input:focus { outline: none; border-color: #ffd166; }
+    .fill-row .btn { padding: 0.65rem 1.1rem; white-space: nowrap; }
+    .carry-eq {
+      display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+      gap: 0.4rem 0.55rem; margin-top: 0.2rem;
+      font-family: "Courier New", monospace; font-size: 1.75rem; font-weight: 700; color: #a8dadc;
+    }
+    .carry-eq .hl { color: #ffd166; }
+    .carry-eq input {
+      width: 3.2rem; padding: 0.45rem 0.35rem; border: 2px solid rgba(255,209,102,0.45);
+      border-radius: 10px; background: rgba(0,0,0,0.3); color: #ffd166;
+      font-family: inherit; font-size: 1.75rem; font-weight: 700; text-align: center;
+    }
+    .carry-eq input:focus { outline: none; border-color: #ffd166; }
+    .carry-eq.done-eq { margin-bottom: 0.15rem; }
+    .final-fill { display: flex; flex-direction: column; align-items: center; gap: 0.65rem; }
+    .final-fill input {
+      width: 8rem; padding: 0.65rem 0.5rem; border: 2px solid rgba(168,218,220,0.35);
+      border-radius: 10px; background: rgba(0,0,0,0.3); color: #a8dadc;
+      font-family: "Courier New", monospace; font-size: 1.4rem; font-weight: 700; text-align: center;
+    }
+    .final-fill input:focus { outline: none; border-color: #ffd166; }
+    .reason {
+      margin-top: 0.9rem; padding: 0.85rem 1rem; background: rgba(0,0,0,0.22);
+      border-radius: 10px; border-left: 3px solid #ffd166;
+      font-size: 0.86rem; line-height: 1.65; color: #ccc; min-height: 2.5rem;
+    }
+    .reason strong { color: #ffd166; }
+    .reason p + p { margin-top: 0.4rem; }
+    .status { text-align: center; margin-top: 0.7rem; min-height: 1.3rem; font-size: 0.92rem; }
+    .status.ok { color: #06d6a0; } .status.err { color: #ef476f; }
+    .btn-next {
+      display: none; margin: 0.7rem auto 0; padding: 0.5rem 1.4rem;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: transparent;
+      color: #a8dadc; cursor: pointer;
+    }
+    .btn-next.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📐 认识近似数</h1>
+    <p class="hint">分步学习：点准哪一位 → 满不满 5 → 进不进位 → 进位加 1 → 写出近似数</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="step-bar" id="stepBar"></div>
+    <div class="card" id="card">
+      <div class="goal" id="goal"></div>
+      <div class="num-grid" id="numGrid"></div>
+      <div class="action-area">
+        <div class="prompt" id="prompt"></div>
+        <div class="choices" id="choices"></div>
+      </div>
+    </div>
+    <div class="reason" id="reason">按步骤想一想，再作答。</div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script>
+    let prof, profUI;
+    const PLACES = [
+      { name: "个位", power: 1 },
+      { name: "十位", power: 10 },
+      { name: "百位", power: 100 },
+      { name: "千位", power: 1000 }
+    ];
+    const UNITS = [
+      { name: "整十数", step: 10, place: "十" },
+      { name: "整百数", step: 100, place: "百" },
+      { name: "整千数", step: 1000, place: "千" }
+    ];
+    let n = 0, unit = null, answer = 0, timer = null;
+    let step = 0;
+    let targetPower = 10;
+    let lookPower = 1;
+    let targetDigit = 0;
+    let decidingDigit = 0;
+    let carryPrefix = 0;
+    let carryResult = 0;
+    let willCarry = false;
+    let reasonLines = [];
+
+    function updateCarryValues() {
+      carryPrefix = Math.floor(n / targetPower);
+      carryResult = carryPrefix + 1;
+    }
+
+    function stepNames() {
+      if (willCarry) {
+        return ["点准哪一位", "满不满 5", "进不进位", "加 1 是多少", "写出近似数"];
+      }
+      return ["点准哪一位", "满不满 5", "进不进位", "写出近似数"];
+    }
+
+    const AUTO_MS = 1600;
+    const actionAreaEl = document.querySelector(".action-area");
+    const promptEl = document.getElementById("prompt");
+    const numGridEl = document.getElementById("numGrid");
+    const choicesEl = document.getElementById("choices");
+
+    function setPromptAbove(target) {
+      target.parentNode.insertBefore(promptEl, target);
+    }
+
+    function setPromptAboveChoices() {
+      actionAreaEl.insertBefore(promptEl, choicesEl);
+    }
+    const reasonEl = document.getElementById("reason");
+    const statusEl = document.getElementById("status");
+    const nextBtn = document.getElementById("nextBtn");
+    const stepBarEl = document.getElementById("stepBar");
+    const goalEl = document.getElementById("goal");
+
+    function roundTo(x, step) {
+      return Math.round(x / step) * step;
+    }
+
+    function digitAt(x, power) {
+      return Math.floor(x / power) % 10;
+    }
+
+    function setDigit(x, power, d) {
+      return x - digitAt(x, power) * power + d * power;
+    }
+
+    const NINE_CARRY_RATE = 0.35;
+
+    function buildNineCarry(unit) {
+      const min = unit.step === 10 ? 11 : unit.step === 100 ? 101 : 1001;
+      let n = min + Math.floor(Math.random() * (9999 - min + 1));
+      n = setDigit(n, unit.step, 9);
+      n = setDigit(n, unit.step / 10, 5 + Math.floor(Math.random() * 5));
+      return n;
+    }
+
+    function pickNumber(unit) {
+      const min = unit.step === 10 ? 11 : unit.step === 100 ? 101 : 1001;
+      let n = Math.random() < NINE_CARRY_RATE
+        ? buildNineCarry(unit)
+        : Math.floor(Math.random() * (9999 - min + 1)) + min;
+      while (roundTo(n, unit.step) === n) n += unit.step <= 100 ? 7 : 123;
+      return n;
+    }
+
+    function targetPlaceFor(stepVal) {
+      if (stepVal === 10) return PLACES[1];
+      if (stepVal === 100) return PLACES[2];
+      return PLACES[3];
+    }
+
+    function lookPlaceFor(stepVal) {
+      if (stepVal === 10) return PLACES[0];
+      if (stepVal === 100) return PLACES[1];
+      return PLACES[2];
+    }
+
+    function shuffle(a) {
+      const arr = a.slice();
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function renderStepBar() {
+      const names = stepNames();
+      stepBarEl.innerHTML = names.map((name, i) =>
+        `<div class="step-dot ${i < step ? "done" : i === step ? "on" : ""}" title="${name}"></div>`
+      ).join("");
+    }
+
+    function powerAtIndex(len, i) {
+      return Math.pow(10, len - 1 - i);
+    }
+
+    function placeNameForPower(power) {
+      return (PLACES.find(p => p.power === power) || {}).name || "";
+    }
+
+    function renderNumber(opts) {
+      const highlightPower = opts && opts.highlightPower;
+      const highlightPicked = opts && opts.highlightPicked;
+      const highlightThrough = opts && opts.highlightThrough;
+      const clickable = opts && opts.clickable;
+      const onPick = opts && opts.onPick;
+      const s = String(n);
+      const len = s.length;
+      numGridEl.innerHTML = "";
+      s.split("").forEach((ch, i) => {
+        const power = powerAtIndex(len, i);
+        const placeName = placeNameForPower(power);
+        const col = document.createElement("div");
+        col.className = "num-col";
+        const span = document.createElement("span");
+        span.className = "d";
+        span.textContent = ch;
+        if (highlightThrough && power >= highlightThrough) span.classList.add("hi");
+        else if (highlightPower && power === highlightPower) span.classList.add("hi");
+        else if (highlightPicked && power === highlightPicked) span.classList.add("hi-picked");
+        if (clickable) {
+          span.classList.add("tap");
+          span.title = placeName;
+          span.onclick = () => onPick(power, +ch, span);
+        }
+        const lab = document.createElement("span");
+        lab.className = "pl";
+        lab.textContent = placeName.replace("位", "");
+        if (highlightThrough && power >= highlightThrough) lab.classList.add("hi");
+        else if (highlightPower && power === highlightPower) lab.classList.add("hi");
+        else if (highlightPicked && power === highlightPicked) lab.classList.add("hi-picked");
+        col.appendChild(span);
+        col.appendChild(lab);
+        numGridEl.appendChild(col);
+      });
+    }
+
+    function renderReason() {
+      reasonEl.innerHTML = reasonLines.map(t => `<p>${t}</p>`).join("");
+    }
+
+    function addReason(html) {
+      reasonLines.push(html);
+      renderReason();
+    }
+
+    function clearChoices() {
+      choicesEl.innerHTML = "";
+      choicesEl.className = "choices";
+    }
+
+    function choiceBtn(text, onClick) {
+      const b = document.createElement("button");
+      b.className = "btn";
+      b.textContent = text;
+      b.onclick = () => onClick(b);
+      choicesEl.appendChild(b);
+      return b;
+    }
+
+    function flashStatus(ok, msg) {
+      statusEl.textContent = msg;
+      statusEl.className = ok ? "status ok" : "status err";
+    }
+
+    function advanceStep() {
+      step++;
+      renderStepBar();
+      if (step === 1) renderStep2();
+      else if (step === 2) renderStep3();
+      else if (step === 3) {
+        if (willCarry) renderStep4Carry();
+        else renderStep5Final();
+      } else if (step === 4) renderStep5Final();
+    }
+
+    function makeCarryEqDone(left, result) {
+      const eq = document.createElement("div");
+      eq.className = "carry-eq done-eq";
+      eq.innerHTML =
+        `<span class="hl">${left}</span><span>+</span><span>1</span><span>=</span><span class="hl">${result}</span>`;
+      return eq;
+    }
+
+    function makeNumInput(placeholder) {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.inputMode = "numeric";
+      input.autocomplete = "off";
+      input.placeholder = placeholder || "?";
+      return input;
+    }
+
+    function bindAutoFill(input, expected, { onOk, wrongMsg }) {
+      let locked = false;
+      const check = () => {
+        if (locked) return;
+        const raw = input.value.trim();
+        if (!raw) return;
+        const v = parseInt(raw, 10);
+        if (!Number.isFinite(v)) return;
+        if (v === expected) {
+          locked = true;
+          input.disabled = true;
+          statusEl.textContent = "";
+          statusEl.className = "status";
+          onOk(v);
+          return;
+        }
+        const needLen = String(expected).length;
+        if (raw.length >= needLen || (expected < 10 && raw.length >= 1)) {
+          flashStatus(false, wrongMsg(v));
+          input.value = "";
+          input.focus();
+        }
+      };
+      input.addEventListener("input", check);
+    }
+
+    function renderFillStep(prompt, expected, onOk) {
+      clearChoices();
+      statusEl.textContent = "";
+      statusEl.className = "status";
+      setPromptAboveChoices();
+      choicesEl.className = "choices one-col";
+      promptEl.textContent = prompt;
+      const row = document.createElement("div");
+      row.className = "fill-row";
+      const input = makeNumInput();
+      bindAutoFill(input, expected, {
+        onOk: () => onOk.done(),
+        wrongMsg: () => onOk.wrongMsg()
+      });
+      row.appendChild(input);
+      choicesEl.appendChild(row);
+      input.focus();
+    }
+
+    function finishProblem(ok) {
+      prof.record(ok);
+      profUI.render();
+      if (ok) {
+        addReason(`所以 <strong>${n}</strong> 近似成${unit.name}是 <strong>${answer}</strong>。`);
+        flashStatus(true, "全部答对了！");
+        timer = setTimeout(() => newProblem(), AUTO_MS);
+      } else {
+        flashStatus(false, `近似数是 ${answer}`);
+        nextBtn.classList.add("show");
+      }
+    }
+
+    function renderStep1() {
+      clearChoices();
+      statusEl.textContent = "";
+      statusEl.className = "status";
+      const target = targetPlaceFor(unit.step);
+      targetPower = target.power;
+      lookPower = lookPlaceFor(unit.step).power;
+      targetDigit = digitAt(n, targetPower);
+      decidingDigit = digitAt(n, lookPower);
+      willCarry = decidingDigit >= 5;
+      updateCarryValues();
+      setPromptAbove(numGridEl);
+      promptEl.textContent = `近似成${unit.name}，请点击${target.name}上的数字`;
+      renderNumber({
+        clickable: true,
+        onPick(power, _digit, el) {
+          if (power !== targetPower) {
+            el.classList.add("err");
+            setTimeout(() => el.classList.remove("err"), 450);
+            flashStatus(false, `要以${target.name}为准，请点${target.name}上的数字。`);
+            return;
+          }
+          renderNumber({ highlightPower: targetPower });
+          addReason(`近似成${unit.name}，要以<strong>${target.name}</strong>为准。`);
+          advanceStep();
+        }
+      });
+    }
+
+    function renderStep2() {
+      clearChoices();
+      statusEl.textContent = "";
+      setPromptAboveChoices();
+      const target = targetPlaceFor(unit.step);
+      const look = lookPlaceFor(unit.step);
+      renderNumber({ highlightPicked: targetPower, highlightPower: lookPower });
+      promptEl.textContent = `看${target.name}右边一位（${look.name}），是 ${decidingDigit}，满 5 了吗？`;
+      shuffle([
+        { text: "满了（≥5）", ok: decidingDigit >= 5 },
+        { text: "没满（<5）", ok: decidingDigit < 5 }
+      ]).forEach(opt => {
+        choiceBtn(opt.text, () => {
+          if (!opt.ok) {
+            flashStatus(false, `${look.name}是 ${decidingDigit}，${decidingDigit >= 5 ? "已经满 5 了" : "还没满 5"}。再想想。`);
+            return;
+          }
+          addReason(`${target.name}右边${look.name}是 <strong>${decidingDigit}</strong>，${decidingDigit >= 5 ? "满 5 了" : "不满 5"}。`);
+          advanceStep();
+        });
+      });
+    }
+
+    function renderStep3() {
+      clearChoices();
+      statusEl.textContent = "";
+      setPromptAboveChoices();
+      renderNumber({ highlightPicked: targetPower, highlightPower: lookPower });
+      const target = targetPlaceFor(unit.step).name;
+      const shouldCarry = decidingDigit >= 5;
+      promptEl.textContent = `所以要向${target}进 1 吗？`;
+      shuffle([
+        { text: "要进位", ok: shouldCarry },
+        { text: "不进位（舍去）", ok: !shouldCarry }
+      ]).forEach(opt => {
+        choiceBtn(opt.text, () => {
+          if (!opt.ok) {
+            flashStatus(false, shouldCarry ? "满 5 了，要向高位进 1。" : "不满 5，不进位。");
+            return;
+          }
+          addReason(shouldCarry
+            ? `满 5，向<strong>${target}</strong>进 1。`
+            : `不满 5，<strong>不进位</strong>，后面数位变 0。`);
+          advanceStep();
+        });
+      });
+    }
+
+    function renderStep4Carry() {
+      const target = targetPlaceFor(unit.step);
+      updateCarryValues();
+      renderNumber({ highlightThrough: targetPower });
+      clearChoices();
+      statusEl.textContent = "";
+      setPromptAboveChoices();
+      choicesEl.className = "choices one-col";
+      promptEl.textContent = `向${target.name}进 1，前面数字加 1，算一算：`;
+
+      const eq = document.createElement("div");
+      eq.className = "carry-eq";
+      eq.innerHTML = `<span class="hl">${carryPrefix}</span><span>+</span><span>1</span><span>=</span>`;
+      const input = makeNumInput("?");
+      input.style.width = Math.max(3.2, String(carryResult).length * 1.4 + 1) + "rem";
+      eq.appendChild(input);
+      bindAutoFill(input, carryResult, {
+        onOk() {
+          addReason(`<strong>${carryPrefix}</strong> 加 1 是 <strong>${carryResult}</strong>。`);
+          advanceStep();
+        },
+        wrongMsg: () => `${carryPrefix} + 1 = ${carryResult}，再算算。`
+      });
+
+      const row = document.createElement("div");
+      row.className = "fill-row";
+      row.appendChild(eq);
+      choicesEl.appendChild(row);
+      input.focus();
+    }
+
+    function renderStep5Final() {
+      updateCarryValues();
+      renderNumber({ highlightThrough: targetPower });
+      clearChoices();
+      statusEl.textContent = "";
+      statusEl.className = "status";
+      setPromptAboveChoices();
+      choicesEl.className = "choices one-col";
+      promptEl.textContent = "把后面数位都变成 0，近似数是多少？";
+
+      const wrap = document.createElement("div");
+      wrap.className = "final-fill";
+      if (willCarry) wrap.appendChild(makeCarryEqDone(carryPrefix, carryResult));
+
+      const input = makeNumInput();
+      bindAutoFill(input, answer, {
+        onOk() { finishProblem(true); },
+        wrongMsg: () => "不对，再想想。"
+      });
+      wrap.appendChild(input);
+      choicesEl.appendChild(wrap);
+      input.focus();
+    }
+
+    function newProblem() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      step = 0;
+      reasonLines = [];
+      statusEl.textContent = "";
+      statusEl.className = "status";
+      nextBtn.classList.remove("show");
+      reasonEl.textContent = "按步骤想一想，再作答。";
+
+      unit = UNITS[Math.floor(Math.random() * UNITS.length)];
+      n = pickNumber(unit);
+      answer = roundTo(n, unit.step);
+
+      goalEl.innerHTML = `目标：把 <span class="num-hl">${n}</span> 近似成<span class="unit-hl">${unit.name}</span>`;
+      targetPower = targetPlaceFor(unit.step).power;
+      lookPower = lookPlaceFor(unit.step).power;
+      targetDigit = digitAt(n, targetPower);
+      decidingDigit = digitAt(n, lookPower);
+      willCarry = decidingDigit >= 5;
+      updateCarryValues();
+      renderStepBar();
+      renderStep1();
+    }
+
+    nextBtn.onclick = () => newProblem();
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      newProblem();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>万以内比大小</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee;
+      padding: 1rem;
+    }
+
+    .container {
+      padding: 2rem 2.2rem;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      width: min(520px, 96vw);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.45rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: #ffd166;
+    }
+
+    .hint {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #888;
+      margin-bottom: 1.2rem;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1.2rem 2rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .stat-value.prof { color: #ffd166; }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      color: #888;
+    }
+
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #06d6a0;
+    }
+
+    .compare-card {
+      padding: 1.4rem 1rem 1.2rem;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 14px;
+      margin-bottom: 1rem;
+    }
+
+    .numbers {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .num-box {
+      flex: 1;
+      max-width: 11rem;
+      text-align: center;
+      padding: 0.85rem 0.5rem;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.08);
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .num-box.win {
+      border-color: #06d6a0;
+      background: rgba(6, 214, 160, 0.12);
+    }
+
+    .num-label {
+      font-size: 0.72rem;
+      color: #888;
+      margin-bottom: 0.35rem;
+    }
+
+    .num-value {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #a8dadc;
+      letter-spacing: 0.04em;
+    }
+
+    .vs {
+      font-size: 1rem;
+      color: #666;
+      font-weight: 600;
+    }
+
+    .compose {
+      text-align: center;
+      font-size: 0.82rem;
+      line-height: 1.55;
+      color: #9aa;
+      min-height: 2.4rem;
+      padding: 0 0.5rem;
+    }
+
+    .choices {
+      display: flex;
+      gap: 0.55rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      flex: 1;
+      min-width: 6.5rem;
+      padding: 0.75rem 0.6rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #1a1a2e;
+      background: #a8dadc;
+      transition: transform 0.12s, opacity 0.12s;
+    }
+
+    .btn:hover:not(:disabled) { transform: translateY(-1px); }
+    .btn:active:not(:disabled) { transform: translateY(0); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+
+    .btn.eq { background: #ffd166; }
+    .btn.right { background: #90dbf4; }
+
+    .reason {
+      margin-top: 1rem;
+      padding: 0.9rem 1rem;
+      background: rgba(0, 0, 0, 0.22);
+      border-radius: 10px;
+      border-left: 3px solid #ffd166;
+      font-size: 0.88rem;
+      line-height: 1.65;
+      color: #ccc;
+      min-height: 3rem;
+    }
+
+    .reason strong { color: #ffd166; font-weight: 600; }
+    .reason p + p { margin-top: 0.45rem; }
+
+    .status {
+      text-align: center;
+      margin-top: 0.85rem;
+      min-height: 1.4rem;
+      font-size: 0.95rem;
+    }
+
+    .status.ok { color: #06d6a0; }
+    .status.err { color: #ef476f; }
+
+    .next-row {
+      text-align: center;
+      margin-top: 0.75rem;
+    }
+
+    .btn-next {
+      padding: 0.55rem 1.6rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      background: transparent;
+      color: #a8dadc;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: none;
+    }
+
+    .btn-next.show { display: inline-block; }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+
+    .compare-card.done { animation: pop 0.35s ease; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚖️ 万以内比大小</h1>
+    <p class="hint">先比位数，再从高位到低位逐位比较</p>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">做题数</span>
+        <span class="stat-value" id="totalDone">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">熟练度</span>
+        <span class="stat-value prof" id="proficiency">—</span>
+      </div>
+    </div>
+
+    <div class="compare-card" id="card">
+      <div class="numbers">
+        <div class="num-box" id="boxA">
+          <div class="num-label">甲数</div>
+          <div class="num-value" id="numA">0</div>
+        </div>
+        <div class="vs">比</div>
+        <div class="num-box" id="boxB">
+          <div class="num-label">乙数</div>
+          <div class="num-value" id="numB">0</div>
+        </div>
+      </div>
+      <div class="compose" id="compose"></div>
+      <div class="choices" id="choices">
+        <button class="btn" data-pick="-1">甲数更大 &gt;</button>
+        <button class="btn eq" data-pick="0">一样大 ＝</button>
+        <button class="btn right" data-pick="1">乙数更大 &lt;</button>
+      </div>
+    </div>
+
+    <div class="reason" id="reason">选出正确的大小关系，会显示比较方法。</div>
+    <div class="status" id="status"></div>
+    <div class="next-row">
+      <button class="btn-next" id="nextBtn">下一题 →</button>
+    </div>
+  </div>
+
+  <script src="../../practice-stats-store.js"></script>
+  <script>
+    const PLACE = ["个", "十", "百", "千"];
+    let prof, profUI;
+
+    let a = 0, b = 0, answered = false;
+    let autoNextTimer = null;
+    const AUTO_NEXT_MS = 1400;
+
+    const numA = document.getElementById("numA");
+    const numB = document.getElementById("numB");
+    const boxA = document.getElementById("boxA");
+    const boxB = document.getElementById("boxB");
+    const composeEl = document.getElementById("compose");
+    const reasonEl = document.getElementById("reason");
+    const statusEl = document.getElementById("status");
+    const card = document.getElementById("card");
+    const choices = document.getElementById("choices");
+    const nextBtn = document.getElementById("nextBtn");
+
+    // 题型与出题比例（合计 100%）
+    // 1. 位数不同 16%  2. 相等 8%
+    // 3. 四位数：千位不同 13% / 百位不同 14% / 十位不同 11% / 个位不同 9%
+    // 4. 三位数：百位不同 9% / 十位不同 7% / 个位不同 5%
+    // 5. 两位数：十位不同 4% / 个位不同 4%
+    const PROBLEM_MIX = [
+      { w: 16, gen: () => genDiffDigits() },
+      { w: 8, gen: () => genEqual() },
+      { w: 13, gen: () => genSameLenDiffAt(4, 3) },
+      { w: 14, gen: () => genSameLenDiffAt(4, 2) },
+      { w: 11, gen: () => genSameLenDiffAt(4, 1) },
+      { w: 9, gen: () => genSameLenDiffAt(4, 0) },
+      { w: 9, gen: () => genSameLenDiffAt(3, 2) },
+      { w: 7, gen: () => genSameLenDiffAt(3, 1) },
+      { w: 5, gen: () => genSameLenDiffAt(3, 0) },
+      { w: 4, gen: () => genSameLenDiffAt(2, 1) },
+      { w: 4, gen: () => genSameLenDiffAt(2, 0) }
+    ];
+
+    function randDigit(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function fromDigits(arr) {
+      return parseInt(arr.join(""), 10);
+    }
+
+    function genWithLen(len) {
+      const d = [];
+      for (let i = 0; i < len; i++) {
+        d.push(i === 0 ? randDigit(1, 9) : randDigit(0, 9));
+      }
+      return fromDigits(d);
+    }
+
+    function genDiffDigits() {
+      let lenA = randDigit(1, 4);
+      let lenB = randDigit(1, 4);
+      while (lenB === lenA) lenB = randDigit(1, 4);
+      return [genWithLen(lenA), genWithLen(lenB)];
+    }
+
+    function genEqual() {
+      const n = genWithLen(randDigit(1, 4));
+      return [n, n];
+    }
+
+    function genSameLenDiffAt(len, place) {
+      const high = len - 1;
+      const da = [], db = [];
+      for (let p = high; p >= 0; p--) {
+        if (p > place) {
+          const d = p === high ? randDigit(1, 9) : randDigit(0, 9);
+          da.push(d);
+          db.push(d);
+        } else if (p === place) {
+          const d1 = p === high ? randDigit(1, 9) : randDigit(0, 9);
+          let d2 = randDigit(p === high ? 1 : 0, 9);
+          while (d2 === d1) d2 = randDigit(p === high ? 1 : 0, 9);
+          da.push(d1);
+          db.push(d2);
+        } else {
+          da.push(randDigit(0, 9));
+          db.push(randDigit(0, 9));
+        }
+      }
+      return [fromDigits(da), fromDigits(db)];
+    }
+
+    function pickProblem() {
+      let r = Math.random() * 100;
+      for (const item of PROBLEM_MIX) {
+        r -= item.w;
+        if (r < 0) return item.gen;
+      }
+      return PROBLEM_MIX[PROBLEM_MIX.length - 1].gen;
+    }
+
+    function digitLen(n) {
+      return n === 0 ? 1 : String(n).length;
+    }
+
+    function digitAt(n, place) {
+      return Math.floor(n / 10 ** place) % 10;
+    }
+
+    function composeText(n) {
+      const parts = [];
+      for (let p = 3; p >= 0; p--) {
+        const d = digitAt(n, p);
+        if (d > 0) parts.push(`${d}个${PLACE[p]}`);
+      }
+      return parts.length ? `${n} = ${parts.join("、")}` : "0";
+    }
+
+    function cmp(a, b) {
+      if (a > b) return -1;
+      if (a < b) return 1;
+      return 0;
+    }
+
+    function symbol(c) {
+      return c < 0 ? "＞" : c > 0 ? "＜" : "＝";
+    }
+
+    function sideLabel(c) {
+      if (c < 0) return "甲数更大";
+      if (c > 0) return "乙数更大";
+      return "一样大";
+    }
+
+    function buildReason(x, y) {
+      const lines = [];
+      const lenX = digitLen(x);
+      const lenY = digitLen(y);
+
+      if (x === y) {
+        lines.push(`甲数 ${x} 和乙数 ${y} 完全相同，所以 <strong>一样大</strong>。`);
+        return lines;
+      }
+
+      if (lenX !== lenY) {
+        const more = lenX > lenY ? "甲" : "乙";
+        const big = lenX > lenY ? x : y;
+        const small = lenX > lenY ? y : x;
+        lines.push(`甲数 ${x} 是 <strong>${lenX} 位数</strong>，乙数 ${y} 是 <strong>${lenY} 位数</strong>。`);
+        lines.push(`比较万以内的数，<strong>先看位数</strong>：位数多的数更大。`);
+        lines.push(`所以 ${more}数更大：${big} ${symbol(cmp(x, y))} ${small}。`);
+        return lines;
+      }
+
+      lines.push(`甲、乙都是 <strong>${lenX} 位数</strong>，位数相同，要从<strong>高位到低位</strong>逐位比较。`);
+
+      const top = lenX - 1;
+      for (let p = top; p >= 0; p--) {
+        const dx = digitAt(x, p);
+        const dy = digitAt(y, p);
+        const name = PLACE[p];
+        if (dx === dy) {
+          if (p > 0) {
+            lines.push(`${name}位都是 ${dx}，一样大，继续看${PLACE[p - 1]}位。`);
+          } else {
+            lines.push(`${name}位都是 ${dx}，各数位都相同。`);
+          }
+        } else {
+          const bigger = dx > dy ? "甲" : "乙";
+          lines.push(`比到 <strong>${name}位</strong>：甲是 ${dx}，乙是 ${dy}。${dx > dy ? dx : dy} 更大。`);
+          lines.push(`这一位就能分出大小，所以 <strong>${bigger}数更大</strong>：${x} ${symbol(cmp(x, y))} ${y}。`);
+          break;
+        }
+      }
+      return lines;
+    }
+
+    function renderReason(lines) {
+      reasonEl.innerHTML = lines.map(t => `<p>${t}</p>`).join("");
+    }
+
+    function newProblem() {
+      if (autoNextTimer) {
+        clearTimeout(autoNextTimer);
+        autoNextTimer = null;
+      }
+      answered = false;
+      card.classList.remove("done");
+      boxA.classList.remove("win");
+      boxB.classList.remove("win");
+      statusEl.textContent = "";
+      statusEl.className = "status";
+      nextBtn.classList.remove("show");
+      choices.querySelectorAll(".btn").forEach(btn => btn.disabled = false);
+
+      [a, b] = pickProblem()();
+      if (Math.random() < 0.5) [a, b] = [b, a];
+
+      numA.textContent = a;
+      numB.textContent = b;
+      composeEl.textContent = `${composeText(a)}　｜　${composeText(b)}`;
+      reasonEl.textContent = "选出正确的大小关系，会显示比较方法。";
+    }
+
+    function onPick(pick) {
+      if (answered) return;
+      answered = true;
+      choices.querySelectorAll(".btn").forEach(btn => btn.disabled = true);
+
+      const correct = cmp(a, b);
+      const ok = pick === correct;
+      prof.record(ok);
+      profUI.render();
+
+      if (ok) {
+        statusEl.textContent = "答对了！";
+        statusEl.className = "status ok";
+        card.classList.add("done");
+      } else {
+        statusEl.textContent = `再想想。正确答案是：甲 ${symbol(correct)} 乙（${sideLabel(correct)}）`;
+        statusEl.className = "status err";
+        nextBtn.classList.add("show");
+      }
+
+      if (correct < 0) boxA.classList.add("win");
+      else if (correct > 0) boxB.classList.add("win");
+
+      renderReason(buildReason(a, b));
+
+      if (ok) {
+        autoNextTimer = setTimeout(() => {
+          autoNextTimer = null;
+          newProblem();
+        }, AUTO_NEXT_MS);
+      }
+    }
+
+    choices.addEventListener("click", e => {
+      const btn = e.target.closest("[data-pick]");
+      if (!btn) return;
+      onPick(+btn.dataset.pick);
+    });
+
+    nextBtn.addEventListener("click", () => newProblem());
+
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      newProblem();
+    });
+  </script>
+</body>
+</html>

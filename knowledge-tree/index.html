@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>一年级数学 · 分支知识树</title>
+  <title>人教版小学数学 · 分支知识树</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; overflow: hidden; }
@@ -23,6 +23,7 @@
       padding: 0.32rem 0.7rem; border: 1px solid #ccc; border-radius: 6px;
       background: #fff; font-size: 0.78rem; cursor: pointer;
     }
+    #grade-select { padding: 0.32rem 0.5rem; }
     .search-wrap { flex: 1; max-width: 200px; }
     .search-wrap input { width: 100%; padding: 0.32rem 0.6rem; border: 1px solid #ccc; border-radius: 6px; font-size: 0.8rem; }
     .stats { font-size: 0.72rem; color: #aaa; margin-left: auto; }
@@ -31,7 +32,7 @@
     #tree-svg.panning { cursor: grabbing; }
     #tree-svg.node-drag { cursor: move; }
     .link {
-      fill: none; stroke: #c4b5a5;
+      fill: none;
       stroke-linecap: round; stroke-linejoin: round;
     }
     .link.dim { opacity: 0.06; }
@@ -39,9 +40,17 @@
     .node:active { cursor: grabbing; }
     .node.dim { opacity: 0.1; }
     .node rect { stroke-width: 1.5; }
-    .node.match rect { stroke: #ff9800 !important; stroke-width: 2; }
+    .node .leaf-shape { stroke-width: 1.5; stroke-linejoin: round; }
+    .node .leaf-vein { pointer-events: none; }
+    .node.match rect,
+    .node.match .leaf-shape { stroke: #ff9800 !important; stroke-width: 2; }
     .node text { pointer-events: none; font-family: inherit; text-anchor: middle; dominant-baseline: central; }
+    .node .app-btn { cursor: pointer; }
+    .node .app-btn rect { fill: rgba(255, 255, 255, 0.92); stroke: rgba(0, 0, 0, 0.18); stroke-width: 1; }
+    .node .app-btn text { font-size: 9px; font-weight: 700; fill: #2e7d32; pointer-events: none; }
+    .node.dim .app-btn { pointer-events: none; }
     .ord { font-size: 10px; font-weight: 700; fill: #8d6e63; text-anchor: middle; }
+    .prof-stats { font-size: 6.5px; font-weight: 600; fill: #1b5e20; opacity: 0.88; }
     .hint {
       position: absolute; bottom: 8px; left: 8px; font-size: 0.68rem; color: #999;
       background: rgba(255,255,255,0.92); padding: 0.3rem 0.5rem; border-radius: 4px;
@@ -50,9 +59,13 @@
 </head>
 <body>
   <header class="header">
-    <h1>人教版一年级数学 · 分支优先级树</h1>
+    <h1 id="page-title">人教版小学数学 · 分支知识树</h1>
     <p class="subtitle" id="edition-label"></p>
     <div class="toolbar">
+      <select id="grade-select" class="btn" aria-label="年级">
+        <option value="1">一年级</option>
+        <option value="2">二年级</option>
+      </select>
       <div class="search-wrap"><input type="search" id="search" placeholder="搜索…" /></div>
       <button class="btn" id="reset-layout">重置布局</button>
       <button class="btn" id="fit-view">适应窗口</button>
@@ -61,13 +74,19 @@
   </header>
   <div class="canvas-wrap">
     <svg id="tree-svg"><g id="tree-root"><g class="links"></g><g class="nodes"></g></g></svg>
-    <div class="hint">力导向（图数据库同款思路）· 拖节点 · 拖空白平移 · 滚轮缩放</div>
+    <div class="hint">力导向 · 拖节点 · 拖空白平移 · 滚轮缩放 · 练习数据保存在 data/practice-stats.json（请用 python3 serve.py 启动）</div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="../practice-stats-store.js"></script>
   <script src="grade1-math-priority-tree.js"></script>
+  <script src="grade2-math-priority-tree.js"></script>
   <script>
-    const data = window.GRADE1_MATH_PRIORITY_TREE;
+    const GRADE_DATA = {
+      1: window.GRADE1_MATH_PRIORITY_TREE,
+      2: window.GRADE2_MATH_PRIORITY_TREE
+    };
+    let data = GRADE_DATA[1];
     const ORD = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮";
     const ST = {
       root:   { h: 32, fs: 12, fw: 700, fill: "#5d4037", stroke: "#4e342e", tc: "#fff", pad: 14 },
@@ -75,12 +94,30 @@
       group:  { h: 28, fs: 11, fw: 700, fill: "#fff3e0", stroke: "#ef6c00", tc: "#e65100", pad: 12 },
       scope:  { h: 26, fs: 10, fw: 600, fill: "#2e7d32", stroke: "#1b5e20", tc: "#fff", pad: 10 },
       topic:  { h: 24, fs: 10, fw: 600, fill: "#546e7a", stroke: "#455a64", tc: "#fff", pad: 10 },
-      leaf:   { h: 20, fs: 8,  fw: 400, fill: "#fff",    stroke: "#cfd8dc", tc: "#455a64", pad: 8 }
+      leaf:   { h: 28, fs: 8,  fw: 400, fill: "#fff",    stroke: "#cfd8dc", tc: "#1b3d1f", pad: 12 }
     };
     const TREE_FILL_ROOT = "#6d4c35";
     const TREE_FILL_LEAF = "#66bb6a";
     const TREE_STROKE_ROOT = "#4e342e";
     const TREE_STROKE_LEAF = "#2e7d32";
+    const PROF_FILL_0 = "#43a047";
+    const PROF_FILL_100 = "#e53935";
+    const PROF_STROKE_0 = "#2e7d32";
+    const PROF_STROKE_100 = "#b71c1c";
+
+    function profColorAt(pct) {
+      const t = Math.max(0, Math.min(100, pct == null ? 0 : pct)) / 100;
+      return {
+        fill: d3.interpolateRgb(PROF_FILL_0, PROF_FILL_100)(t),
+        stroke: d3.interpolateRgb(PROF_STROKE_0, PROF_STROKE_100)(t),
+        tc: t > 0.52 ? "#fff" : "#1b3d1f"
+      };
+    }
+
+    function leafNodeColor(n) {
+      if (!n.data.app) return treeColorAt(n.depth);
+      return profColorAt(PracticeStats.get(n.path).proficiency);
+    }
 
     function treeColorAt(depth) {
       const t = maxDepth > 0 ? depth / maxDepth : 0;
@@ -193,11 +230,56 @@
       return measureCtx.measureText(text).width;
     }
 
+    const APP_BTN_W = 22;
+    const APP_BTN_GAP = 5;
+    const LEAF_W_EXTRA = 10;
+    const LEAF_APP_W_EXTRA = 14;
+    const PROF_STAT_FS = 6.5;
+    const PROF_STAT_SAMPLE = "99题 · 100%";
+
+    function appHref(node) {
+      const base = node.data.app;
+      const sep = base.includes("?") ? "&" : "?";
+      return base + sep + "node=" + encodeURIComponent(node.path);
+    }
+
+    function leafPath(w, h) {
+      const cx = w * 0.5;
+      const tip = 2;
+      const base = h - 1;
+      return `M ${cx} ${tip}`
+        + ` C ${w - 0.4} ${h * 0.28}, ${w * 0.98} ${h * 0.68}, ${w * 0.58} ${base}`
+        + ` Q ${cx} ${h * 0.92} ${w * 0.42} ${base}`
+        + ` C ${w * 0.02} ${h * 0.68}, ${0.8} ${h * 0.28}, ${cx} ${tip} Z`;
+    }
+
+    function leafLabelY(h, hasProf) {
+      return hasProf ? h / 2 - 4.5 : h / 2;
+    }
+
+    function leafProfY(h) {
+      return h / 2 + 5.5;
+    }
+
     function nw(node, type) {
       const s = ST[type];
       const label = node.name || "";
-      const minW = type === "leaf" ? 40 : 36;
-      return Math.ceil(Math.max(minW, measureLabelW(label, s.fs, s.fw) + s.pad * 2));
+      const minW = type === "leaf" ? 52 : 36;
+      const pad = s.pad + (type === "leaf" && node.app ? 2 : 0);
+      let w = measureLabelW(label, s.fs, s.fw) + pad * 2;
+      if (type === "leaf") {
+        w += LEAF_W_EXTRA;
+        if (node.app) {
+          const btnBlock = APP_BTN_W + APP_BTN_GAP;
+          const profW = measureLabelW(PROF_STAT_SAMPLE, PROF_STAT_FS, 600) + pad * 2 + btnBlock;
+          w = Math.max(w + btnBlock, profW) + LEAF_APP_W_EXTRA;
+        }
+      }
+      return Math.ceil(Math.max(minW, w));
+    }
+
+    function leafClipId(node) {
+      return "leaf-clip-" + node.id.replace(/\//g, "_");
     }
 
     function hash(s, salt) {
@@ -216,7 +298,8 @@
         const id = path;
         nodes.push({
           id, data: node, path, depth, type,
-          w: nw(node, type), h: ST[type].h,
+          w: nw(node, type),
+          h: ST[type].h + (type === "leaf" && node.app ? 14 : 0),
           idx, showOrd, parentId, x: 0, y: 0, tx: 0, ty: 0
         });
         if (parentId != null) links.push({ source: parentId, target: id });
@@ -257,7 +340,7 @@
       return ANCHOR_SCALE * (n.subCount || 1) / totalLeaves;
     }
 
-    const CHARGE_STRENGTH = -9;
+    const CHARGE_STRENGTH = -6;
     const CHARGE_RANGE = 480;
 
     function chargeStrength(n) {
@@ -321,26 +404,35 @@
       });
     }
 
+    function linkEndpoint(n, other) {
+      return other.y < n.y ? { x: n.x, y: n.y - n.h / 2 } : { x: n.x, y: n.y + n.h / 2 };
+    }
+
     function branchLink(p, c) {
-      const x1 = p.x, y1 = p.y - p.h / 2;
-      const x2 = c.x, y2 = c.y + c.h / 2;
+      const a = linkEndpoint(p, c);
+      const b = linkEndpoint(c, p);
+      const x1 = a.x, y1 = a.y, x2 = b.x, y2 = b.y;
       const rise = y1 - y2;
-      const bend = Math.max(8, rise * 0.35);
+      const bend = Math.max(8, Math.abs(rise) * 0.35);
       if (Math.abs(x2 - x1) < 4) {
-        return `M ${x1} ${y1} C ${x1} ${y1 - bend}, ${x2} ${y2 + bend * 0.2}, ${x2} ${y2}`;
+        const d1 = rise >= 0 ? -bend : bend;
+        const d2 = rise >= 0 ? bend * 0.2 : -bend * 0.2;
+        return `M ${x1} ${y1} C ${x1} ${y1 + d1}, ${x2} ${y2 + d2}, ${x2} ${y2}`;
       }
       const midY = y1 - rise * 0.48;
       return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
     }
 
     function linkStyle(l) {
+      const p = linkNode(l, "s");
       const c = linkNode(l, "t");
       const n = c ? c.subCount : 1;
+      const depth = ((p?.depth ?? 0) + (c?.depth ?? 0)) / 2;
       const width = 5 * Math.sqrt(n);
       return {
         width,
-        stroke: n > 50 ? "#6d4c35" : n > 15 ? "#8b6f5c" : n > 4 ? "#b5a090" : "#d8cfc4",
-        opacity: Math.max(0.3, 0.4 + Math.min(0.55, n / 80))
+        stroke: treeColorAt(depth).fill,
+        opacity: Math.max(0.35, 0.45 + Math.min(0.5, n / 90))
       };
     }
 
@@ -367,9 +459,9 @@
           const c = byId.get(l.target.id || l.target);
           return p && c && !p.data.leaf ? branchLink(p, c) : "";
         })
-        .attr("stroke-width", l => linkStyle(l).width)
-        .attr("stroke", l => linkStyle(l).stroke)
-        .attr("stroke-opacity", l => linkStyle(l).opacity);
+        .style("stroke-width", l => linkStyle(l).width + "px")
+        .style("stroke", l => linkStyle(l).stroke)
+        .style("stroke-opacity", l => linkStyle(l).opacity);
       nodeSel
         .classed("dim", n => q && !visible(n.path))
         .classed("match", n => q && hit.has(n.path))
@@ -381,26 +473,98 @@
       nodeSel.exit().remove();
       const enter = nodeSel.enter().append("g").attr("class", "node");
       enter.append("rect");
+      enter.append("path").attr("class", "leaf-shape").style("display", "none");
+      enter.append("line").attr("class", "leaf-vein").style("display", "none");
       enter.append("text").attr("class", "label");
+      enter.append("text").attr("class", "prof-stats");
+      enter.append("g").attr("class", "app-btn");
       enter.append("text").attr("class", "ord");
       nodeSel = enter.merge(nodeSel);
 
       nodeSel.each(function(n) {
         const s = ST[n.type];
-        const c = treeColorAt(n.depth);
+        const isLeaf = n.type === "leaf";
+        const c = isLeaf ? leafNodeColor(n) : treeColorAt(n.depth);
         const g = d3.select(this);
-        g.select("rect")
-          .attr("width", n.w).attr("height", n.h)
-          .attr("rx", n.type === "leaf" ? 3 : 6)
-          .attr("fill", c.fill).attr("stroke", c.stroke);
+        const btnW = n.data.app ? APP_BTN_W + APP_BTN_GAP : 0;
+        const labelCx = (n.w - btnW) / 2;
+        const box = g.select("rect");
+        const leafEl = g.select("path.leaf-shape");
+        const vein = g.select("line.leaf-vein");
+        if (isLeaf) {
+          box.style("display", "none");
+          const clipId = leafClipId(n);
+          let clip = g.select("clipPath");
+          if (clip.empty()) {
+            clip = g.insert("clipPath", ":first-child").attr("id", clipId);
+            clip.append("path");
+          } else {
+            clip.attr("id", clipId);
+          }
+          const leafD = leafPath(n.w, n.h);
+          clip.select("path").attr("d", leafD);
+          leafEl.style("display", null)
+            .attr("d", leafD)
+            .attr("fill", c.fill).attr("stroke", c.stroke);
+          vein.style("display", null)
+            .attr("x1", n.w / 2).attr("y1", 5)
+            .attr("x2", n.w / 2).attr("y2", n.h - 4)
+            .attr("stroke", c.stroke)
+            .attr("stroke-width", 0.75)
+            .attr("opacity", 0.35);
+          const clipRef = `url(#${clipId})`;
+          g.select("text.label").attr("clip-path", clipRef);
+          g.select("text.prof-stats").attr("clip-path", clipRef);
+        } else {
+          box.style("display", null)
+            .attr("width", n.w).attr("height", n.h)
+            .attr("rx", 6)
+            .attr("fill", c.fill).attr("stroke", c.stroke);
+          leafEl.style("display", "none");
+          vein.style("display", "none");
+          g.select("text.label").attr("clip-path", null);
+          g.select("text.prof-stats").attr("clip-path", null);
+        }
+        const hasApp = !!n.data.app;
+        const pad = s.pad + (isLeaf && hasApp ? 2 : 0);
+        const profTxt = hasApp ? PracticeStats.format(n.path) : "";
+        const hasProf = !!profTxt;
         g.select("text.label")
-          .attr("x", n.w / 2).attr("y", n.h / 2)
+          .attr("x", labelCx)
+          .attr("y", isLeaf ? leafLabelY(n.h, hasProf) : n.h / 2)
           .attr("fill", c.tc).attr("font-size", s.fs).attr("font-weight", s.fw)
           .text(n.data.name);
+        g.select("text.prof-stats")
+          .attr("x", labelCx)
+          .attr("y", isLeaf && hasProf ? leafProfY(n.h) : n.h - 3)
+          .classed("prof-stats", true)
+          .attr("fill", c.tc === "#fff" ? "rgba(255,255,255,0.9)" : "#1b5e20")
+          .text(profTxt)
+          .style("display", profTxt ? null : "none");
         const ord = g.select("text.ord");
         if (n.showOrd && n.idx >= 0) {
-          ord.attr("x", n.w / 2).attr("y", -5).text(ORD[n.idx] || n.idx + 1).style("display", null);
+          ord.attr("x", labelCx).attr("y", -5).text(ORD[n.idx] || n.idx + 1).style("display", null);
         } else ord.style("display", "none");
+
+        const appG = g.select("g.app-btn");
+        appG.selectAll("*").remove();
+        if (n.data.app) {
+          const bx = n.w - pad - APP_BTN_W + 1;
+          const by = (n.h - 14) / 2;
+          const link = appG.append("a")
+            .attr("href", appHref(n))
+            .attr("target", "_blank")
+            .attr("title", "打开练习");
+          link.append("rect")
+            .attr("x", bx).attr("y", by)
+            .attr("width", APP_BTN_W - 2).attr("height", 14)
+            .attr("rx", 3);
+          link.append("text")
+            .attr("x", bx + (APP_BTN_W - 2) / 2).attr("y", by + 7)
+            .text("练");
+          link.on("mousedown", e => e.stopPropagation())
+            .on("click", e => e.stopPropagation());
+        }
       });
 
       nodeSel.call(d3.drag()
@@ -418,6 +582,30 @@
           d.fx = null; d.fy = null;
           svg.classed("node-drag", false);
         }));
+    }
+
+    function updatePracticeLabels() {
+      if (!nodeSel) return;
+      nodeSel.each(function(n) {
+        if (n.type !== "leaf" || !n.data.app) return;
+        const g = d3.select(this);
+        const c = leafNodeColor(n);
+        g.select("path.leaf-shape").attr("fill", c.fill).attr("stroke", c.stroke);
+        g.select("line.leaf-vein").attr("stroke", c.stroke);
+        const txt = PracticeStats.format(n.path);
+        const hasProf = !!txt;
+        const btnW = APP_BTN_W + APP_BTN_GAP;
+        const labelCx = (n.w - btnW) / 2;
+        g.select("text.label")
+          .attr("y", leafLabelY(n.h, hasProf))
+          .attr("fill", c.tc);
+        g.select("text.prof-stats")
+          .attr("x", labelCx)
+          .attr("y", hasProf ? leafProfY(n.h) : n.h - 3)
+          .attr("fill", c.tc === "#fff" ? "rgba(255,255,255,0.9)" : "#1b5e20")
+          .text(txt)
+          .style("display", txt ? null : "none");
+      });
     }
 
     function bindLinks() {
@@ -486,8 +674,28 @@
       document.getElementById("stats").textContent = nodes.length + " 节点";
     }
 
-    document.getElementById("edition-label").textContent =
-      data.edition + " · D3 力导向（Neo4j / vis.js 同类方案）· 可拖节点";
+    const PAGE_TITLE = "人教版小学数学 · 分支知识树";
+
+    function updateChrome() {
+      document.title = PAGE_TITLE;
+      document.getElementById("page-title").textContent = PAGE_TITLE;
+      document.getElementById("edition-label").textContent =
+        data.edition + " · D3 力导向 · 可拖节点";
+    }
+
+    function setGrade(grade) {
+      const g = String(grade);
+      if (!GRADE_DATA[g]) return;
+      data = GRADE_DATA[g];
+      document.getElementById("grade-select").value = g;
+      document.getElementById("search").value = "";
+      if (simulation) simulation.stop();
+      updateChrome();
+      buildGraph(data.tree);
+      relayout();
+    }
+
+    document.getElementById("grade-select").addEventListener("change", e => setGrade(e.target.value));
     document.getElementById("fit-view").onclick = fitView;
     document.getElementById("reset-layout").onclick = relayout;
     document.getElementById("search").addEventListener("input", updatePositions);
@@ -518,8 +726,15 @@
       applyTransform();
     }, { passive: false });
 
-    buildGraph(data.tree);
-    relayout();
+    window.addEventListener("focus", () => {
+      PracticeStats.refresh().then(updatePracticeLabels);
+    });
+
+    PracticeStats.init("../data/practice-stats.json").then(() => {
+      updateChrome();
+      buildGraph(data.tree);
+      relayout();
+    });
   </script>
 </body>
 </html>
