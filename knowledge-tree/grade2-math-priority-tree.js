@@ -41,71 +41,28 @@ window.GRADE2_MATH_PRIORITY_TREE = {
                 "name": "口诀与口算",
                 "children": [
                   {
-                    "name": "2～6",
-                    "children": [
-                      {
-                        "name": "2～6的乘法口诀",
-                        "topic": "2～6的乘法口诀",
-                        "children": [
-                          { "name": "2的乘法口诀", "leaf": true, "volume": "上册", "unit": "1～6的表内乘法", "topic": "2～6的乘法口诀" },
-                          { "name": "3的乘法口诀", "leaf": true, "volume": "上册", "unit": "1～6的表内乘法", "topic": "2～6的乘法口诀" },
-                          { "name": "4的乘法口诀", "leaf": true, "volume": "上册", "unit": "1～6的表内乘法", "topic": "2～6的乘法口诀" },
-                          { "name": "5的乘法口诀", "leaf": true, "volume": "上册", "unit": "1～6的表内乘法", "topic": "2～6的乘法口诀" },
-                          { "name": "6的乘法口诀", "leaf": true, "volume": "上册", "unit": "1～6的表内乘法", "topic": "2～6的乘法口诀" }
-                        ],
-                        "ordered": true
-                      },
-                      {
-                        "name": "根据口诀计算乘法",
-                        "leaf": true,
-                        "volume": "上册",
-                        "unit": "1～6的表内乘法",
-                        "topic": "用口诀求积",
-                        "app": "../apps/grade2/vertical-multiplication.html"
-                      },
-                      {
-                        "name": "2～6的口诀求商",
-                        "leaf": true,
-                        "volume": "上册",
-                        "unit": "1～6的表内除法",
-                        "topic": "用2～6的口诀求商",
-                        "app": "../apps/grade2/vertical-division.html"
-                      }
-                    ],
-                    "ordered": true
+                    "name": "乘法口诀表",
+                    "leaf": true,
+                    "volume": "上册",
+                    "unit": "表内乘、除法",
+                    "topic": "乘法口诀",
+                    "app": "../apps/grade2/multiplication-table.html"
                   },
                   {
-                    "name": "7～9",
-                    "children": [
-                      {
-                        "name": "7～9的乘法口诀",
-                        "topic": "7～9的乘法口诀",
-                        "children": [
-                          { "name": "7的乘法口诀", "leaf": true, "volume": "上册", "unit": "7～9的表内乘、除法", "topic": "7～9的乘法口诀" },
-                          { "name": "8的乘法口诀", "leaf": true, "volume": "上册", "unit": "7～9的表内乘、除法", "topic": "7～9的乘法口诀" },
-                          { "name": "9的乘法口诀", "leaf": true, "volume": "上册", "unit": "7～9的表内乘、除法", "topic": "7～9的乘法口诀" },
-                          { "name": "乘法口诀表", "leaf": true, "volume": "上册", "unit": "7～9的表内乘、除法", "topic": "7～9的乘法口诀" }
-                        ],
-                        "ordered": true
-                      },
-                      {
-                        "name": "7～9的口诀求商",
-                        "leaf": true,
-                        "volume": "上册",
-                        "unit": "7～9的表内乘、除法",
-                        "topic": "用7～9的口诀求商",
-                        "app": "../apps/grade2/vertical-division.html"
-                      },
-                      {
-                        "name": "熟练表内除法口算",
-                        "leaf": true,
-                        "volume": "下册",
-                        "unit": "表内除法（二）",
-                        "topic": "用7～9的乘法口诀求商",
-                        "app": "../apps/grade2/vertical-division.html"
-                      }
-                    ],
-                    "ordered": true
+                    "name": "根据口诀计算乘法",
+                    "leaf": true,
+                    "volume": "上册",
+                    "unit": "表内乘、除法",
+                    "topic": "用口诀求积",
+                    "app": "../apps/grade2/vertical-multiplication.html"
+                  },
+                  {
+                    "name": "口诀求商",
+                    "leaf": true,
+                    "volume": "上册",
+                    "unit": "表内乘、除法",
+                    "topic": "用口诀求商",
+                    "app": "../apps/grade2/vertical-division.html"
                   }
                 ],
                 "ordered": true
@@ -238,29 +195,11 @@ window.GRADE2_MATH_PRIORITY_TREE = {
             "children": [
               {
                 "name": "数的认识",
-                "children": [
-                  {
-                    "name": "1000以内",
-                    "topic": "1000以内数的认识",
-                    "children": [
-                      { "name": "数数（一千以内）", "leaf": true, "volume": "下册", "unit": "万以内数的认识", "topic": "1000以内数的认识" },
-                      { "name": "数的组成（几个百、几个十、几个一）", "leaf": true, "volume": "下册", "unit": "万以内数的认识", "topic": "1000以内数的认识" },
-                      { "name": "读写1000以内的数", "leaf": true, "volume": "下册", "unit": "万以内数的认识", "topic": "1000以内数的认识" }
-                    ],
-                    "ordered": true
-                  },
-                  {
-                    "name": "10000以内",
-                    "topic": "10000以内数的认识",
-                    "children": [
-                      { "name": "认识计数单位“千”“万”", "leaf": true, "volume": "下册", "unit": "万以内数的认识", "topic": "10000以内数的认识" },
-                      { "name": "10个一千是一万", "leaf": true, "volume": "下册", "unit": "万以内数的认识", "topic": "10000以内数的认识" },
-                      { "name": "读写10000以内的数", "leaf": true, "volume": "下册", "unit": "万以内数的认识", "topic": "10000以内数的认识" }
-                    ],
-                    "ordered": true
-                  }
-                ],
-                "ordered": true
+                "leaf": true,
+                "volume": "下册",
+                "unit": "万以内数的认识",
+                "topic": "读写亿以内的数",
+                "app": "../apps/grade2/read-write-within-yi.html"
               },
               {
                 "name": "数的表示与大小",

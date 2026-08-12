@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>读写亿以内的数</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee;
+      padding: 1rem;
+    }
+    .container {
+      padding: 2rem 2.2rem;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      width: min(560px, 96vw);
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.45rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: #ffd166;
+    }
+    .hint {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #888;
+      margin-bottom: 1rem;
+    }
+    .stats {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1.2rem 2rem;
+      margin-bottom: 1rem;
+    }
+    .stat { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+    .stat-label { font-size: 0.72rem; letter-spacing: 0.06em; color: #888; }
+    .stat-value { font-size: 1.6rem; font-weight: 700; color: #06d6a0; }
+    .stat-value.prof { color: #ffd166; }
+    .mode {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .mode button {
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: transparent;
+      color: #aaa;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .mode button.on {
+      background: rgba(255, 209, 102, 0.18);
+      border-color: #ffd166;
+      color: #ffd166;
+    }
+    .card {
+      padding: 1.3rem 1rem 1.15rem;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 14px;
+      margin-bottom: 1rem;
+    }
+    .q-label {
+      text-align: center;
+      font-size: 0.78rem;
+      color: #888;
+      margin-bottom: 0.55rem;
+    }
+    .prompt {
+      text-align: center;
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: #a8dadc;
+      line-height: 1.45;
+      letter-spacing: 0.04em;
+      word-break: break-all;
+      min-height: 2.4rem;
+      margin-bottom: 1rem;
+      font-family: "Courier New", Courier, "PingFang SC", monospace;
+    }
+    .prompt.cn {
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 1.35rem;
+      letter-spacing: 0.08em;
+    }
+    .answer-row {
+      display: flex;
+      gap: 0.55rem;
+      justify-content: center;
+      align-items: center;
+    }
+    #answer {
+      width: min(100%, 18rem);
+      padding: 0.7rem 0.85rem;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      color: #eee;
+      font-size: 1.25rem;
+      font-weight: 600;
+      text-align: center;
+      font-family: "Courier New", Courier, "PingFang SC", monospace;
+      outline: none;
+    }
+    #answer:focus { border-color: #a8dadc; }
+    .btn-check, .btn-next, .btn-reveal {
+      padding: 0.65rem 1rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #1a1a2e;
+      background: #a8dadc;
+    }
+    .btn-reveal {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #a8dadc;
+    }
+    .choices {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .choice {
+      width: 100%;
+      padding: 0.75rem 0.9rem;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: #eee;
+      font-size: 1.05rem;
+      line-height: 1.45;
+      text-align: left;
+      cursor: pointer;
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .choice:hover:not(:disabled) { border-color: #a8dadc; }
+    .choice:disabled { opacity: 0.55; cursor: default; }
+    .choice.ok { border-color: #06d6a0; background: rgba(6,214,160,0.12); }
+    .choice.bad { border-color: #ef476f; background: rgba(239,71,111,0.12); }
+    .guide {
+      margin-top: 0.85rem;
+      padding: 0.75rem 0.9rem;
+      border-radius: 10px;
+      border-left: 3px solid #ffd166;
+      background: rgba(0,0,0,0.22);
+      font-size: 0.86rem;
+      line-height: 1.6;
+      color: #ccc;
+      min-height: 2.6rem;
+    }
+    .guide strong { color: #ffd166; }
+    .status {
+      text-align: center;
+      margin-top: 0.85rem;
+      min-height: 1.4rem;
+      font-size: 0.95rem;
+    }
+    .status.ok { color: #06d6a0; }
+    .status.err { color: #ef476f; }
+    .next-row { text-align: center; margin-top: 0.75rem; }
+    .btn-next { display: none; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #a8dadc; }
+    .btn-next.show { display: inline-block; }
+    .write-actions { display: none; justify-content: center; gap: 0.5rem; margin-top: 0.75rem; }
+    .write-actions.show { display: flex; }
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+    .card.done { animation: pop 0.35s ease; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>读写亿以内的数</h1>
+    <p class="hint">四位一级：个级 / 万级；中间有空位要读「零」</p>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">做题数</span>
+        <span class="stat-value" id="totalDone">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">熟练度</span>
+        <span class="stat-value prof" id="proficiency">—</span>
+      </div>
+    </div>
+
+    <div class="mode" id="modeBar">
+      <button type="button" data-mode="mix" class="on">混合</button>
+      <button type="button" data-mode="read">读数</button>
+      <button type="button" data-mode="write">写数</button>
+    </div>
+
+    <div class="card" id="card">
+      <div class="q-label" id="qLabel">读一读</div>
+      <div class="prompt" id="prompt">0</div>
+      <div class="choices" id="choices"></div>
+      <div class="answer-row" id="writeRow" style="display:none">
+        <input id="answer" inputmode="numeric" autocomplete="off" placeholder="写出阿拉伯数字">
+      </div>
+      <div class="write-actions" id="writeActions">
+        <button class="btn-check" id="checkBtn" type="button">确认</button>
+        <button class="btn-reveal" id="revealBtn" type="button">看答案</button>
+      </div>
+    </div>
+
+    <div class="guide" id="guide">先读万级，再读个级。</div>
+    <div class="status" id="status"></div>
+    <div class="next-row">
+      <button class="btn-next" id="nextBtn" type="button">下一题 →</button>
+    </div>
+  </div>
+
+  <script src="../../practice-stats-store.js"></script>
+  <script>
+    const DIGIT = "零一二三四五六七八九";
+    const AUTO_MS = 1400;
+    let prof, profUI;
+    let modePref = "mix";
+    let kind = "read";
+    let n = 0;
+    let reading = "";
+    let answered = false;
+    let autoTimer = null;
+
+    const card = document.getElementById("card");
+    const qLabel = document.getElementById("qLabel");
+    const promptEl = document.getElementById("prompt");
+    const choicesEl = document.getElementById("choices");
+    const writeRow = document.getElementById("writeRow");
+    const writeActions = document.getElementById("writeActions");
+    const answerEl = document.getElementById("answer");
+    const guideEl = document.getElementById("guide");
+    const statusEl = document.getElementById("status");
+    const nextBtn = document.getElementById("nextBtn");
+
+    function readSection(x) {
+      if (x <= 0) return "";
+      const parts = [];
+      const q = Math.floor(x / 1000);
+      const b = Math.floor((x % 1000) / 100);
+      const s = Math.floor((x % 100) / 10);
+      const g = x % 10;
+      if (q) parts.push(DIGIT[q] + "千");
+      if (b) {
+        parts.push(DIGIT[b] + "百");
+      } else if (q && (s || g)) {
+        parts.push("零");
+      }
+      if (s) {
+        if (s === 1 && !q && !b) parts.push("十");
+        else parts.push(DIGIT[s] + "十");
+      } else if ((q || b) && g) {
+        if (parts[parts.length - 1] !== "零") parts.push("零");
+      }
+      if (g) parts.push(DIGIT[g]);
+      return parts.join("");
+    }
+
+    function numberToChinese(num) {
+      if (num === 0) return "零";
+      if (num === 100000000) return "一亿";
+      const yi = Math.floor(num / 100000000);
+      const rest = num % 100000000;
+      const wan = Math.floor(rest / 10000);
+      const ge = rest % 10000;
+      let out = "";
+      if (yi) out += readSection(yi) + "亿";
+      if (wan) {
+        if (yi && wan < 1000) out += "零";
+        out += readSection(wan) + "万";
+      } else if (yi && ge) {
+        out += "零";
+      }
+      if (ge) {
+        if ((yi || wan) && ge < 1000) {
+          if (!out.endsWith("零")) out += "零";
+        }
+        out += readSection(ge);
+      }
+      return out;
+    }
+
+    function formatGrouped(num) {
+      const s = String(num);
+      const chunks = [];
+      for (let i = s.length; i > 0; i -= 4) {
+        chunks.unshift(s.slice(Math.max(0, i - 4), i));
+      }
+      return chunks.join(" ");
+    }
+
+    function randInt(a, b) {
+      return Math.floor(Math.random() * (b - a + 1)) + a;
+    }
+
+    function genNumber() {
+      const roll = Math.random();
+      if (roll < 0.12) return randInt(1, 9999);
+      if (roll < 0.28) return randInt(1, 9) * 10000;
+      if (roll < 0.42) return randInt(1, 9999) * 10000;
+      if (roll < 0.55) {
+        const wan = randInt(1, 9999);
+        const ge = randInt(1, 999);
+        return wan * 10000 + ge;
+      }
+      if (roll < 0.68) {
+        const wan = randInt(1, 999);
+        const ge = randInt(1, 9999);
+        return wan * 10000 + ge;
+      }
+      if (roll < 0.8) {
+        const wan = randInt(10, 9999);
+        return wan * 10000 + randInt(1000, 9999);
+      }
+      if (roll < 0.9) return randInt(10000, 999999);
+      return randInt(1000000, 99999999);
+    }
+
+    function mutateReading(src, num) {
+      const tricks = [
+        () => src.replace("零", ""),
+        () => src.replace(/一十/g, "十").replace(/^十/, "一十"),
+        () => {
+          if (src.includes("万")) return src.replace("万", "");
+          return src + "万";
+        },
+        () => numberToChinese(Math.max(1, num + randInt(-9000, 9000) || num + 1)),
+        () => numberToChinese(num < 10000 ? num * 10 + randInt(1, 9) : Math.floor(num / 10)),
+        () => {
+          const alt = numberToChinese(genNumber());
+          return alt === src ? src + "零" : alt;
+        }
+      ];
+      for (let i = 0; i < 12; i++) {
+        const t = tricks[randInt(0, tricks.length - 1)]();
+        if (t && t !== src) return t;
+      }
+      return src + "零";
+    }
+
+    function buildChoices(correct) {
+      const set = new Set([correct]);
+      let guard = 0;
+      while (set.size < 4 && guard++ < 40) set.add(mutateReading(correct, n));
+      while (set.size < 4) set.add(correct + DIGIT[set.size]);
+      return [...set].sort(() => Math.random() - 0.5);
+    }
+
+    function placeGuide(num) {
+      const wan = Math.floor(num / 10000);
+      const ge = num % 10000;
+      const lines = [];
+      lines.push(`按<strong>四位一级</strong>来看：${formatGrouped(num)}`);
+      if (wan) lines.push(`万级是 <strong>${wan}</strong>，读作「${readSection(wan)}万」`);
+      else lines.push("没有万级，直接读个级。");
+      if (ge) {
+        const needZero = wan && ge < 1000;
+        lines.push(`个级是 <strong>${ge}</strong>${needZero ? "，万级和个级之间有空位，要读「零」" : ""}，读作「${readSection(ge)}」`);
+      } else if (wan) {
+        lines.push("个级是 0，末尾的 0 一般不读。");
+      }
+      lines.push(`合起来：<strong>${numberToChinese(num)}</strong>`);
+      return lines.map(t => `<p>${t}</p>`).join("");
+    }
+
+    function clearTimer() {
+      if (autoTimer) {
+        clearTimeout(autoTimer);
+        autoTimer = null;
+      }
+    }
+
+    function pickKind() {
+      if (modePref === "read") return "read";
+      if (modePref === "write") return "write";
+      return Math.random() < 0.5 ? "read" : "write";
+    }
+
+    function finish(ok) {
+      answered = true;
+      prof.record(ok);
+      profUI.render();
+      card.classList.toggle("done", ok);
+      guideEl.innerHTML = placeGuide(n);
+      if (ok) {
+        statusEl.textContent = "答对了！";
+        statusEl.className = "status ok";
+        autoTimer = setTimeout(() => {
+          autoTimer = null;
+          newProblem();
+        }, AUTO_MS);
+      } else {
+        statusEl.textContent = `再想想。正确答案：${kind === "write" ? n : reading}`;
+        statusEl.className = "status err";
+        nextBtn.classList.add("show");
+      }
+    }
+
+    function newProblem() {
+      clearTimer();
+      answered = false;
+      card.classList.remove("done");
+      statusEl.textContent = "";
+      statusEl.className = "status";
+      nextBtn.classList.remove("show");
+      answerEl.value = "";
+
+      n = genNumber();
+      reading = numberToChinese(n);
+      kind = pickKind();
+
+      if (kind === "read") {
+        qLabel.textContent = "选出正确的读法";
+        promptEl.textContent = formatGrouped(n);
+        promptEl.className = "prompt";
+        writeRow.style.display = "none";
+        writeActions.classList.remove("show");
+        choicesEl.style.display = "flex";
+        choicesEl.innerHTML = "";
+        buildChoices(reading).forEach(text => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "choice";
+          btn.textContent = text;
+          btn.addEventListener("click", () => {
+            if (answered) return;
+            const ok = text === reading;
+            [...choicesEl.children].forEach(el => {
+              el.disabled = true;
+              if (el.textContent === reading) el.classList.add("ok");
+              if (el === btn && !ok) el.classList.add("bad");
+            });
+            finish(ok);
+          });
+          choicesEl.appendChild(btn);
+        });
+        guideEl.textContent = "先读万级，再读个级；中间有空位要读「零」。";
+      } else {
+        qLabel.textContent = "根据读法写出数字";
+        promptEl.textContent = reading;
+        promptEl.className = "prompt cn";
+        choicesEl.style.display = "none";
+        choicesEl.innerHTML = "";
+        writeRow.style.display = "flex";
+        writeActions.classList.add("show");
+        guideEl.textContent = "听（看）读法，写出阿拉伯数字。";
+        setTimeout(() => answerEl.focus(), 0);
+      }
+    }
+
+    function checkWrite(forceReveal) {
+      if (answered || kind !== "write") return;
+      if (forceReveal) {
+        answerEl.value = String(n);
+        finish(false);
+        return;
+      }
+      const raw = answerEl.value.replace(/\s+/g, "").trim();
+      if (!raw) return;
+      if (!/^\d+$/.test(raw)) return;
+      if (raw.length < String(n).length && !forceReveal) return;
+      finish(parseInt(raw, 10) === n);
+    }
+
+    document.getElementById("modeBar").addEventListener("click", e => {
+      const btn = e.target.closest("[data-mode]");
+      if (!btn) return;
+      modePref = btn.dataset.mode;
+      [...document.getElementById("modeBar").children].forEach(b => {
+        b.classList.toggle("on", b === btn);
+      });
+      newProblem();
+    });
+
+    document.getElementById("checkBtn").addEventListener("click", () => checkWrite(false));
+    document.getElementById("revealBtn").addEventListener("click", () => checkWrite(true));
+    answerEl.addEventListener("keydown", e => {
+      if (e.key === "Enter") checkWrite(false);
+    });
+    answerEl.addEventListener("input", () => {
+      const raw = answerEl.value.replace(/\s+/g, "").trim();
+      if (/^\d+$/.test(raw) && raw.length >= String(n).length) checkWrite(false);
+    });
+    nextBtn.addEventListener("click", () => newProblem());
+
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      newProblem();
+    });
+  </script>
+</body>
+</html>
