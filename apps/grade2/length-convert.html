@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>长度换算</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee; padding: 1rem;
+    }
+    .container {
+      padding: 2rem 1.8rem; width: min(500px, 96vw);
+      background: rgba(255,255,255,0.06); border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 { text-align: center; font-size: 1.4rem; color: #ffd166; margin-bottom: 0.3rem; }
+    .hint { text-align: center; font-size: 0.78rem; color: #888; margin-bottom: 1rem; line-height: 1.55; }
+    .stats { display: flex; justify-content: center; gap: 1.6rem; margin-bottom: 1rem; }
+    .stat-label { font-size: 0.72rem; color: #888; text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #06d6a0; text-align: center; }
+    .stat-value.prof { color: #ffd166; }
+    .card {
+      padding: 1.4rem 1rem; background: rgba(0,0,0,0.25); border-radius: 14px; margin-bottom: 0.8rem;
+      text-align: center;
+    }
+    .eq {
+      display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.45rem;
+      font-family: "Courier New", monospace; font-size: 1.7rem; font-weight: 700; color: #a8dadc;
+    }
+    .eq input {
+      width: 5.4rem; padding: 0.35rem 0.3rem; border: 2px solid rgba(168,218,220,0.35);
+      border-radius: 10px; background: rgba(0,0,0,0.3); color: #ffd166;
+      font: inherit; text-align: center;
+    }
+    .eq input:focus { outline: none; border-color: #ffd166; }
+    .eq input:disabled { opacity: 0.7; }
+    .eq .unit { color: #eee; font-size: 1.25rem; }
+    .eq .eqs { color: #888; font-weight: 400; }
+    .facts {
+      margin-top: 0.9rem; font-size: 0.78rem; color: #888; line-height: 1.6;
+    }
+    .status { text-align: center; margin-top: 0.7rem; min-height: 1.3rem; font-size: 0.92rem; }
+    .status.ok { color: #06d6a0; } .status.err { color: #ef476f; }
+    .actions { display: flex; justify-content: center; gap: 0.55rem; margin-top: 0.75rem; }
+    .btn {
+      padding: 0.5rem 1.2rem; border: none; border-radius: 10px; font-size: 0.95rem;
+      font-weight: 600; cursor: pointer; background: #a8dadc; color: #1a1a2e;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .btn-next {
+      display: none; padding: 0.5rem 1.2rem;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; background: transparent;
+      color: #a8dadc; cursor: pointer; font-size: 0.95rem;
+    }
+    .btn-next.show { display: inline-block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>长度换算</h1>
+    <p class="hint">1 米 = 100 厘米 = 1000 毫米<br>1 厘米 = 10 毫米</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card">
+      <div class="eq" id="eq"></div>
+      <div class="facts">把左边换成右边的单位</div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="actions">
+      <button class="btn" id="okBtn">确定</button>
+      <button class="btn-next" id="nextBtn">下一题 →</button>
+    </div>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script>
+    let prof, profUI, expected, answered = false, timer = null;
+    const AUTO_MS = 1400;
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+    function makeProblem() {
+      const kinds = [
+        () => {
+          const n = pick([1, 2, 3, 4, 5]);
+          const en = Math.random() < 0.35;
+          return { left: n, lu: en ? "m" : "米", ru: en ? "cm" : "厘米", ans: n * 100 };
+        },
+        () => {
+          const n = pick([1.2, 1.5, 2.5, 0.5, 0.8, 3.2]);
+          const en = Math.random() < 0.5;
+          return { left: n, lu: en ? "m" : "米", ru: en ? "cm" : "厘米", ans: Math.round(n * 100) };
+        },
+        () => {
+          const n = pick([100, 200, 300, 400, 50, 120, 250]);
+          const en = Math.random() < 0.35;
+          return { left: n, lu: en ? "cm" : "厘米", ru: en ? "m" : "米", ans: n / 100 };
+        },
+        () => {
+          const n = pick([1, 2, 3]);
+          const en = Math.random() < 0.5;
+          return { left: n, lu: en ? "m" : "米", ru: en ? "mm" : "毫米", ans: n * 1000 };
+        },
+        () => {
+          const n = pick([1000, 2000, 3000]);
+          return { left: n, lu: pick(["mm", "毫米"]), ru: pick(["m", "米"]), ans: n / 1000 };
+        },
+        () => {
+          const n = pick([1, 2, 5, 8, 10]);
+          const en = Math.random() < 0.4;
+          return { left: n, lu: en ? "cm" : "厘米", ru: en ? "mm" : "毫米", ans: n * 10 };
+        },
+        () => {
+          const n = pick([10, 20, 50, 80, 100]);
+          const en = Math.random() < 0.4;
+          return { left: n, lu: en ? "mm" : "毫米", ru: en ? "cm" : "厘米", ans: n / 10 };
+        }
+      ];
+      return pick(kinds)();
+    }
+
+    function newProblem() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      answered = false;
+      const p = makeProblem();
+      expected = p.ans;
+      document.getElementById("eq").innerHTML =
+        `<span>${p.left}</span><span class="unit">${p.lu}</span>`
+        + `<span class="eqs">=</span>`
+        + `<input id="ans" inputmode="decimal" autocomplete="off">`
+        + `<span class="unit">${p.ru}</span>`;
+      const inp = document.getElementById("ans");
+      inp.style.width = Math.max(4.2, String(p.ans).length * 1.15 + 2) + "rem";
+      inp.focus();
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") check(); });
+      document.getElementById("okBtn").disabled = false;
+      document.getElementById("status").textContent = "";
+      document.getElementById("status").className = "status";
+      document.getElementById("nextBtn").classList.remove("show");
+    }
+
+    function parseNum(s) {
+      s = (s || "").trim().replace("．", ".");
+      if (!s) return NaN;
+      return Number(s);
+    }
+
+    function check() {
+      if (answered) return;
+      const inp = document.getElementById("ans");
+      const v = parseNum(inp.value);
+      if (Number.isNaN(v)) return;
+      answered = true;
+      inp.disabled = true;
+      document.getElementById("okBtn").disabled = true;
+      const ok = Math.abs(v - expected) < 1e-6;
+      const st = document.getElementById("status");
+      prof.record(ok);
+      profUI.render();
+      if (ok) {
+        st.textContent = "答对了！";
+        st.className = "status ok";
+        timer = setTimeout(newProblem, AUTO_MS);
+      } else {
+        inp.value = expected;
+        st.textContent = `正确答案是 ${expected}`;
+        st.className = "status err";
+        document.getElementById("nextBtn").classList.add("show");
+      }
+    }
+
+    document.getElementById("okBtn").onclick = () => check();
+    document.getElementById("nextBtn").onclick = () => newProblem();
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      newProblem();
+    });
+  </script>
+</body>
+</html>

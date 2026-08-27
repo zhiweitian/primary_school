@@ -313,24 +313,20 @@ window.GRADE2_MATH_PRIORITY_TREE = {
             "name": "长度测量",
             "children": [
               {
-                "name": "认识厘米",
-                "topic": "认识厘米",
-                "children": [
-                  { "name": "认识1厘米", "leaf": true, "volume": "上册", "unit": "厘米和米", "topic": "认识厘米" },
-                  { "name": "用直尺测量长度", "leaf": true, "volume": "上册", "unit": "厘米和米", "topic": "认识厘米" },
-                  { "name": "以厘米为单位记录长度", "leaf": true, "volume": "上册", "unit": "厘米和米", "topic": "认识厘米" }
-                ],
-                "ordered": true
+                "name": "认识长度",
+                "leaf": true,
+                "volume": "上册",
+                "unit": "厘米和米",
+                "topic": "认识长度",
+                "app": "../apps/grade2/length-units.html"
               },
               {
-                "name": "认识米",
-                "topic": "认识米",
-                "children": [
-                  { "name": "认识1米", "leaf": true, "volume": "上册", "unit": "厘米和米", "topic": "认识米" },
-                  { "name": "1米=100厘米", "leaf": true, "volume": "上册", "unit": "厘米和米", "topic": "认识米" },
-                  { "name": "以米为单位测量较长物体", "leaf": true, "volume": "上册", "unit": "厘米和米", "topic": "认识米" }
-                ],
-                "ordered": true
+                "name": "长度换算",
+                "leaf": true,
+                "volume": "上册",
+                "unit": "厘米和米",
+                "topic": "长度换算",
+                "app": "../apps/grade2/length-convert.html"
               },
               {
                 "name": "线段",

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>认识长度</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee; padding: 1rem;
+    }
+    .container {
+      padding: 1.6rem 1.6rem 1.8rem; width: min(540px, 96vw);
+      background: rgba(255,255,255,0.06); border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 { text-align: center; font-size: 1.4rem; color: #ffd166; margin-bottom: 0.25rem; }
+    .hint { text-align: center; font-size: 0.78rem; color: #888; margin-bottom: 0.85rem; }
+    .stats { display: flex; justify-content: center; gap: 1.6rem; margin-bottom: 0.9rem; }
+    .stat-label { font-size: 0.72rem; color: #888; text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #06d6a0; text-align: center; }
+    .stat-value.prof { color: #ffd166; }
+    .stage {
+      position: relative; background: rgba(0,0,0,0.28); border-radius: 14px;
+      overflow: hidden; margin-bottom: 0.85rem;
+    }
+    .stage svg { display: block; width: 100%; height: auto; }
+    .tag {
+      position: absolute; display: flex; align-items: center; gap: 0.2rem;
+      background: rgba(26,26,46,0.92); border: 1.5px solid #ffd166; border-radius: 10px;
+      padding: 0.18rem 0.35rem 0.18rem 0.5rem; color: #ffd166; font-weight: 700;
+      font-family: "Courier New", monospace; font-size: 1.15rem; white-space: nowrap;
+    }
+    .tag.h { left: 50%; bottom: 5%; transform: translateX(-50%); }
+    .tag.v { right: 3%; top: 40%; }
+    .tag input {
+      width: 3.6rem; padding: 0.12rem 0.2rem; border: none; border-radius: 6px;
+      background: rgba(255,209,102,0.16); color: #ffd166; font: inherit; text-align: center;
+    }
+    .tag input:focus { outline: 1px solid #ffd166; }
+    .tag input:disabled { opacity: 0.7; }
+    .caption { text-align: center; font-size: 0.92rem; color: #cdd; margin-bottom: 0.7rem; }
+    .units { display: flex; justify-content: center; gap: 0.5rem; }
+    .units button {
+      min-width: 5.2rem; padding: 0.62rem 0.8rem; border: none; border-radius: 10px;
+      font-size: 1.05rem; font-weight: 700; cursor: pointer; background: #a8dadc; color: #1a1a2e;
+    }
+    .units button:hover:not(:disabled) { filter: brightness(1.06); }
+    .units button:disabled { opacity: 0.45; cursor: default; }
+    .status { text-align: center; margin-top: 0.7rem; min-height: 1.3rem; font-size: 0.92rem; }
+    .status.ok { color: #06d6a0; } .status.err { color: #ef476f; }
+    .btn-next {
+      display: none; margin: 0.65rem auto 0; padding: 0.45rem 1.3rem;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: transparent;
+      color: #a8dadc; cursor: pointer;
+    }
+    .btn-next.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>认识长度</h1>
+    <p class="hint">看物体有多长，选出合适的单位：米、厘米、毫米</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="stage">
+      <svg viewBox="0 0 440 250" id="art"></svg>
+      <div class="tag" id="tag">
+        <span id="num">1</span>
+        <input id="unitIn" maxlength="3" autocomplete="off" placeholder="?">
+      </div>
+    </div>
+    <div class="caption" id="caption"></div>
+    <div class="units">
+      <button data-u="米">米</button>
+      <button data-u="厘米">厘米</button>
+      <button data-u="毫米">毫米</button>
+    </div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script>
+    let prof, profUI, scene, answered = false, timer = null, lastId = "";
+    const AUTO_MS = 1400;
+
+    function dimH(x1, x2, y) {
+      return `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="#ffd166" stroke-width="2"/>
+        <line x1="${x1}" y1="${y-7}" x2="${x1}" y2="${y+7}" stroke="#ffd166" stroke-width="2"/>
+        <line x1="${x2}" y1="${y-7}" x2="${x2}" y2="${y+7}" stroke="#ffd166" stroke-width="2"/>`;
+    }
+    function dimV(x, y1, y2) {
+      return `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="#ffd166" stroke-width="2"/>
+        <line x1="${x-7}" y1="${y1}" x2="${x+7}" y2="${y1}" stroke="#ffd166" stroke-width="2"/>
+        <line x1="${x-7}" y1="${y2}" x2="${x+7}" y2="${y2}" stroke="#ffd166" stroke-width="2"/>`;
+    }
+
+    const SCENES = [
+      {
+        id: "kid", dir: "v", value: 1, unit: "米",
+        caption: "小朋友大约高多少？选出单位。",
+        draw() {
+          return `<rect x="0" y="0" width="440" height="250" fill="#1e3a4c"/>
+            <rect x="0" y="208" width="300" height="42" fill="#3d6b4f"/>
+            <circle cx="148" cy="86" r="24" fill="#ffdbac"/>
+            <ellipse cx="148" cy="72" rx="24" ry="12" fill="#5c3d2e"/>
+            <circle cx="140" cy="88" r="3" fill="#333"/><circle cx="156" cy="88" r="3" fill="#333"/>
+            <path d="M140 98 Q148 105 156 98" fill="none" stroke="#c47a5a" stroke-width="2"/>
+            <rect x="128" y="110" width="40" height="54" rx="10" fill="#4cc9f0"/>
+            <line x1="128" y1="122" x2="104" y2="158" stroke="#ffdbac" stroke-width="9" stroke-linecap="round"/>
+            <line x1="168" y1="122" x2="192" y2="158" stroke="#ffdbac" stroke-width="9" stroke-linecap="round"/>
+            <line x1="138" y1="162" x2="128" y2="208" stroke="#4361ee" stroke-width="11" stroke-linecap="round"/>
+            <line x1="158" y1="162" x2="168" y2="208" stroke="#4361ee" stroke-width="11" stroke-linecap="round"/>
+            ${dimV(372, 62, 208)}`;
+        }
+      },
+      {
+        id: "door", dir: "v", value: 2, unit: "米",
+        caption: "教室门大约高多少？选出单位。",
+        draw() {
+          return `<rect x="0" y="0" width="440" height="250" fill="#243044"/>
+            <rect x="0" y="220" width="300" height="30" fill="#4a5568"/>
+            <rect x="90" y="28" width="120" height="192" rx="4" fill="#8b5a2b"/>
+            <rect x="98" y="36" width="104" height="176" rx="2" fill="#a36b3a"/>
+            <circle cx="188" cy="128" r="7" fill="#d4af37"/>
+            <circle cx="70" cy="196" r="10" fill="#ffdbac"/>
+            <rect x="62" y="206" width="16" height="14" fill="#4cc9f0"/>
+            ${dimV(372, 28, 220)}`;
+        }
+      },
+      {
+        id: "tree", dir: "v", value: 5, unit: "米",
+        caption: "这棵小树大约高多少？选出单位。",
+        draw() {
+          return `<rect x="0" y="0" width="440" height="250" fill="#1b3344"/>
+            <rect x="0" y="218" width="300" height="32" fill="#3d6b4f"/>
+            <rect x="138" y="150" width="24" height="70" fill="#8b5a2b"/>
+            <circle cx="150" cy="118" r="48" fill="#2d6a4f"/>
+            <circle cx="122" cy="138" r="32" fill="#40916c"/>
+            <circle cx="178" cy="136" r="30" fill="#52b788"/>
+            ${dimV(372, 70, 218)}`;
+        }
+      },
+      {
+        id: "pencil", dir: "h", value: 18, unit: "厘米",
+        caption: "这支铅笔大约长多少？选出单位。",
+        draw() {
+          return `<rect x="0" y="0" width="440" height="250" fill="#243044"/>
+            <polygon points="392,108 352,92 352,124" fill="#c9a227"/>
+            <polygon points="392,108 368,100 368,116" fill="#555"/>
+            <rect x="78" y="92" width="274" height="32" fill="#ffd166"/>
+            <rect x="78" y="98" width="274" height="6" fill="#f4c430"/>
+            <rect x="78" y="112" width="274" height="6" fill="#f4c430"/>
+            <rect x="52" y="92" width="26" height="32" rx="4" fill="#ef476f"/>
+            <rect x="78" y="92" width="12" height="32" fill="#c0c0c0"/>
+            ${dimH(52, 392, 168)}`;
+        }
+      },
+      {
+        id: "eraser", dir: "h", value: 5, unit: "厘米",
+        caption: "这块橡皮大约长多少？选出单位。",
+        draw() {
+          return `<rect x="0" y="0" width="440" height="250" fill="#243044"/>
+            <rect x="150" y="88" width="140" height="52" rx="10" fill="#ef476f"/>
+            <rect x="150" y="88" width="140" height="14" rx="6" fill="#ff7b8a"/>
+            <text x="220" y="122" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">橡皮</text>
+            ${dimH(150, 290, 176)}`;
+        }
+      },
+      {
+        id: "book", dir: "h", value: 25, unit: "厘米",
+        caption: "这本课本大约长多少？选出单位。",
+        draw() {
+          return `<rect x="0" y="0" width="440" height="250" fill="#243044"/>
+            <rect x="92" y="70" width="256" height="88" rx="4" fill="#4361ee"/>
+            <rect x="100" y="78" width="240" height="72" fill="#e8eefc"/>
+            <line x1="220" y1="78" x2="220" y2="150" stroke="#c5d0ea" stroke-width="2"/>
+            <line x1="116" y1="96" x2="200" y2="96" stroke="#9aa8c7" stroke-width="3"/>
+            <line x1="116" y1="112" x2="190" y2="112" stroke="#9aa8c7" stroke-width="3"/>
+            <line x1="240" y1="96" x2="324" y2="96" stroke="#9aa8c7" stroke-width="3"/>
+            ${dimH(92, 348, 188)}`;
+        }
+      },
+      {
+        id: "ant", dir: "h", value: 5, unit: "毫米",
+        caption: "这只蚂蚁大约长多少？选出单位。",
+        draw() {
+          return `<rect x="0" y="0" width="440" height="250" fill="#1e3a4c"/>
+            <ellipse cx="220" cy="168" rx="90" ry="28" fill="#2d6a4f"/>
+            <circle cx="220" cy="108" r="78" fill="none" stroke="#a8dadc" stroke-width="4"/>
+            <circle cx="220" cy="108" r="70" fill="rgba(168,218,220,0.08)"/>
+            <ellipse cx="198" cy="108" rx="10" ry="8" fill="#333"/>
+            <ellipse cx="218" cy="108" rx="12" ry="9" fill="#222"/>
+            <ellipse cx="238" cy="106" rx="9" ry="7" fill="#333"/>
+            <line x1="238" y1="100" x2="248" y2="90" stroke="#222" stroke-width="2"/>
+            <line x1="238" y1="100" x2="252" y2="94" stroke="#222" stroke-width="2"/>
+            <line x1="208" y1="116" x2="198" y2="128" stroke="#222" stroke-width="2"/>
+            <line x1="228" y1="116" x2="238" y2="128" stroke="#222" stroke-width="2"/>
+            <text x="220" y="42" text-anchor="middle" fill="#a8dadc" font-size="13">放大看</text>
+            ${dimH(186, 250, 196)}`;
+        }
+      },
+      {
+        id: "finger", dir: "h", value: 1, unit: "厘米",
+        caption: "食指大约宽多少？选出单位。",
+        draw() {
+          return `<rect x="0" y="0" width="440" height="250" fill="#243044"/>
+            <ellipse cx="210" cy="200" rx="70" ry="36" fill="#ffdbac"/>
+            <rect x="186" y="48" width="48" height="160" rx="22" fill="#ffdbac"/>
+            <rect x="192" y="52" width="36" height="18" rx="8" fill="#e8c49a"/>
+            ${dimH(186, 234, 188)}`;
+        }
+      }
+    ];
+
+    function pickScene() {
+      let s;
+      do { s = SCENES[Math.floor(Math.random() * SCENES.length)]; }
+      while (s.id === lastId && SCENES.length > 1);
+      lastId = s.id;
+      return s;
+    }
+
+    function newProblem() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      answered = false;
+      scene = pickScene();
+      document.getElementById("art").innerHTML = scene.draw();
+      document.getElementById("num").textContent = scene.value;
+      document.getElementById("caption").textContent = scene.caption;
+      const tag = document.getElementById("tag");
+      tag.className = "tag " + scene.dir;
+      const inp = document.getElementById("unitIn");
+      inp.value = "";
+      inp.disabled = false;
+      inp.focus();
+      document.querySelectorAll(".units button").forEach(b => b.disabled = false);
+      document.getElementById("status").textContent = "";
+      document.getElementById("status").className = "status";
+      document.getElementById("nextBtn").classList.remove("show");
+    }
+
+    function norm(s) {
+      s = (s || "").trim().toLowerCase();
+      if (s === "m" || s === "米") return "米";
+      if (s === "cm" || s === "厘米") return "厘米";
+      if (s === "mm" || s === "毫米") return "毫米";
+      return s;
+    }
+
+    function pick(unit) {
+      if (answered) return;
+      answered = true;
+      const ok = norm(unit) === scene.unit;
+      document.getElementById("unitIn").value = scene.unit;
+      document.getElementById("unitIn").disabled = true;
+      document.querySelectorAll(".units button").forEach(b => b.disabled = true);
+      const st = document.getElementById("status");
+      prof.record(ok);
+      profUI.render();
+      if (ok) {
+        st.textContent = "答对了！";
+        st.className = "status ok";
+        timer = setTimeout(newProblem, AUTO_MS);
+      } else {
+        st.textContent = `应填「${scene.unit}」`;
+        st.className = "status err";
+        document.getElementById("nextBtn").classList.add("show");
+      }
+    }
+
+    document.querySelectorAll(".units button").forEach(b => {
+      b.onclick = () => pick(b.dataset.u);
+    });
+    document.getElementById("unitIn").addEventListener("keydown", e => {
+      if (e.key === "Enter") pick(e.target.value);
+    });
+    document.getElementById("nextBtn").onclick = () => newProblem();
+
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      newProblem();
+    });
+  </script>
+</body>
+</html>

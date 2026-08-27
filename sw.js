@@ -1,4 +1,4 @@
-const CACHE = "ps-v2";
+const CACHE = "ps-v3";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -25,7 +25,9 @@ const PRECACHE = [
   "./apps/grade2/multiplication-table.html",
   "./apps/grade2/vertical-division.html",
   "./apps/grade2/read-write-within-yi.html",
-  "./apps/grade2/vertical-multiplication.html"
+  "./apps/grade2/vertical-multiplication.html",
+  "./apps/grade2/length-units.html",
+  "./apps/grade2/length-convert.html"
 ];
 
 self.addEventListener("install", event => {
