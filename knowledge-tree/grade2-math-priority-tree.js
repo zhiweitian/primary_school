@@ -50,11 +50,53 @@ window.GRADE2_MATH_PRIORITY_TREE = {
                   },
                   {
                     "name": "根据口诀计算乘法",
-                    "leaf": true,
                     "volume": "上册",
                     "unit": "表内乘、除法",
                     "topic": "用口诀求积",
-                    "app": "../apps/grade2/vertical-multiplication.html"
+                    "ordered": true,
+                    "children": [
+                      {
+                        "name": "逐步提示",
+                        "leaf": true,
+                        "volume": "上册",
+                        "unit": "表内乘、除法",
+                        "topic": "用口诀求积",
+                        "app": "../apps/grade2/vertical-multiplication.html?mode=guided"
+                      },
+                      {
+                        "name": "竖式乘法",
+                        "leaf": true,
+                        "volume": "上册",
+                        "unit": "表内乘、除法",
+                        "topic": "用口诀求积",
+                        "app": "../apps/grade2/vertical-multiplication.html"
+                      },
+                      {
+                        "name": "口算",
+                        "volume": "上册",
+                        "unit": "表内乘、除法",
+                        "topic": "口算乘法",
+                        "ordered": true,
+                        "children": [
+                          {
+                            "name": "口算乘法",
+                            "leaf": true,
+                            "volume": "上册",
+                            "unit": "表内乘、除法",
+                            "topic": "两三位乘一位",
+                            "app": "../apps/grade2/vertical-multiplication.html?mode=mental1"
+                          },
+                          {
+                            "name": "口算进阶",
+                            "leaf": true,
+                            "volume": "上册",
+                            "unit": "表内乘、除法",
+                            "topic": "乘两位数",
+                            "app": "../apps/grade2/vertical-multiplication.html?mode=mental2"
+                          }
+                        ]
+                      }
+                    ]
                   },
                   {
                     "name": "口诀求商",

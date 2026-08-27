@@ -128,6 +128,13 @@
     }
     .cell.place.active { color: #a8dadc; font-weight: 700; }
 
+    .cell.hl {
+      background: rgba(255, 209, 102, 0.28);
+      border-radius: 6px;
+      box-shadow: inset 0 0 0 2px #ffd166;
+    }
+    .cell.hl .digit { color: #ffd166; }
+
     .sign-cell {
       width: 2rem;
       text-align: center;
@@ -182,12 +189,15 @@
       100% { transform: scale(1); }
     }
     .worksheet.done { animation: pop 0.4s ease; }
+
+    body.mental #carryRow,
+    body.mental #partialRows { display: none; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>✖️ 竖式乘法练习</h1>
-    <p class="hint">从个位开始输入；连打两位时，前一位自动填入进位</p>
+    <h1 id="pageTitle">✖️ 竖式乘法练习</h1>
+    <p class="hint" id="pageHint">从个位开始输入；连打两位时，前一位自动填入进位</p>
 
     <div class="stats">
       <div class="stat">
@@ -219,6 +229,9 @@
   <script src="../../practice-stats-store.js"></script>
   <script>
     let prof, profUI;
+    const MODE = new URLSearchParams(location.search).get("mode") || "";
+    const isMental = MODE === "mental1" || MODE === "mental2";
+    const isGuided = MODE === "guided";
     const worksheet = document.getElementById("worksheet");
     const hiddenInput = document.getElementById("hiddenInput");
     const bufferEl = document.getElementById("buffer");
@@ -226,6 +239,22 @@
     const sumLine = document.getElementById("sumLine");
 
     const PLACE_NAMES = ["个", "十", "百", "千", "万", "十万"];
+
+    if (MODE === "guided") {
+      document.title = "竖式乘法（逐步提示）";
+      document.getElementById("pageTitle").textContent = "✖️ 竖式乘法（逐步提示）";
+      document.getElementById("pageHint").textContent = "高亮的两个数相乘；有进位时连打两位";
+    } else if (MODE === "mental1") {
+      document.title = "口算乘法";
+      document.getElementById("pageTitle").textContent = "✖️ 口算乘法";
+      document.getElementById("pageHint").textContent = "两位数或三位数乘一位数，从个位起只填得数";
+      document.body.classList.add("mental");
+    } else if (MODE === "mental2") {
+      document.title = "口算乘法进阶";
+      document.getElementById("pageTitle").textContent = "✖️ 口算乘法进阶";
+      document.getElementById("pageHint").textContent = "乘两位数，从个位起只填得数";
+      document.body.classList.add("mental");
+    }
 
     let a = 0, b = 0, product = 0;
     let bDigits = [];
@@ -247,7 +276,23 @@
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
+    function randomNDigit(n) {
+      const min = n === 1 ? 2 : 10 ** (n - 1);
+      const max = 10 ** n - 1;
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
     function randomProblem() {
+      if (MODE === "mental1") {
+        a = randomNDigit(Math.random() < 0.5 ? 2 : 3);
+        b = randomNDigit(1);
+        return;
+      }
+      if (MODE === "mental2") {
+        a = randomNDigit(Math.random() < 0.5 ? 2 : 3);
+        b = randomNDigit(2);
+        return;
+      }
       const aDigits = Math.floor(Math.random() * 4) + 1;
       const bDigitsCount = Math.floor(Math.random() * 2) + 1;
       a = randomNumber(aDigits);
@@ -299,10 +344,12 @@
     }
 
     function expectedAt() {
+      if (phase === "mental") return { result: digitAt(product, currentCol), carry: 0 };
       return phase === "partial" ? expectedPartial(currentCol) : expectedSum(currentCol);
     }
 
     function maxColForPhase() {
+      if (phase === "mental") return sumColCount();
       return phase === "partial" ? partialColCount(partialIdx) : sumColCount();
     }
 
@@ -313,6 +360,11 @@
       span.className = "digit";
       span.textContent = text === " " ? "" : text;
       cell.appendChild(span);
+      return cell;
+    }
+
+    function markHl(cell, on) {
+      if (on) cell.classList.add("hl");
       return cell;
     }
 
@@ -347,6 +399,9 @@
       addSignCell(carryRow, "", true);
 
       const gridActive = activeGridCol();
+      const hlMul = isGuided && phase === "partial";
+      const hlSum = isGuided && phase === "sum";
+      const carryCol = phase === "partial" ? partialIdx + currentCol : currentCol;
 
       for (let i = 0; i < colCount; i++) {
         const colFromRight = colCount - 1 - i;
@@ -355,64 +410,76 @@
         if (colFromRight === gridActive) pCell.classList.add("active");
         placeRow.appendChild(pCell);
 
-        rowA.appendChild(makeCell(aStr[i], ""));
-        rowB.appendChild(makeCell(bStr[i], ""));
+        rowA.appendChild(markHl(
+          makeCell(aStr[i], ""),
+          hlMul && colFromRight === currentCol
+        ));
+        rowB.appendChild(markHl(
+          makeCell(bStr[i], ""),
+          hlMul && colFromRight === partialIdx
+        ));
 
         const showCarry = colFromRight > 0;
         const cCell = makeCell(showCarry && carryIn[colFromRight] !== null ? carryIn[colFromRight] : "", "carry");
         if (showCarry && carryIn[colFromRight] !== null) cCell.classList.add("filled");
+        markHl(cCell, isGuided && showCarry && carryIn[colFromRight] !== null && colFromRight === carryCol);
         carryRow.appendChild(cCell);
       }
 
-      for (let k = 0; k < bDigits.length; k++) {
-        const row = document.createElement("div");
-        row.className = "row";
-        addSignCell(row, "", true);
+      if (!isMental) {
+        for (let k = 0; k < bDigits.length; k++) {
+          const row = document.createElement("div");
+          row.className = "row";
+          addSignCell(row, "", true);
 
-        for (let i = 0; i < colCount; i++) {
-          const colFromRight = colCount - 1 - i;
-          const shift = k;
+          for (let i = 0; i < colCount; i++) {
+            const colFromRight = colCount - 1 - i;
+            const shift = k;
 
-          if (k < partialIdx || (k === partialIdx && phase === "sum")) {
-            const val = colFromRight >= shift
-              ? digitAt(completedPartials[k], colFromRight - shift)
-              : null;
-            const cell = makeCell(val === 0 && colFromRight < shift ? "" : (val ?? ""), "partial done");
-            row.appendChild(cell);
-          } else if (k === partialIdx && phase === "partial") {
-            const gridCol = partialIdx + currentCol;
-            if (colFromRight < shift) {
-              row.appendChild(makeCell("", "partial"));
-            } else {
-              const localCol = colFromRight - shift;
-              const filled = answer[localCol];
-              const cell = makeCell(filled ?? "", localCol === currentCol ? "answer" : "partial");
-              if (localCol === currentCol) cell.classList.add("active");
-              if (filled !== null) {
-                const exp = expectedPartial(localCol);
-                if (+filled === exp.result) cell.classList.add("correct");
-              }
+            if (k < partialIdx || (k === partialIdx && phase === "sum")) {
+              const val = colFromRight >= shift
+                ? digitAt(completedPartials[k], colFromRight - shift)
+                : null;
+              const cell = makeCell(val === 0 && colFromRight < shift ? "" : (val ?? ""), "partial done");
+              markHl(cell, hlSum && colFromRight >= shift && colFromRight === currentCol);
               row.appendChild(cell);
+            } else if (k === partialIdx && phase === "partial") {
+              if (colFromRight < shift) {
+                row.appendChild(makeCell("", "partial"));
+              } else {
+                const localCol = colFromRight - shift;
+                const filled = answer[localCol];
+                const cell = makeCell(filled ?? "", localCol === currentCol ? "answer" : "partial");
+                if (localCol === currentCol) cell.classList.add("active");
+                if (filled !== null) {
+                  const exp = expectedPartial(localCol);
+                  if (+filled === exp.result) cell.classList.add("correct");
+                }
+                row.appendChild(cell);
+              }
+            } else {
+              row.appendChild(makeCell("", "partial"));
             }
-          } else {
-            row.appendChild(makeCell("", "partial"));
           }
+          partialRows.appendChild(row);
         }
-        partialRows.appendChild(row);
       }
 
-      const showSum = bDigits.length > 1;
+      const showSum = isMental || bDigits.length > 1;
       sumLine.style.display = showSum ? "" : "none";
       addSignCell(answerRow, "", true);
 
       if (showSum) {
+        answerRow.style.display = "";
         for (let i = 0; i < colCount; i++) {
           const colFromRight = colCount - 1 - i;
-          if (phase === "sum") {
+          if (phase === "sum" || phase === "mental") {
             const cell = makeCell(answer[colFromRight] ?? "", "answer");
             if (colFromRight === currentCol) cell.classList.add("active");
             if (answer[colFromRight] !== null) {
-              const exp = expectedSum(colFromRight);
+              const exp = phase === "mental"
+                ? { result: digitAt(product, colFromRight) }
+                : expectedSum(colFromRight);
               if (+answer[colFromRight] === exp.result) cell.classList.add("correct");
             }
             answerRow.appendChild(cell);
@@ -439,14 +506,14 @@
       bDigits = String(b).split("").reverse().map(Number);
       partials = bDigits.map(d => a * d);
       colCount = Math.max(String(product).length, String(a).length + String(b).length - 1);
-      phase = "partial";
+      phase = isMental ? "mental" : "partial";
       partialIdx = 0;
       completedPartials = [];
-      resetRowState(partialColCount(0));
+      resetRowState(isMental ? sumColCount() : partialColCount(0));
       statusEl.textContent = "";
       statusEl.className = "status";
       worksheet.classList.remove("done");
-      answerRow.style.display = bDigits.length > 1 ? "" : "none";
+      answerRow.style.display = isMental || bDigits.length > 1 ? "" : "none";
       updateBuffer();
       render();
       focusInput();
@@ -458,18 +525,38 @@
     }
 
     function stepLabel() {
+      if (phase === "mental") {
+        return `正在算<span>${placeLabel(currentCol)}</span>位`;
+      }
       if (phase === "partial") {
         const d = bDigits[partialIdx];
         const place = placeLabel(currentCol);
+        if (isGuided) {
+          const dA = digitAt(a, currentCol);
+          const cin = currentCol === 0 ? 0 : carryOut[currentCol - 1];
+          const mul = `<span>${dA}</span> × <span>${d}</span>`;
+          return cin
+            ? `${mul} + <span>${cin}</span>：正在算<span>${place}</span>位`
+            : `${mul}：正在算<span>${place}</span>位`;
+        }
         return `用 ${d} 乘：正在算<span>${place}</span>位`;
+      }
+      if (isGuided) {
+        const parts = [];
+        if (currentCol > 0 && carryOut[currentCol - 1]) parts.push(`<span>${carryOut[currentCol - 1]}</span>`);
+        for (let k = 0; k < completedPartials.length; k++) {
+          if (currentCol >= k) parts.push(`<span>${digitAt(completedPartials[k], currentCol - k)}</span>`);
+        }
+        return `${parts.join(" + ")}：正在算<span>${placeLabel(currentCol)}</span>位`;
       }
       return `相加：正在算<span>${placeLabel(currentCol)}</span>位`;
     }
 
     function updateBuffer() {
+      const step = stepLabel();
       bufferEl.innerHTML = digitBuffer
-        ? `当前输入：<span>${digitBuffer}</span>`
-        : stepLabel();
+        ? (isGuided ? `${step}　当前输入：<span>${digitBuffer}</span>` : `当前输入：<span>${digitBuffer}</span>`)
+        : step;
     }
 
     function finishProblem() {

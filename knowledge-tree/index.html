@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#5d4037">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="小学数学">
   <title>人教版小学数学 · 分支知识树</title>
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="apple-touch-icon" href="../icons/icon-192.png">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; overflow: hidden; }
@@ -74,9 +80,10 @@
   </header>
   <div class="canvas-wrap">
     <svg id="tree-svg"><g id="tree-root"><g class="links"></g><g class="nodes"></g></g></svg>
-    <div class="hint">力导向 · 拖节点 · 拖空白平移 · 滚轮缩放 · 练习数据保存在 data/practice-stats.json（请用 python3 serve.py 启动）</div>
+    <div class="hint">力导向 · 拖节点 · 拖空白平移 · 滚轮缩放 · 练习记录保存在本机浏览器</div>
   </div>
 
+  <script src="../pwa.js"></script>
   <script src="../vendor/d3.min.js"></script>
   <script src="../practice-stats-store.js"></script>
   <script src="grade1-math-priority-tree.js"></script>

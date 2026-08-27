@@ -13,6 +13,11 @@
     return location.protocol === "http:" || location.protocol === "https:";
   }
 
+  function canSaveRemote() {
+    const h = location.hostname;
+    return canUseHttp() && (h === "localhost" || h === "127.0.0.1");
+  }
+
   function emptyStore() {
     return { nodes: {} };
   }
@@ -88,7 +93,7 @@
   }
 
   function flushSave() {
-    if (!canUseHttp() || !cache) return;
+    if (!canSaveRemote() || !cache) return;
     clearTimeout(saveTimer);
     saveTimer = null;
     const blob = new Blob([JSON.stringify(cache)], { type: "application/json" });
@@ -105,7 +110,7 @@
   }
 
   function scheduleSave() {
-    if (!canUseHttp()) return;
+    if (!canSaveRemote()) return;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flushSave, 300);
   }
