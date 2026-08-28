@@ -59,12 +59,10 @@ object Perms {
         return pm.isIgnoringBatteryOptimizations(ctx.packageName)
     }
 
-    fun readyForPlay(ctx: Context) = overlayOn(ctx) && notifyOn(ctx)
+    fun readyForPlay(ctx: Context) = notifyOn(ctx)
 
     fun nextMissing(ctx: Context, skip: Set<String> = emptySet()): String? {
         if ("notify" !in skip && !notifyOn(ctx)) return "notify"
-        if ("overlay" !in skip && !overlayOn(ctx)) return "overlay"
-        if ("popup" !in skip && !Prefs.sawPopup()) return "popup"
         if ("usage" !in skip && !usageOn(ctx)) return "usage"
         if ("battery" !in skip && !batteryOn(ctx)) return "battery"
         if ("home" !in skip && !homeOn(ctx)) return "home"

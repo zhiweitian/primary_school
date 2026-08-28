@@ -70,7 +70,7 @@ class PlayTimerService : Service() {
                 addAction(Intent.ACTION_USER_PRESENT)
             }
         )
-        Overlay.ensure(this)
+        Watch.log(this, "PlayTimer create play=${Prefs.isPlayActive()}")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -87,9 +87,9 @@ class PlayTimerService : Service() {
     }
 
     override fun onDestroy() {
+        Watch.log(this, "PlayTimer destroy play=${Prefs.isPlayActive()}")
         handler.removeCallbacks(loop)
         cancelAlarm()
-        if (!Prefs.isPlayActive()) Overlay.hide()
         try {
             unregisterReceiver(screenRecv)
         } catch (_: Exception) {
@@ -101,7 +101,6 @@ class PlayTimerService : Service() {
 
     private fun paint() {
         if (!Prefs.isPlayActive()) return
-        Overlay.tick(this)
         val ms = Prefs.playRemainingMs()
         val sec = ms / 1000
         if (sec != lastSec) {
@@ -140,7 +139,6 @@ class PlayTimerService : Service() {
     private fun expire() {
         handler.removeCallbacks(loop)
         cancelAlarm()
-        Overlay.hide()
         Prefs.endPlay()
         val launch = Intent(this, LauncherActivity::class.java)
             .addFlags(
@@ -221,9 +219,13 @@ class PlayTimerService : Service() {
             .setContentIntent(open)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
         return if (screenOn) {
             b.setContentTitle("还可以玩 ${fmt(ms)}")
-                .setContentText("到点会回到练习")
+                .setContentText("到点会回到练习 · 下拉通知栏也能看到")
+                .setUsesChronometer(true)
+                .setChronometerCountDown(true)
+                .setWhen(System.currentTimeMillis() + ms)
                 .build()
         } else {
             b.setContentTitle("计时已暂停")

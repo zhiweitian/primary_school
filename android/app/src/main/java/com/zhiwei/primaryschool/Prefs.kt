@@ -94,6 +94,11 @@ object Prefs {
         sp().edit().putBoolean("sawPopup", true).apply()
     }
 
+    fun lastBeat(): Long = sp().getLong("beat", 0L)
+    fun touchBeat() {
+        sp().edit().putLong("beat", System.currentTimeMillis()).apply()
+    }
+
     fun hasPin(): Boolean = !sp().getString("pin", "").isNullOrEmpty()
 
     fun setPin(pin: String) {

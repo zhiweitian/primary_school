@@ -56,6 +56,7 @@ class LauncherActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         Prefs.init(this)
         KeepAliveService.start(this)
+        Watch.log(this, "Launcher onCreate home=${Perms.homeOn(this)}")
         setShowWhenLocked(true)
         setTurnScreenOn(true)
         setContentView(R.layout.activity_launcher)
@@ -289,7 +290,7 @@ class LauncherActivity : AppCompatActivity() {
     private fun tryPlay() {
         if (Prefs.isPlayActive()) return
         if (!Perms.readyForPlay(this)) {
-            Toast.makeText(this, "先打开通知和悬浮窗权限", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "先打开通知权限", Toast.LENGTH_LONG).show()
             explainPerms()
             return
         }
@@ -303,7 +304,6 @@ class LauncherActivity : AppCompatActivity() {
                 if (n >= 0) Prefs.setBalance(n)
                 else Prefs.setBalance(Prefs.balance() - Prefs.POINT_COST)
                 Prefs.startPlay()
-                Overlay.ensure(this)
                 PlayTimerService.start(this)
                 refreshUi()
             }
@@ -369,7 +369,8 @@ class LauncherActivity : AppCompatActivity() {
             "赠送 40 分",
             "改练习网址",
             "更换家长密码",
-            "结束当前自由时间"
+            "结束当前自由时间",
+            "诊断信息"
         )
         AlertDialog.Builder(this)
             .setTitle("家长")
@@ -395,6 +396,11 @@ class LauncherActivity : AppCompatActivity() {
                         PlayTimerService.stop(this)
                         refreshUi()
                     }
+                    6 -> AlertDialog.Builder(this)
+                        .setTitle("诊断")
+                        .setMessage(Watch.dump(this))
+                        .setPositiveButton("关闭", null)
+                        .show()
                 }
             }
             .setNegativeButton("关闭", null)
