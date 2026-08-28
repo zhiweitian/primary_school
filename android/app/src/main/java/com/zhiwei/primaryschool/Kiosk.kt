@@ -58,7 +58,6 @@ object Kiosk {
         val admin = admin(ctx)
         val perms = arrayOf(
             Manifest.permission.POST_NOTIFICATIONS,
-            Manifest.permission.SYSTEM_ALERT_WINDOW,
             Manifest.permission.SCHEDULE_EXACT_ALARM,
             Manifest.permission.PACKAGE_USAGE_STATS
         )

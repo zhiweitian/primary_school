@@ -1,7 +1,6 @@
 package com.zhiwei.primaryschool
 
 import android.Manifest
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.Activity
 import android.app.AlarmManager
 import android.app.AppOpsManager
@@ -14,14 +13,11 @@ import android.os.Build
 import android.os.PowerManager
 import android.os.Process
 import android.provider.Settings
-import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 
 object Perms {
     const val REQ_NOTIFY = 71
     private const val NEW_TASK = Intent.FLAG_ACTIVITY_NEW_TASK
-
-    fun overlayOn(ctx: Context) = Settings.canDrawOverlays(ctx)
 
     fun notifyOn(ctx: Context): Boolean {
         if (Build.VERSION.SDK_INT < 33) return true
@@ -51,12 +47,6 @@ object Perms {
         return r?.activityInfo?.packageName == ctx.packageName
     }
 
-    fun accessOn(ctx: Context): Boolean {
-        val am = ctx.getSystemService(AccessibilityManager::class.java) ?: return false
-        return am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
-            .any { it.resolveInfo.serviceInfo.packageName == ctx.packageName }
-    }
-
     fun alarmOn(ctx: Context): Boolean {
         if (Build.VERSION.SDK_INT < 31) return true
         return (ctx.getSystemService(AlarmManager::class.java))?.canScheduleExactAlarms() == true
@@ -71,7 +61,6 @@ object Perms {
 
     fun nextMissing(ctx: Context, skip: Set<String> = emptySet()): String? {
         if ("notify" !in skip && !notifyOn(ctx)) return "notify"
-        if ("access" !in skip && !accessOn(ctx)) return "access"
         if ("usage" !in skip && !usageOn(ctx)) return "usage"
         if ("battery" !in skip && !batteryOn(ctx)) return "battery"
         if ("home" !in skip && !homeOn(ctx)) return "home"
@@ -91,9 +80,6 @@ object Perms {
                         )
                     }
                 }
-                "access" -> activity.startActivity(
-                    Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(NEW_TASK)
-                )
                 "usage" -> activity.startActivity(
                     Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(NEW_TASK)
                 )
@@ -120,7 +106,6 @@ object Perms {
 
     fun label(kind: String) = when (kind) {
         "notify" -> "通知"
-        "access" -> "无障碍（游戏上的倒计时）"
         "usage" -> "使用情况访问"
         "battery" -> "关闭电池优化"
         "home" -> "默认桌面（可跳过）"
@@ -130,7 +115,6 @@ object Perms {
 
     fun hint(kind: String) = when (kind) {
         "notify" -> "用来在通知栏显示剩余时间。"
-        "access" -> "系统允许的倒计时浮窗。下一页找到「小学练习」并打开。不会读取屏幕内容。"
         "usage" -> "用来在时间到时把孩子拉回练习。下一页找到「小学练习」并打开。"
         "battery" -> "关掉电池优化，系统才不会在后台把这个桌面杀掉。原系统桌面是系统应用，杀不掉。"
         "home" -> "设成默认桌面后，上划会回到本 App。不想改可以点跳过。"

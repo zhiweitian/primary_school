@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">小学练习</string>
-    <string name="access_desc">在游戏上显示剩余时间，并减少系统把桌面杀掉。不会读取屏幕内容。</string>
 </resources>

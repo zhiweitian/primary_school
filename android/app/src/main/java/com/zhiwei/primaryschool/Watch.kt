@@ -30,6 +30,6 @@ object Watch {
         } catch (_: Exception) {
             "（还没有日志）"
         }
-        return "默认桌面=${Perms.homeOn(ctx)}\n无障碍=${Perms.accessOn(ctx)}\n设备所有者=${Kiosk.isOwner(ctx)}\n自由时间=${Prefs.isPlayActive()}\n上次心跳 $gap\n\n$log"
+        return "默认桌面=${Perms.homeOn(ctx)}\n设备所有者=${Kiosk.isOwner(ctx)}\n自由时间=${Prefs.isPlayActive()}\n上次心跳 $gap\n\n$log"
     }
 }

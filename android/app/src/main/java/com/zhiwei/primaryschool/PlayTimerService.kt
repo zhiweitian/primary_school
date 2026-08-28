@@ -222,7 +222,7 @@ class PlayTimerService : Service() {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         return if (screenOn) {
             b.setContentTitle("还可以玩 ${fmt(ms)}")
-                .setContentText("到点会回到练习 · 下拉通知栏也能看到")
+                .setContentText("到点会回到练习")
                 .setUsesChronometer(true)
                 .setChronometerCountDown(true)
                 .setWhen(System.currentTimeMillis() + ms)

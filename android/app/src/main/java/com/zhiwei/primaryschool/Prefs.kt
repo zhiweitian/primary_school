@@ -89,11 +89,6 @@ object Prefs {
         sp().edit().putBoolean("holdKiosk", v).apply()
     }
 
-    fun sawPopup(): Boolean = sp().getBoolean("sawPopup", false)
-    fun setSawPopup() {
-        sp().edit().putBoolean("sawPopup", true).apply()
-    }
-
     fun lastBeat(): Long = sp().getLong("beat", 0L)
     fun touchBeat() {
         sp().edit().putLong("beat", System.currentTimeMillis()).apply()
