@@ -287,10 +287,11 @@ class LauncherActivity : AppCompatActivity() {
             Perms.open(this, kind)
             return
         }
+        val btn = if (kind == "oem") "去应用信息" else "去打开"
         AlertDialog.Builder(this)
             .setTitle(Perms.label(kind))
             .setMessage(Perms.hint(kind))
-            .setPositiveButton("去打开") { _, _ -> openSettings(kind) }
+            .setPositiveButton(btn) { _, _ -> openSettings(kind) }
             .setNegativeButton("跳过") { _, _ ->
                 askedPerms.add(kind)
                 if (kind == "oem") Prefs.setSawOem()

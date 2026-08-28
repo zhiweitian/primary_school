@@ -141,41 +141,32 @@ object Perms {
 
     private fun openOem(activity: Activity) {
         val pkg = Uri.parse("package:" + activity.packageName)
-        val tries = listOf(
-            Intent().setComponent(
-                ComponentName(
-                    "com.miui.securitycenter",
-                    "com.miui.permcenter.autostart.AutoStartManagementActivity"
-                )
-            ),
-            Intent().setComponent(
-                ComponentName(
-                    "com.huawei.systemmanager",
-                    "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"
-                )
-            ),
-            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(pkg)
-        )
-        for (i in tries) {
-            try {
-                activity.startActivity(i)
-                Toast.makeText(
-                    activity,
-                    "打开自启动、后台运行，或在多任务里锁定小学练习",
-                    Toast.LENGTH_LONG
-                ).show()
-                return
-            } catch (_: Exception) {
-            }
+        try {
+            activity.startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(pkg)
+            )
+        } catch (_: Exception) {
+            Toast.makeText(activity, "请到设置 → 应用 → 小学练习", Toast.LENGTH_LONG).show()
         }
-        Toast.makeText(activity, "请到应用信息里打开自启动和后台运行", Toast.LENGTH_LONG).show()
     }
+
+    fun oemGuide() = """
+        很多平板没有「自启动」这个名字，请手动找：
+
+        1. 下一页是「小学练习」应用信息。点「电池 / 耗电 / 用电管理」，选「不限制」或「允许后台活动」。
+
+        2. 上划打开多任务，长按「小学练习」，点锁定（小锁图标）。
+
+        3. 若在系统设置里搜到「自启动」「后台运行」，也把小学练习打开。
+
+        找不到可以先跳过。专用平板仍建议用电脑设设备所有者。
+    """.trimIndent()
 
     fun label(kind: String) = when (kind) {
         "notify" -> "通知"
         "usage" -> "使用情况访问"
         "battery" -> "关闭电池优化"
-        "oem" -> "自启动 / 后台运行"
+        "oem" -> "后台保活（手动）"
         "home" -> "默认桌面（可跳过）"
         "alarm" -> "精确闹钟"
         else -> kind
@@ -185,7 +176,7 @@ object Perms {
         "notify" -> "用来在通知栏显示剩余时间。"
         "usage" -> "用来在时间到时把孩子拉回练习。下一页找到「小学练习」并打开。"
         "battery" -> "系统会问是否允许忽略电池优化，选允许。如果进了应用列表，点右上角「全部」，搜「小学练习」。找不到就到应用信息里的电池，设为不优化。"
-        "oem" -> "电池优化关了仍可能被杀。下一页打开自启动、允许后台运行；或在多任务界面长按小学练习选锁定。"
+        "oem" -> oemGuide()
         "home" -> "设成默认桌面后，上划会回到本 App。不想改可以点跳过。"
         "alarm" -> "让到点更准时。下一页允许精确闹钟。"
         else -> ""
