@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="小学数学">
-  <title>人教版小学数学 · 分支知识树</title>
+  <title>人教版小学数学 · 先修知识树</title>
   <link rel="manifest" href="../manifest.webmanifest">
   <link rel="apple-touch-icon" href="../icons/icon-192.png">
   <style>
@@ -70,7 +70,7 @@
 </head>
 <body>
   <header class="header">
-    <h1 id="page-title">人教版小学数学 · 分支知识树</h1>
+    <h1 id="page-title">人教版小学数学 · 先修知识树</h1>
     <p class="subtitle" id="edition-label"></p>
     <div class="toolbar">
       <select id="grade-select" class="btn" aria-label="年级">
@@ -88,15 +88,15 @@
   </header>
   <div class="canvas-wrap">
     <svg id="tree-svg"><g id="tree-root"><g class="links"></g><g class="nodes"></g></g></svg>
-    <div class="hint">力导向 · 拖节点 · 拖空白平移 · 双指缩放 · 练习记录保存在本机</div>
+    <div class="hint">叶子在下先学 · 往上晋级 · 拖节点 · 拖空白平移 · 双指缩放</div>
   </div>
 
   <script src="../pwa.js"></script>
   <script src="../vendor/d3.min.js"></script>
   <script src="../practice-stats-store.js"></script>
   <script src="../play-wallet.js"></script>
-  <script src="grade1-math-priority-tree.js"></script>
-  <script src="grade2-math-priority-tree.js"></script>
+  <script src="grade1-math-priority-tree.js?v=10"></script>
+  <script src="grade2-math-priority-tree.js?v=10"></script>
   <script>
     const GRADE_DATA = {
       1: window.GRADE1_MATH_PRIORITY_TREE,
@@ -136,7 +136,7 @@
     }
 
     function treeColorAt(depth) {
-      const t = maxDepth > 0 ? depth / maxDepth : 0;
+      const t = maxDepth > 0 ? Math.pow(depth / maxDepth, 0.4) : 0;
       return {
         fill: d3.interpolateRgb(TREE_FILL_ROOT, TREE_FILL_LEAF)(t),
         stroke: d3.interpolateRgb(TREE_STROKE_ROOT, TREE_STROKE_LEAF)(t),
@@ -188,34 +188,14 @@
     }
 
     function verticalGap(p, c) {
-      const sc = c.subCount || 1;
-      const minGap = (p.h + c.h) * 0.45 + 5;
-      return Math.max(minGap, 40 * Math.pow(sc, 0.6));
+      const minGap = (p.h + c.h) * 0.45 + 8;
+      const sibs = childrenOf(p.id).length;
+      const extra = sibs > 1 ? 14 * Math.log2(1 + (c.subCount || 1)) : 10;
+      return Math.min(96, minGap + extra);
     }
 
     function trunkEdgeGap(p, c) {
       return verticalGap(p, c);
-    }
-
-    function totalHeight() {
-      function rise(id) {
-        const n = byId.get(id);
-        const kids = childrenOf(id);
-        if (!kids.length) return n.h + 16;
-        if (kids.every(k => k.type === "leaf")) {
-          let max = 0;
-          kids.forEach(k => {
-            max = Math.max(max, verticalGap(n, k) + k.h);
-          });
-          return max + 16;
-        }
-        let max = 0;
-        kids.forEach(k => {
-          max = Math.max(max, verticalGap(n, k) + rise(k.id));
-        });
-        return max + 16;
-      }
-      return rise("0") + 60;
     }
 
     let nodes = [], links = [], maxDepth = 0, byId = new Map();
@@ -373,24 +353,22 @@
     }
 
     function initVerticalLayout() {
-      const anchorY = totalHeight();
       const root = byId.get("0");
 
       function applyNoise(n) {
         const parent = n.parentId ? byId.get(n.parentId) : null;
         const jitter = parent
-          ? (hash(n.path, 42) - 0.5) * verticalGap(parent, n) * 0.35
+          ? (hash(n.path, 42) - 0.5) * verticalGap(parent, n) * 0.12
           : 0;
-        const r = Math.sqrt(n.subCount || 1);
-        n.tx += (Math.random() - 0.5) * 14 * r;
-        n.ty += jitter + (Math.random() - 0.5) * 80 * r;
+        n.tx += (Math.random() - 0.5) * 16;
+        n.ty += jitter;
       }
 
       function setChildTy(child, parent) {
         const gap = verticalGap(parent, child);
         const sibs = childrenOf(parent.id);
         const yOff = sibs.length > 1 ? (hash(child.path, 17) - 0.5) * gap * 0.35 : 0;
-        child.ty = parent.ty - gap + yOff;
+        child.ty = parent.ty + gap + yOff;
       }
 
       function layoutNodeY(id) {
@@ -403,7 +381,7 @@
 
       layoutNodeX("0");
 
-      root.ty = anchorY;
+      root.ty = 0;
       layoutNodeY("0");
 
       nodes.forEach(n => {
@@ -473,7 +451,7 @@
         .attr("d", l => {
           const p = byId.get(l.source.id || l.source);
           const c = byId.get(l.target.id || l.target);
-          return p && c && !p.data.leaf ? branchLink(p, c) : "";
+          return p && c ? branchLink(p, c) : "";
         })
         .style("stroke-width", l => linkStyle(l).width + "px")
         .style("stroke", l => linkStyle(l).stroke)
@@ -684,12 +662,11 @@
       const minX = Math.min(...nodes.map(n => n.x - n.w / 2)) - pad;
       const maxX = Math.max(...nodes.map(n => n.x + n.w / 2)) + pad;
       const minY = Math.min(...nodes.map(n => n.y - n.h / 2)) - pad;
-      const maxY = Math.max(...nodes.map(n => n.y + n.h / 2)) + pad;
       const rect = svg.node().getBoundingClientRect();
-      const sc = Math.min(rect.width / (maxX - minX), rect.height / (maxY - minY), 1);
-      transform.scale = Math.max(0.06, sc);
+      const scW = rect.width / Math.max(1, maxX - minX);
+      transform.scale = Math.max(0.35, Math.min(scW, 1.05));
       transform.x = (rect.width - (maxX - minX) * transform.scale) / 2 - minX * transform.scale;
-      transform.y = (rect.height - (maxY - minY) * transform.scale) / 2 - minY * transform.scale;
+      transform.y = 12 - minY * transform.scale;
       applyTransform();
     }
 
@@ -704,13 +681,13 @@
       document.getElementById("stats").textContent = nodes.length + " 节点";
     }
 
-    const PAGE_TITLE = "人教版小学数学 · 分支知识树";
+    const PAGE_TITLE = "人教版小学数学 · 先修知识树";
 
     function updateChrome() {
       document.title = PAGE_TITLE;
       document.getElementById("page-title").textContent = PAGE_TITLE;
       document.getElementById("edition-label").textContent =
-        data.edition + " · D3 力导向 · 可拖节点";
+        data.edition + " · 叶子在下 · 往上晋级";
       const w = window.PlayWallet ? PlayWallet.get() : 0;
       document.getElementById("walletChip").textContent =
         "积分 " + w + " · 满 " + (window.PlayWallet ? PlayWallet.COST : 40) + " 玩 10 分钟";
