@@ -40,6 +40,7 @@ class LauncherActivity : AppCompatActivity() {
     private lateinit var adapter: AppAdapter
     private var usingCacheFallback = false
     private var awaitingPerm = false
+    private val askedPerms = mutableSetOf<String>()
     private val uiTick = Handler(Looper.getMainLooper())
     private val uiLoop = object : Runnable {
         override fun run() {
@@ -217,22 +218,43 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     private fun explainPerms() {
+        askedPerms.clear()
+        awaitingPerm = false
         AlertDialog.Builder(this)
             .setTitle("打开计时权限")
-            .setMessage("游戏上显示倒计时、到点拉回练习，需要系统授权。接下来会一页页弹出，请都选允许。")
-            .setPositiveButton("去打开") { _, _ -> stepPerms() }
+            .setMessage("游戏上显示倒计时、到点拉回练习，需要系统授权。每一项都会先在这里问你，再进设置。")
+            .setPositiveButton("开始") { _, _ -> stepPerms() }
             .setNegativeButton("稍后", null)
             .show()
     }
 
     private fun stepPerms() {
-        val kind = Perms.nextMissing(this)
+        val kind = Perms.nextMissing(this, askedPerms)
         if (kind == null) {
-            Toast.makeText(this, "权限已就绪", Toast.LENGTH_SHORT).show()
+            awaitingPerm = false
+            if (Perms.nextMissing(this) == null) {
+                Toast.makeText(this, "权限已就绪", Toast.LENGTH_SHORT).show()
+            }
             return
         }
-        awaitingPerm = kind != "notify"
-        Perms.open(this, kind)
+        askedPerms.add(kind)
+        if (kind == "notify") {
+            Perms.open(this, kind)
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(Perms.label(kind))
+            .setMessage(Perms.hint(kind))
+            .setPositiveButton("去打开") { _, _ ->
+                awaitingPerm = true
+                try {
+                    stopLockTask()
+                } catch (_: Exception) {
+                }
+                Perms.open(this, kind)
+            }
+            .setNegativeButton("跳过") { _, _ -> stepPerms() }
+            .show()
     }
 
     private fun tryPlay() {

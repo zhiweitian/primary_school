@@ -54,12 +54,12 @@ object Perms {
 
     fun readyForPlay(ctx: Context) = overlayOn(ctx) && notifyOn(ctx)
 
-    fun nextMissing(ctx: Context): String? {
-        if (!notifyOn(ctx)) return "notify"
-        if (!overlayOn(ctx)) return "overlay"
-        if (!usageOn(ctx)) return "usage"
-        if (!homeOn(ctx)) return "home"
-        if (!alarmOn(ctx)) return "alarm"
+    fun nextMissing(ctx: Context, skip: Set<String> = emptySet()): String? {
+        if ("notify" !in skip && !notifyOn(ctx)) return "notify"
+        if ("overlay" !in skip && !overlayOn(ctx)) return "overlay"
+        if ("usage" !in skip && !usageOn(ctx)) return "usage"
+        if ("home" !in skip && !homeOn(ctx)) return "home"
+        if ("alarm" !in skip && !alarmOn(ctx)) return "alarm"
         return null
     }
 
@@ -75,30 +75,13 @@ object Perms {
                         )
                     }
                 }
-                "overlay" -> {
-                    Toast.makeText(activity, "打开「显示在其他应用上层」", Toast.LENGTH_LONG).show()
-                    activity.startActivity(
-                        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkg)
-                    )
-                }
-                "usage" -> {
-                    Toast.makeText(activity, "找到「小学练习」，打开使用情况访问", Toast.LENGTH_LONG).show()
-                    activity.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-                }
-                "home" -> {
-                    Toast.makeText(activity, "选「小学练习」作为默认桌面", Toast.LENGTH_LONG).show()
-                    if (Build.VERSION.SDK_INT >= 29) {
-                        val rm = activity.getSystemService(RoleManager::class.java)
-                        if (rm != null && rm.isRoleAvailable(RoleManager.ROLE_HOME)) {
-                            activity.startActivity(rm.createRequestRoleIntent(RoleManager.ROLE_HOME))
-                            return
-                        }
-                    }
-                    activity.startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
-                }
+                "overlay" -> activity.startActivity(
+                    Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkg)
+                )
+                "usage" -> activity.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                "home" -> activity.startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
                 "alarm" -> {
                     if (Build.VERSION.SDK_INT >= 31) {
-                        Toast.makeText(activity, "允许精确闹钟", Toast.LENGTH_LONG).show()
                         activity.startActivity(
                             Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkg)
                         )
@@ -111,11 +94,20 @@ object Perms {
     }
 
     fun label(kind: String) = when (kind) {
-        "notify" -> "通知（倒计时）"
-        "overlay" -> "显示在其他应用上层（游戏上看到剩余时间）"
-        "usage" -> "使用情况访问（到点拉回练习）"
-        "home" -> "设为默认桌面（上划回到本 App）"
-        "alarm" -> "精确计时"
+        "notify" -> "通知"
+        "overlay" -> "悬浮窗"
+        "usage" -> "使用情况访问"
+        "home" -> "默认桌面（可跳过）"
+        "alarm" -> "精确闹钟"
         else -> kind
+    }
+
+    fun hint(kind: String) = when (kind) {
+        "notify" -> "用来在通知栏显示剩余时间。"
+        "overlay" -> "打开后，玩游戏时也能看到倒计时。在下一页打开「显示在其他应用上层」。"
+        "usage" -> "用来在时间到时把孩子拉回练习。下一页找到「小学练习」并打开。"
+        "home" -> "设成默认桌面后，上划会回到本 App。不想改可以点跳过。"
+        "alarm" -> "让到点更准时。下一页允许精确闹钟。"
+        else -> ""
     }
 }

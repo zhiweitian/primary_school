@@ -205,8 +205,8 @@ object Kiosk {
             }
         }
         try {
-            if (!isOwner(activity) && play) activity.stopLockTask()
-            else activity.startLockTask()
+            if (isOwner(activity)) activity.startLockTask()
+            else activity.stopLockTask()
         } catch (_: Exception) {
         }
     }
