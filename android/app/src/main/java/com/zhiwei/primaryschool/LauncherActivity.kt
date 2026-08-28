@@ -39,8 +39,8 @@ class LauncherActivity : AppCompatActivity() {
     private lateinit var btnPlay: Button
     private lateinit var adapter: AppAdapter
     private var usingCacheFallback = false
-    private var awaitingPerm = false
     private val askedPerms = mutableSetOf<String>()
+    private var leftForSettings = false
     private val uiTick = Handler(Looper.getMainLooper())
     private val uiLoop = object : Runnable {
         override fun run() {
@@ -166,13 +166,22 @@ class LauncherActivity : AppCompatActivity() {
         refreshUi()
         uiTick.removeCallbacks(uiLoop)
         uiTick.post(uiLoop)
-        if (awaitingPerm) {
-            awaitingPerm = false
-            stepPerms()
-        } else if (!Kiosk.isOwner(this) && !Prefs.sawPerms() && Perms.nextMissing(this) != null) {
+        if (Prefs.holdKiosk()) {
+            if (leftForSettings) {
+                leftForSettings = false
+                stepPerms()
+            }
+            return
+        }
+        if (!Kiosk.isOwner(this) && !Prefs.sawPerms() && Perms.nextMissing(this) != null) {
             Prefs.setSawPerms()
             explainPerms()
         }
+    }
+
+    override fun onStop() {
+        if (Prefs.holdKiosk()) leftForSettings = true
+        super.onStop()
     }
 
     override fun onPause() {
@@ -219,42 +228,60 @@ class LauncherActivity : AppCompatActivity() {
 
     private fun explainPerms() {
         askedPerms.clear()
-        awaitingPerm = false
+        leftForSettings = false
+        Prefs.setHoldKiosk(true)
+        Kiosk.allowSettings(this)
+        try {
+            stopLockTask()
+        } catch (_: Exception) {
+        }
         AlertDialog.Builder(this)
             .setTitle("打开计时权限")
             .setMessage("游戏上显示倒计时、到点拉回练习，需要系统授权。每一项都会先在这里问你，再进设置。")
             .setPositiveButton("开始") { _, _ -> stepPerms() }
-            .setNegativeButton("稍后", null)
+            .setNegativeButton("稍后") { _, _ -> finishPerms() }
             .show()
+    }
+
+    private fun finishPerms() {
+        Prefs.setHoldKiosk(false)
+        leftForSettings = false
+        Kiosk.setPlayMode(this, Prefs.isPlayActive())
     }
 
     private fun stepPerms() {
         val kind = Perms.nextMissing(this, askedPerms)
         if (kind == null) {
-            awaitingPerm = false
+            finishPerms()
             if (Perms.nextMissing(this) == null) {
                 Toast.makeText(this, "权限已就绪", Toast.LENGTH_SHORT).show()
             }
             return
         }
-        askedPerms.add(kind)
         if (kind == "notify") {
+            askedPerms.add(kind)
             Perms.open(this, kind)
             return
         }
         AlertDialog.Builder(this)
             .setTitle(Perms.label(kind))
             .setMessage(Perms.hint(kind))
-            .setPositiveButton("去打开") { _, _ ->
-                awaitingPerm = true
-                try {
-                    stopLockTask()
-                } catch (_: Exception) {
-                }
-                Perms.open(this, kind)
+            .setPositiveButton("去打开") { _, _ -> openSettings(kind) }
+            .setNegativeButton("跳过") { _, _ ->
+                askedPerms.add(kind)
+                stepPerms()
             }
-            .setNegativeButton("跳过") { _, _ -> stepPerms() }
             .show()
+    }
+
+    private fun openSettings(kind: String) {
+        Prefs.setHoldKiosk(true)
+        Kiosk.allowSettings(this)
+        try {
+            stopLockTask()
+        } catch (_: Exception) {
+        }
+        uiTick.postDelayed({ Perms.open(this, kind) }, 400)
     }
 
     private fun tryPlay() {

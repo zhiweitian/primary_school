@@ -84,6 +84,11 @@ object Prefs {
         sp().edit().putBoolean("sawPerms", true).apply()
     }
 
+    fun holdKiosk(): Boolean = sp().getBoolean("holdKiosk", false)
+    fun setHoldKiosk(v: Boolean) {
+        sp().edit().putBoolean("holdKiosk", v).apply()
+    }
+
     fun hasPin(): Boolean = !sp().getString("pin", "").isNullOrEmpty()
 
     fun setPin(pin: String) {

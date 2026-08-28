@@ -16,6 +16,7 @@ import android.widget.Toast
 
 object Perms {
     const val REQ_NOTIFY = 71
+    private const val NEW_TASK = Intent.FLAG_ACTIVITY_NEW_TASK
 
     fun overlayOn(ctx: Context) = Settings.canDrawOverlays(ctx)
 
@@ -76,14 +77,19 @@ object Perms {
                     }
                 }
                 "overlay" -> activity.startActivity(
-                    Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkg)
+                    Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkg).addFlags(NEW_TASK)
                 )
-                "usage" -> activity.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-                "home" -> activity.startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
+                "usage" -> activity.startActivity(
+                    Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(NEW_TASK)
+                )
+                "home" -> activity.startActivity(
+                    Intent(Settings.ACTION_HOME_SETTINGS).addFlags(NEW_TASK)
+                )
                 "alarm" -> {
                     if (Build.VERSION.SDK_INT >= 31) {
                         activity.startActivity(
                             Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkg)
+                                .addFlags(NEW_TASK)
                         )
                     }
                 }

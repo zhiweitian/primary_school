@@ -133,6 +133,16 @@ object Kiosk {
         }
     }
 
+    private val SETTINGS_PKGS = arrayOf(
+        "com.android.settings",
+        "com.android.permissioncontroller",
+        "com.google.android.permissioncontroller"
+    )
+
+    fun allowSettings(activity: Activity) {
+        for (pkg in SETTINGS_PKGS) allowExtra(activity, pkg)
+    }
+
     fun allowExtra(activity: Activity, pkg: String) {
         if (!isOwner(activity)) {
             try {
@@ -196,6 +206,14 @@ object Kiosk {
     }
 
     fun setPlayMode(activity: Activity, play: Boolean) {
+        if (Prefs.holdKiosk()) {
+            try {
+                activity.stopLockTask()
+            } catch (_: Exception) {
+            }
+            allowSettings(activity)
+            return
+        }
         setupOwner(activity)
         applyRestrictions(activity, play)
         if (isOwner(activity)) {

@@ -123,7 +123,7 @@ class PlayTimerService : Service() {
     }
 
     private fun police() {
-        if (!Prefs.isPlayActive() || !screenOn) return
+        if (Prefs.holdKiosk() || !Prefs.isPlayActive() || !screenOn) return
         val top = topPackage() ?: return
         if (top in Kiosk.homePackages(this)) Kiosk.bringPlayHome(this)
     }
