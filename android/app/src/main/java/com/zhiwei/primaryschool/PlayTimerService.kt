@@ -12,23 +12,17 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
-import android.provider.Settings
-import android.view.Gravity
-import android.view.WindowManager
-import android.widget.TextView
 import androidx.core.app.NotificationCompat
 
 class PlayTimerService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private var screenOn = true
-    private var overlay: TextView? = null
     private var lastSec = -1L
 
     private val screenRecv = object : BroadcastReceiver() {
@@ -76,7 +70,7 @@ class PlayTimerService : Service() {
                 addAction(Intent.ACTION_USER_PRESENT)
             }
         )
-        showOverlay()
+        Overlay.ensure(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -95,7 +89,7 @@ class PlayTimerService : Service() {
     override fun onDestroy() {
         handler.removeCallbacks(loop)
         cancelAlarm()
-        hideOverlay()
+        if (!Prefs.isPlayActive()) Overlay.hide()
         try {
             unregisterReceiver(screenRecv)
         } catch (_: Exception) {
@@ -107,14 +101,9 @@ class PlayTimerService : Service() {
 
     private fun paint() {
         if (!Prefs.isPlayActive()) return
-        if (overlay == null) {
-            Kiosk.grantPerms(this)
-            showOverlay()
-        }
+        Overlay.tick(this)
         val ms = Prefs.playRemainingMs()
         val sec = ms / 1000
-        val txt = "剩余 ${fmt(ms)}"
-        overlay?.text = txt
         if (sec != lastSec) {
             lastSec = sec
             val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -151,7 +140,7 @@ class PlayTimerService : Service() {
     private fun expire() {
         handler.removeCallbacks(loop)
         cancelAlarm()
-        hideOverlay()
+        Overlay.hide()
         Prefs.endPlay()
         val launch = Intent(this, LauncherActivity::class.java)
             .addFlags(
@@ -211,45 +200,6 @@ class PlayTimerService : Service() {
         return PendingIntent.getForegroundService(
             this, 3, i, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-    }
-
-    private fun showOverlay() {
-        if (overlay != null) return
-        if (!Settings.canDrawOverlays(this)) return
-        val tv = TextView(this).apply {
-            text = "剩余 ${fmt(Prefs.playRemainingMs())}"
-            setTextColor(0xFFFFFFFF.toInt())
-            textSize = 16f
-            setPadding(28, 16, 28, 16)
-            setBackgroundColor(0xE6E65100.toInt())
-            setOnClickListener { Kiosk.bringPlayHome(this@PlayTimerService) }
-        }
-        val lp = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.END
-            y = 24
-            x = 16
-        }
-        try {
-            (getSystemService(WINDOW_SERVICE) as WindowManager).addView(tv, lp)
-            overlay = tv
-        } catch (_: Exception) {
-        }
-    }
-
-    private fun hideOverlay() {
-        val tv = overlay ?: return
-        overlay = null
-        try {
-            (getSystemService(WINDOW_SERVICE) as WindowManager).removeView(tv)
-        } catch (_: Exception) {
-        }
     }
 
     private fun ensureChannel() {

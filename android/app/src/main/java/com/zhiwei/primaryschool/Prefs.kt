@@ -89,6 +89,11 @@ object Prefs {
         sp().edit().putBoolean("holdKiosk", v).apply()
     }
 
+    fun sawPopup(): Boolean = sp().getBoolean("sawPopup", false)
+    fun setSawPopup() {
+        sp().edit().putBoolean("sawPopup", true).apply()
+    }
+
     fun hasPin(): Boolean = !sp().getString("pin", "").isNullOrEmpty()
 
     fun setPin(pin: String) {

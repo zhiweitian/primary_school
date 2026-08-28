@@ -10,15 +10,22 @@ import android.content.Intent
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 
 class KeepAliveService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private var homeWasOn = true
+    private var lastGuard = 0L
     private val loop = object : Runnable {
         override fun run() {
-            paint()
-            handler.postDelayed(this, 15_000)
+            Overlay.tick(this@KeepAliveService)
+            val now = SystemClock.elapsedRealtime()
+            if (now - lastGuard > 15_000L) {
+                lastGuard = now
+                guard()
+            }
+            handler.postDelayed(this, if (Prefs.isPlayActive()) 400L else 15_000L)
         }
     }
 
@@ -41,7 +48,8 @@ class KeepAliveService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun paint() {
+    private fun guard() {
+        if (Prefs.isPlayActive()) PlayTimerService.start(this)
         val on = Perms.homeOn(this) || Kiosk.isOwner(this)
         if (on != homeWasOn) {
             homeWasOn = on

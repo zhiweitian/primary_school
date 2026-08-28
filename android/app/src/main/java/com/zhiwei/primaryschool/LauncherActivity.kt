@@ -270,6 +270,7 @@ class LauncherActivity : AppCompatActivity() {
             .setPositiveButton("去打开") { _, _ -> openSettings(kind) }
             .setNegativeButton("跳过") { _, _ ->
                 askedPerms.add(kind)
+                if (kind == "popup") Prefs.setSawPopup()
                 stepPerms()
             }
             .show()
@@ -302,6 +303,7 @@ class LauncherActivity : AppCompatActivity() {
                 if (n >= 0) Prefs.setBalance(n)
                 else Prefs.setBalance(Prefs.balance() - Prefs.POINT_COST)
                 Prefs.startPlay()
+                Overlay.ensure(this)
                 PlayTimerService.start(this)
                 refreshUi()
             }

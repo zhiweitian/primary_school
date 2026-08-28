@@ -64,6 +64,7 @@ object Perms {
     fun nextMissing(ctx: Context, skip: Set<String> = emptySet()): String? {
         if ("notify" !in skip && !notifyOn(ctx)) return "notify"
         if ("overlay" !in skip && !overlayOn(ctx)) return "overlay"
+        if ("popup" !in skip && !Prefs.sawPopup()) return "popup"
         if ("usage" !in skip && !usageOn(ctx)) return "usage"
         if ("battery" !in skip && !batteryOn(ctx)) return "battery"
         if ("home" !in skip && !homeOn(ctx)) return "home"
@@ -86,6 +87,10 @@ object Perms {
                 "overlay" -> activity.startActivity(
                     Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkg).addFlags(NEW_TASK)
                 )
+                "popup" -> {
+                    Prefs.setSawPopup()
+                    openPopup(activity)
+                }
                 "usage" -> activity.startActivity(
                     Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(NEW_TASK)
                 )
@@ -110,9 +115,27 @@ object Perms {
         }
     }
 
+    private fun openPopup(activity: Activity) {
+        val pkg = activity.packageName
+        val tries = listOf(
+            Intent("miui.intent.action.APP_PERM_EDITOR")
+                .putExtra("extra_pkgname", pkg),
+            Intent("huawei.intent.action.NOTIFICATIONMANAGER"),
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg"))
+        )
+        for (i in tries) {
+            try {
+                activity.startActivity(i.addFlags(NEW_TASK))
+                return
+            } catch (_: Exception) {
+            }
+        }
+    }
+
     fun label(kind: String) = when (kind) {
         "notify" -> "通知"
         "overlay" -> "悬浮窗"
+        "popup" -> "后台弹出（部分平板需要）"
         "usage" -> "使用情况访问"
         "battery" -> "关闭电池优化"
         "home" -> "默认桌面（可跳过）"
@@ -123,6 +146,7 @@ object Perms {
     fun hint(kind: String) = when (kind) {
         "notify" -> "用来在通知栏显示剩余时间。"
         "overlay" -> "打开后，玩游戏时也能看到倒计时。在下一页打开「显示在其他应用上层」。"
+        "popup" -> "有的平板过一会会把浮窗收掉。下一页进应用信息，打开「后台弹出界面」「后台显示悬浮窗」（没有这些开关可跳过）。"
         "usage" -> "用来在时间到时把孩子拉回练习。下一页找到「小学练习」并打开。"
         "battery" -> "关掉电池优化，系统才不会在后台把这个桌面杀掉。原系统桌面是系统应用，杀不掉。"
         "home" -> "设成默认桌面后，上划会回到本 App。不想改可以点跳过。"
