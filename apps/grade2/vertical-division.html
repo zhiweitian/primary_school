@@ -259,6 +259,8 @@
     let inputIdx = 0;
     let filledProduct = [];
     let filledRemainder = [];
+    const MISS_LIMIT = 3;
+    let missCount = 0;
 
     function randomNumber(maxDigits) {
       const digits = Math.floor(Math.random() * maxDigits) + 1;
@@ -499,6 +501,7 @@
       colCount = String(dividend).length;
       stepIdx = 0;
       phase = "quotient";
+      missCount = 0;
       resetStepInput();
       statusEl.textContent = "";
       statusEl.className = "status";
@@ -539,6 +542,20 @@
       setTimeout(newProblem, 1200);
     }
 
+    function failSkip() {
+      missCount = 0;
+      if (prof) {
+        prof.record(false);
+        profUI.render();
+      }
+      const remText = remainder > 0 ? ` ··· ${remainder}` : "";
+      statusEl.textContent = `连续错 ${MISS_LIMIT} 次，跳过。${dividend} ÷ ${divisor} = ${quotient}${remText}`;
+      statusEl.className = "status err";
+      worksheet.classList.add("done");
+      bufferEl.innerHTML = "";
+      setTimeout(newProblem, 1400);
+    }
+
     function advancePhase() {
       if (phase === "quotient") {
         phase = "product";
@@ -563,7 +580,12 @@
       if (worksheet.classList.contains("done") || stepIdx >= steps.length) return;
 
       if (+d !== expectedDigit()) {
-        statusEl.textContent = "这一位不对，再试一次";
+        missCount++;
+        if (missCount >= MISS_LIMIT) {
+          failSkip();
+          return;
+        }
+        statusEl.textContent = `这一位不对，再试一次（${missCount}/${MISS_LIMIT}）`;
         statusEl.className = "status err";
         document.querySelectorAll(".cell.answer.active").forEach(c => {
           c.classList.add("wrong");
@@ -572,6 +594,7 @@
         return;
       }
 
+      missCount = 0;
       statusEl.textContent = "";
       statusEl.className = "status";
 

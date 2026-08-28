@@ -242,6 +242,8 @@
     let answer = [];
     let carryOut = [];
     let score = 0;
+    const MISS_LIMIT = 3;
+    let missCount = 0;
 
     function randomNumber() {
       const digits = Math.floor(Math.random() * 5) + 1;
@@ -339,6 +341,7 @@
       colCount = Math.max(String(a).length, String(b).length, String(sum).length);
       currentCol = 0;
       digitBuffer = "";
+      missCount = 0;
       carryIn = Array(colCount).fill(null);
       answer = Array(colCount).fill(null);
       carryOut = Array(colCount).fill(0);
@@ -378,9 +381,17 @@
       const carryOk = exp.carry === 0 ? carryDigit === 0 : carryDigit === exp.carry;
 
       if (!resultOk || !carryOk) {
-        statusEl.textContent = "这一位不对，再试一次";
-        statusEl.className = "status err";
+        missCount++;
         digitBuffer = "";
+        if (missCount >= MISS_LIMIT) {
+          worksheet.classList.add("done");
+          statusEl.textContent = `连续错 ${MISS_LIMIT} 次，跳过。${a} + ${b} = ${sum}`;
+          statusEl.className = "status err";
+          setTimeout(newProblem, 1400);
+          return;
+        }
+        statusEl.textContent = `这一位不对，再试一次（${missCount}/${MISS_LIMIT}）`;
+        statusEl.className = "status err";
         updateBuffer();
         const cells = document.querySelectorAll(".cell.answer.active");
         cells.forEach(c => {
@@ -390,6 +401,7 @@
         return;
       }
 
+      missCount = 0;
       answer[currentCol] = resultDigit;
       carryOut[currentCol] = exp.carry;
       if (exp.carry > 0 && currentCol + 1 < carryIn.length) {

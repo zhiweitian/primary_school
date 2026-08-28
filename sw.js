@@ -1,4 +1,4 @@
-const CACHE = "ps-v3";
+const CACHE = "ps-v6";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -27,7 +27,15 @@ const PRECACHE = [
   "./apps/grade2/read-write-within-yi.html",
   "./apps/grade2/vertical-multiplication.html",
   "./apps/grade2/length-units.html",
-  "./apps/grade2/length-convert.html"
+  "./apps/grade2/length-convert.html",
+  "./apps/grade2/img/length-kid.jpg",
+  "./apps/grade2/img/length-door.jpg",
+  "./apps/grade2/img/length-tree.jpg",
+  "./apps/grade2/img/length-pencil.jpg",
+  "./apps/grade2/img/length-eraser.jpg",
+  "./apps/grade2/img/length-book.jpg",
+  "./apps/grade2/img/length-ant.jpg",
+  "./apps/grade2/img/length-finger.jpg"
 ];
 
 self.addEventListener("install", event => {

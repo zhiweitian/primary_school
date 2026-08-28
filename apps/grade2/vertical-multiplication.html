@@ -268,6 +268,8 @@
     let answer = [];
     let carryOut = [];
     let completedPartials = [];
+    const MISS_LIMIT = 3;
+    let missCount = 0;
 
     function randomNumber(maxDigits) {
       const digits = Math.floor(Math.random() * maxDigits) + 1;
@@ -495,6 +497,7 @@
     function resetRowState(cols) {
       currentCol = 0;
       digitBuffer = "";
+      missCount = 0;
       carryIn = Array(colCount).fill(null);
       answer = Array(cols).fill(null);
       carryOut = Array(cols).fill(0);
@@ -560,12 +563,28 @@
     }
 
     function finishProblem() {
+      digitBuffer = "";
+      render();
+      updateBuffer();
       prof.record(true);
       profUI.render();
       statusEl.textContent = `正确！${a} × ${b} = ${product}`;
       statusEl.className = "status ok";
       worksheet.classList.add("done");
       setTimeout(newProblem, 1200);
+    }
+
+    function failSkip() {
+      missCount = 0;
+      digitBuffer = "";
+      if (prof) {
+        prof.record(false);
+        profUI.render();
+      }
+      statusEl.textContent = `连续错 ${MISS_LIMIT} 次，跳过。${a} × ${b} = ${product}`;
+      statusEl.className = "status err";
+      worksheet.classList.add("done");
+      setTimeout(newProblem, 1400);
     }
 
     function advanceAfterColumn() {
@@ -611,9 +630,14 @@
       const carryOk = exp.carry === 0 ? carryDigit === 0 : carryDigit === exp.carry;
 
       if (!resultOk || !carryOk) {
-        statusEl.textContent = "这一位不对，再试一次";
-        statusEl.className = "status err";
+        missCount++;
         digitBuffer = "";
+        if (missCount >= MISS_LIMIT) {
+          failSkip();
+          return;
+        }
+        statusEl.textContent = `这一位不对，再试一次（${missCount}/${MISS_LIMIT}）`;
+        statusEl.className = "status err";
         updateBuffer();
         document.querySelectorAll(".cell.answer.active").forEach(c => {
           c.classList.add("wrong");
@@ -621,6 +645,8 @@
         });
         return;
       }
+
+      missCount = 0;
 
       if (phase === "partial") {
         answer[currentCol] = resultDigit;

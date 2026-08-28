@@ -26,11 +26,14 @@
       ]
     },
     "vertical-multiplication": {
-      "total": 3,
+      "total": 6,
       "recent": [
         1,
         1,
-        1
+        1,
+        1,
+        1,
+        0
       ]
     },
     "0/0/0/1/1/0": {
@@ -58,6 +61,36 @@
       "recent": [
         0,
         1
+      ]
+    },
+    "length-units": {
+      "total": 1,
+      "recent": [
+        1
+      ]
+    },
+    "multiplication-table": {
+      "total": 1,
+      "recent": [
+        0
+      ]
+    },
+    "vertical-division": {
+      "total": 1,
+      "recent": [
+        0
+      ]
+    },
+    "approx-number-basics": {
+      "total": 1,
+      "recent": [
+        0
+      ]
+    },
+    "approx-number-basics-steps": {
+      "total": 1,
+      "recent": [
+        0
       ]
     }
   }

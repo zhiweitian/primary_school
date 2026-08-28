@@ -178,6 +178,9 @@
     }
 
     const AUTO_MS = 1600;
+    const MISS_LIMIT = 3;
+    let stepMisses = 0;
+    let problemDone = false;
     const actionAreaEl = document.querySelector(".action-area");
     const promptEl = document.getElementById("prompt");
     const numGridEl = document.getElementById("numGrid");
@@ -330,6 +333,7 @@
 
     function advanceStep() {
       step++;
+      stepMisses = 0;
       renderStepBar();
       if (step === 1) renderStep2();
       else if (step === 2) {
@@ -358,7 +362,7 @@
     function bindAutoFill(input, expected, { onOk, wrongMsg }) {
       let locked = false;
       const check = () => {
-        if (locked) return;
+        if (locked || problemDone) return;
         const raw = input.value.trim();
         if (!raw) return;
         const v = parseInt(raw, 10);
@@ -373,7 +377,14 @@
         }
         const needLen = String(expected).length;
         if (raw.length >= needLen || (expected < 10 && raw.length >= 1)) {
-          flashStatus(false, wrongMsg(v));
+          stepMisses++;
+          if (stepMisses >= MISS_LIMIT) {
+            locked = true;
+            input.disabled = true;
+            finishProblem(false);
+            return;
+          }
+          flashStatus(false, `${wrongMsg(v)}（${stepMisses}/${MISS_LIMIT}）`);
           input.value = "";
           input.focus();
         }
@@ -401,16 +412,17 @@
     }
 
     function finishProblem(ok) {
+      if (problemDone) return;
+      problemDone = true;
       prof.record(ok);
       profUI.render();
       if (ok) {
         addReason(`所以 <strong>${n}</strong> 近似成${unit.name}是 <strong>${answer}</strong>。`);
         flashStatus(true, "全部答对了！");
-        timer = setTimeout(() => newProblem(), AUTO_MS);
       } else {
-        flashStatus(false, `近似数是 ${answer}`);
-        nextBtn.classList.add("show");
+        flashStatus(false, `连续错 ${MISS_LIMIT} 次，跳过。近似数是 ${answer}`);
       }
+      timer = setTimeout(() => newProblem(), AUTO_MS);
     }
 
     function renderStep1() {
@@ -429,10 +441,16 @@
       renderNumber({
         clickable: true,
         onPick(power, _digit, el) {
+          if (problemDone) return;
           if (power !== targetPower) {
             el.classList.add("err");
             setTimeout(() => el.classList.remove("err"), 450);
-            flashStatus(false, `要以${target.name}为准，请点${target.name}上的数字。`);
+            stepMisses++;
+            if (stepMisses >= MISS_LIMIT) {
+              finishProblem(false);
+              return;
+            }
+            flashStatus(false, `要以${target.name}为准，请点${target.name}上的数字。（${stepMisses}/${MISS_LIMIT}）`);
             return;
           }
           renderNumber({ highlightPower: targetPower });
@@ -457,10 +475,16 @@
         { text: "不进位（舍去）", ok: !shouldCarry }
       ]).forEach(opt => {
         choiceBtn(opt.text, () => {
+          if (problemDone) return;
           if (!opt.ok) {
-            flashStatus(false, shouldCarry
+            stepMisses++;
+            if (stepMisses >= MISS_LIMIT) {
+              finishProblem(false);
+              return;
+            }
+            flashStatus(false, (shouldCarry
               ? `${look.name}是 ${decidingDigit}，满 5 了，要向${target.name}进 1。`
-              : `${look.name}是 ${decidingDigit}，不满 5，不进位。`);
+              : `${look.name}是 ${decidingDigit}，不满 5，不进位。`) + `（${stepMisses}/${MISS_LIMIT}）`);
             return;
           }
           addReason(`${target.name}右边${look.name}是 <strong>${decidingDigit}</strong>，${shouldCarry ? "满 5" : "不满 5"}，${
@@ -530,6 +554,8 @@
     function newProblem() {
       if (timer) { clearTimeout(timer); timer = null; }
       step = 0;
+      stepMisses = 0;
+      problemDone = false;
       reasonLines = [];
       statusEl.textContent = "";
       statusEl.className = "status";

@@ -136,6 +136,8 @@
     let currentCol = 0, digitBuffer = "";
     let answerDigits = [];
     let carryIn = [];
+    const MISS_LIMIT = 3;
+    let missCount = 0;
 
     function roundTo(x, step) {
       return Math.round(x / step) * step;
@@ -295,6 +297,19 @@
       setTimeout(newProblem, AUTO_MS);
     }
 
+    function failSkip() {
+      missCount = 0;
+      digitBuffer = "";
+      if (prof) {
+        prof.record(false);
+        profUI.render();
+      }
+      statusEl.textContent = `连续错 ${MISS_LIMIT} 次，跳过。${n} 近似成${unit.name}是 ${answer}`;
+      statusEl.className = "status err";
+      worksheet.classList.add("done");
+      setTimeout(newProblem, AUTO_MS);
+    }
+
     function processColumn() {
       const exp = expectedAt(currentCol);
       let resultDigit, carryDigit;
@@ -311,9 +326,14 @@
       const carryOk = exp.carry === 0 ? carryDigit === 0 : carryDigit === exp.carry;
 
       if (!resultOk || !carryOk) {
-        statusEl.textContent = "这一位不对，再试一次";
-        statusEl.className = "status err";
+        missCount++;
         digitBuffer = "";
+        if (missCount >= MISS_LIMIT) {
+          failSkip();
+          return;
+        }
+        statusEl.textContent = `这一位不对，再试一次（${missCount}/${MISS_LIMIT}）`;
+        statusEl.className = "status err";
         updateBuffer();
         document.querySelectorAll(".cell.answer.active").forEach(c => {
           c.classList.add("wrong");
@@ -322,6 +342,7 @@
         return;
       }
 
+      missCount = 0;
       answerDigits[currentCol] = resultDigit;
       if (exp.carry > 0 && currentCol + 1 < carryIn.length) {
         carryIn[currentCol + 1] = carryDigit;
@@ -361,6 +382,7 @@
       colCount = Math.max(String(n).length, String(answer).length);
       currentCol = 0;
       digitBuffer = "";
+      missCount = 0;
       answerDigits = Array(colCount).fill(null);
       carryIn = Array(colCount).fill(null);
 
