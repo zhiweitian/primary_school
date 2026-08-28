@@ -41,6 +41,8 @@ class LauncherActivity : AppCompatActivity() {
     private var usingCacheFallback = false
     private val askedPerms = mutableSetOf<String>()
     private var leftForSettings = false
+    private var permSnooze = false
+    private var permAskShown = false
     private val uiTick = Handler(Looper.getMainLooper())
     private val uiLoop = object : Runnable {
         override fun run() {
@@ -173,10 +175,7 @@ class LauncherActivity : AppCompatActivity() {
             }
             return
         }
-        if (!Kiosk.isOwner(this) && !Prefs.sawPerms() && Perms.nextMissing(this) != null) {
-            Prefs.setSawPerms()
-            explainPerms()
-        }
+        maybeAskPerms()
     }
 
     override fun onStop() {
@@ -224,6 +223,31 @@ class LauncherActivity : AppCompatActivity() {
         } else {
             barTime.visibility = View.GONE
         }
+    }
+
+    private fun maybeAskPerms() {
+        if (permSnooze || permAskShown || Prefs.isPlayActive()) return
+        if (Kiosk.isOwner(this)) return
+        val miss = Perms.missingKinds(this)
+        if (miss.isEmpty()) return
+        permAskShown = true
+        val lines = miss.joinToString("\n") { "· " + Perms.label(it) }
+        AlertDialog.Builder(this)
+            .setTitle("还有设置未打开")
+            .setMessage("没开的话，后台容易被杀、到点可能拉不回来：\n\n$lines\n\n现在去设置？")
+            .setPositiveButton("去设置") { _, _ ->
+                permAskShown = false
+                explainPerms()
+            }
+            .setNegativeButton("稍后") { _, _ ->
+                permAskShown = false
+                permSnooze = true
+            }
+            .setOnCancelListener {
+                permAskShown = false
+                permSnooze = true
+            }
+            .show()
     }
 
     private fun explainPerms() {

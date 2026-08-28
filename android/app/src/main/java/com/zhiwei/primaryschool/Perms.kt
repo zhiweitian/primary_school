@@ -59,13 +59,18 @@ object Perms {
 
     fun readyForPlay(ctx: Context) = notifyOn(ctx)
 
+    fun missingKinds(ctx: Context): List<String> {
+        val out = mutableListOf<String>()
+        if (!notifyOn(ctx)) out += "notify"
+        if (!usageOn(ctx)) out += "usage"
+        if (!batteryOn(ctx)) out += "battery"
+        if (!homeOn(ctx)) out += "home"
+        if (!alarmOn(ctx)) out += "alarm"
+        return out
+    }
+
     fun nextMissing(ctx: Context, skip: Set<String> = emptySet()): String? {
-        if ("notify" !in skip && !notifyOn(ctx)) return "notify"
-        if ("usage" !in skip && !usageOn(ctx)) return "usage"
-        if ("battery" !in skip && !batteryOn(ctx)) return "battery"
-        if ("home" !in skip && !homeOn(ctx)) return "home"
-        if ("alarm" !in skip && !alarmOn(ctx)) return "alarm"
-        return null
+        return missingKinds(ctx).firstOrNull { it !in skip }
     }
 
     fun open(activity: Activity, kind: String) {
