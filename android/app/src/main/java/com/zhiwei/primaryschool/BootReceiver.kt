@@ -6,14 +6,14 @@ import android.content.Intent
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+        val a = intent.action ?: return
+        if (a != Intent.ACTION_BOOT_COMPLETED && a != Intent.ACTION_MY_PACKAGE_REPLACED) return
         Prefs.init(context)
+        KeepAliveService.start(context)
         context.startActivity(
             Intent(context, LauncherActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )
-        if (Prefs.isPlayActive()) {
-            PlayTimerService.start(context)
-        }
+        if (Prefs.isPlayActive()) PlayTimerService.start(context)
     }
 }

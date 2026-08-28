@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.os.Process
 import android.provider.Settings
 import android.widget.Toast
@@ -53,12 +54,18 @@ object Perms {
         return (ctx.getSystemService(AlarmManager::class.java))?.canScheduleExactAlarms() == true
     }
 
+    fun batteryOn(ctx: Context): Boolean {
+        val pm = ctx.getSystemService(PowerManager::class.java) ?: return true
+        return pm.isIgnoringBatteryOptimizations(ctx.packageName)
+    }
+
     fun readyForPlay(ctx: Context) = overlayOn(ctx) && notifyOn(ctx)
 
     fun nextMissing(ctx: Context, skip: Set<String> = emptySet()): String? {
         if ("notify" !in skip && !notifyOn(ctx)) return "notify"
         if ("overlay" !in skip && !overlayOn(ctx)) return "overlay"
         if ("usage" !in skip && !usageOn(ctx)) return "usage"
+        if ("battery" !in skip && !batteryOn(ctx)) return "battery"
         if ("home" !in skip && !homeOn(ctx)) return "home"
         if ("alarm" !in skip && !alarmOn(ctx)) return "alarm"
         return null
@@ -82,6 +89,10 @@ object Perms {
                 "usage" -> activity.startActivity(
                     Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(NEW_TASK)
                 )
+                "battery" -> activity.startActivity(
+                    Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkg)
+                        .addFlags(NEW_TASK)
+                )
                 "home" -> activity.startActivity(
                     Intent(Settings.ACTION_HOME_SETTINGS).addFlags(NEW_TASK)
                 )
@@ -103,6 +114,7 @@ object Perms {
         "notify" -> "通知"
         "overlay" -> "悬浮窗"
         "usage" -> "使用情况访问"
+        "battery" -> "关闭电池优化"
         "home" -> "默认桌面（可跳过）"
         "alarm" -> "精确闹钟"
         else -> kind
@@ -112,6 +124,7 @@ object Perms {
         "notify" -> "用来在通知栏显示剩余时间。"
         "overlay" -> "打开后，玩游戏时也能看到倒计时。在下一页打开「显示在其他应用上层」。"
         "usage" -> "用来在时间到时把孩子拉回练习。下一页找到「小学练习」并打开。"
+        "battery" -> "关掉电池优化，系统才不会在后台把这个桌面杀掉。原系统桌面是系统应用，杀不掉。"
         "home" -> "设成默认桌面后，上划会回到本 App。不想改可以点跳过。"
         "alarm" -> "让到点更准时。下一页允许精确闹钟。"
         else -> ""

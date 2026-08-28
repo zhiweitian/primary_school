@@ -55,6 +55,7 @@ class LauncherActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Prefs.init(this)
+        KeepAliveService.start(this)
         setShowWhenLocked(true)
         setTurnScreenOn(true)
         setContentView(R.layout.activity_launcher)
