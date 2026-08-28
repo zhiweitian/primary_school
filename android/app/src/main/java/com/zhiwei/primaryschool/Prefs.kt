@@ -2,6 +2,7 @@ package com.zhiwei.primaryschool
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.SystemClock
 import java.security.MessageDigest
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -34,25 +35,48 @@ object Prefs {
 
     fun isPlayActive(): Boolean = sp().getBoolean("play", false) && playRemainingMs() > 0
 
-    fun playRemainingMs(): Long = max(0L, sp().getLong("remain", 0L))
+    fun playDeadlineRt(): Long = sp().getLong("deadlineRt", 0L)
+
+    fun playRemainingMs(): Long {
+        if (!sp().getBoolean("play", false)) return 0L
+        val dl = playDeadlineRt()
+        if (dl > 0L) return max(0L, dl - SystemClock.elapsedRealtime())
+        return max(0L, sp().getLong("remain", 0L))
+    }
 
     fun startPlay() {
+        val left = PLAY_MS
         sp().edit()
             .putBoolean("play", true)
-            .putLong("remain", PLAY_MS)
+            .putLong("remain", left)
+            .putLong("deadlineRt", SystemClock.elapsedRealtime() + left)
             .apply()
     }
 
-    fun consumePlay(dtMs: Long) {
+    fun pausePlayClock() {
         if (!sp().getBoolean("play", false)) return
-        val left = max(0L, playRemainingMs() - dtMs)
-        val ed = sp().edit().putLong("remain", left)
+        val left = playRemainingMs()
+        val ed = sp().edit().putLong("remain", left).putLong("deadlineRt", 0L)
         if (left <= 0L) ed.putBoolean("play", false)
         ed.apply()
     }
 
+    fun resumePlayClock() {
+        if (!sp().getBoolean("play", false)) return
+        val left = playRemainingMs()
+        if (left <= 0L) {
+            endPlay()
+            return
+        }
+        sp().edit().putLong("deadlineRt", SystemClock.elapsedRealtime() + left).apply()
+    }
+
     fun endPlay() {
-        sp().edit().putBoolean("play", false).putLong("remain", 0L).apply()
+        sp().edit()
+            .putBoolean("play", false)
+            .putLong("remain", 0L)
+            .putLong("deadlineRt", 0L)
+            .apply()
     }
 
     fun hasPin(): Boolean = !sp().getString("pin", "").isNullOrEmpty()

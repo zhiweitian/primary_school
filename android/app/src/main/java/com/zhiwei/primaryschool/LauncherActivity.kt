@@ -6,6 +6,8 @@ import android.content.pm.ResolveInfo
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -37,6 +39,15 @@ class LauncherActivity : AppCompatActivity() {
     private lateinit var btnPlay: Button
     private lateinit var adapter: AppAdapter
     private var usingCacheFallback = false
+    private val uiTick = Handler(Looper.getMainLooper())
+    private val uiLoop = object : Runnable {
+        override fun run() {
+            val play = Prefs.isPlayActive()
+            updateBar()
+            if (!play && grid.visibility == View.VISIBLE) refreshUi()
+            if (play) uiTick.postDelayed(this, 500)
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -142,6 +153,13 @@ class LauncherActivity : AppCompatActivity() {
         super.onResume()
         if (!Prefs.isPlayActive()) PlayTimerService.stop(this)
         refreshUi()
+        uiTick.removeCallbacks(uiLoop)
+        uiTick.post(uiLoop)
+    }
+
+    override fun onPause() {
+        uiTick.removeCallbacks(uiLoop)
+        super.onPause()
     }
 
     @Deprecated("Deprecated in Java")
@@ -159,6 +177,8 @@ class LauncherActivity : AppCompatActivity() {
         if (play) {
             adapter.submit(launchables())
             PlayTimerService.start(this)
+            uiTick.removeCallbacks(uiLoop)
+            uiTick.post(uiLoop)
         }
         Kiosk.setPlayMode(this, play)
         updateBar()
