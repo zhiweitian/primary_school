@@ -281,7 +281,7 @@ class LauncherActivity : AppCompatActivity() {
             .setItems(items) { _, which ->
                 when (which) {
                     0 -> {
-                        Kiosk.setPlayMode(this, true)
+                        Kiosk.allowExtra(this, "com.android.settings")
                         startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
                     }
                     1 -> {

@@ -21,7 +21,6 @@ object Kiosk {
         if (!isOwner(ctx)) return
         val dpm = dpm(ctx)
         val admin = admin(ctx)
-        dpm.setLockTaskPackages(admin, arrayOf(ctx.packageName))
         dpm.setUninstallBlocked(admin, ctx.packageName, true)
         val filter = IntentFilter(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_HOME)
@@ -37,7 +36,7 @@ object Kiosk {
         } catch (_: Exception) {
         }
         grantPerms(ctx)
-        setOthersSuspended(ctx, !Prefs.isPlayActive())
+        applyRestrictions(ctx, Prefs.isPlayActive())
     }
 
     fun grantPerms(ctx: Context) {
@@ -47,7 +46,8 @@ object Kiosk {
         val perms = arrayOf(
             Manifest.permission.POST_NOTIFICATIONS,
             Manifest.permission.SYSTEM_ALERT_WINDOW,
-            Manifest.permission.SCHEDULE_EXACT_ALARM
+            Manifest.permission.SCHEDULE_EXACT_ALARM,
+            Manifest.permission.PACKAGE_USAGE_STATS
         )
         for (perm in perms) {
             try {
@@ -62,6 +62,15 @@ object Kiosk {
         }
     }
 
+    fun homePackages(ctx: Context): Set<String> {
+        val pm = ctx.packageManager
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        return pm.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            .map { it.activityInfo.packageName }
+            .filter { it != ctx.packageName }
+            .toSet()
+    }
+
     fun otherLaunchers(ctx: Context): Array<String> {
         val pm = ctx.packageManager
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
@@ -72,16 +81,59 @@ object Kiosk {
             .toTypedArray()
     }
 
-    fun setOthersSuspended(ctx: Context, suspended: Boolean) {
+    fun playablePackages(ctx: Context): Array<String> {
+        val homes = homePackages(ctx)
+        return otherLaunchers(ctx).filter { it !in homes }.toTypedArray()
+    }
+
+    fun applyRestrictions(ctx: Context, play: Boolean) {
         if (!isOwner(ctx)) return
+        val dpm = dpm(ctx)
+        val admin = admin(ctx)
+        val homes = homePackages(ctx).toTypedArray()
+        val games = playablePackages(ctx)
         try {
-            dpm(ctx).setPackagesSuspended(admin(ctx), otherLaunchers(ctx), suspended)
+            dpm.setPackagesSuspended(admin, homes, true)
+        } catch (_: Exception) {
+        }
+        try {
+            dpm.setPackagesSuspended(admin, games, !play)
+        } catch (_: Exception) {
+        }
+        val lock = if (play) arrayOf(ctx.packageName) + games else arrayOf(ctx.packageName)
+        try {
+            dpm.setLockTaskPackages(admin, lock)
+        } catch (_: Exception) {
+        }
+    }
+
+    fun allowExtra(activity: Activity, pkg: String) {
+        if (!isOwner(activity)) {
+            try {
+                activity.stopLockTask()
+            } catch (_: Exception) {
+            }
+            return
+        }
+        val dpm = dpm(activity)
+        val admin = admin(activity)
+        val cur = try {
+            dpm.getLockTaskPackages(admin)
+        } catch (_: Exception) {
+            arrayOf(activity.packageName)
+        }
+        try {
+            dpm.setLockTaskPackages(admin, (cur.toList() + pkg).distinct().toTypedArray())
+        } catch (_: Exception) {
+        }
+        try {
+            dpm.setPackagesSuspended(admin, arrayOf(pkg), false)
         } catch (_: Exception) {
         }
     }
 
     fun bringStudy(ctx: Context) {
-        setOthersSuspended(ctx, true)
+        applyRestrictions(ctx, false)
         val launch = Intent(ctx, LauncherActivity::class.java)
             .addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -103,17 +155,32 @@ object Kiosk {
         }
     }
 
+    fun bringPlayHome(ctx: Context) {
+        try {
+            ctx.startActivity(
+                Intent(ctx, LauncherActivity::class.java)
+                    .addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    )
+            )
+        } catch (_: Exception) {
+        }
+    }
+
     fun setPlayMode(activity: Activity, play: Boolean) {
         setupOwner(activity)
+        applyRestrictions(activity, play)
         if (isOwner(activity)) {
             try {
                 dpm(activity).setStatusBarDisabled(admin(activity), !play)
             } catch (_: Exception) {
             }
-            setOthersSuspended(activity, !play)
         }
         try {
-            if (play) activity.stopLockTask() else activity.startLockTask()
+            if (!isOwner(activity) && play) activity.stopLockTask()
+            else activity.startLockTask()
         } catch (_: Exception) {
         }
     }

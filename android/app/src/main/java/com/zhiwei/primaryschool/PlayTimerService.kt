@@ -6,6 +6,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.app.usage.UsageEvents
+import android.app.usage.UsageStatsManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -27,6 +29,7 @@ class PlayTimerService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private var screenOn = true
     private var overlay: TextView? = null
+    private var lastSec = -1L
 
     private val screenRecv = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -54,7 +57,8 @@ class PlayTimerService : Service() {
                 return
             }
             paint()
-            handler.postDelayed(this, 500)
+            police()
+            handler.postDelayed(this, 400)
         }
     }
 
@@ -103,9 +107,45 @@ class PlayTimerService : Service() {
 
     private fun paint() {
         if (!Prefs.isPlayActive()) return
-        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(1, note())
-        overlay?.text = "剩余 ${fmt(Prefs.playRemainingMs())}"
+        if (overlay == null) {
+            Kiosk.grantPerms(this)
+            showOverlay()
+        }
+        val ms = Prefs.playRemainingMs()
+        val sec = ms / 1000
+        val txt = "剩余 ${fmt(ms)}"
+        overlay?.text = txt
+        if (sec != lastSec) {
+            lastSec = sec
+            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            nm.notify(1, note())
+        }
+    }
+
+    private fun police() {
+        if (!Prefs.isPlayActive() || !screenOn) return
+        val top = topPackage() ?: return
+        if (top in Kiosk.homePackages(this)) Kiosk.bringPlayHome(this)
+    }
+
+    private fun topPackage(): String? {
+        val usm = getSystemService(UsageStatsManager::class.java) ?: return null
+        val now = System.currentTimeMillis()
+        return try {
+            val ev = usm.queryEvents(now - 8000, now)
+            val e = UsageEvents.Event()
+            var last: String? = null
+            while (ev.hasNextEvent()) {
+                ev.getNextEvent(e)
+                @Suppress("DEPRECATION")
+                if (e.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                    last = e.packageName
+                }
+            }
+            last
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun expire() {
@@ -234,9 +274,6 @@ class PlayTimerService : Service() {
         return if (screenOn) {
             b.setContentTitle("还可以玩 ${fmt(ms)}")
                 .setContentText("到点会回到练习")
-                .setUsesChronometer(true)
-                .setChronometerCountDown(true)
-                .setWhen(System.currentTimeMillis() + ms)
                 .build()
         } else {
             b.setContentTitle("计时已暂停")
