@@ -55,6 +55,15 @@ adb shell dpm set-device-owner com.zhiwei.primaryschool/.KioskAdminReceiver</pre
     <li>家长：密码 → 系统设置 / 赠送 40 分 / 改网址</li>
   </ul>
 
+  <h2>退出桌面锁定</h2>
+  <ol>
+    <li>点右上角人形图标，第一次会让你设家长密码（至少 4 位），之后输入密码</li>
+    <li>选「打开系统设置」</li>
+    <li>默认应用 → 桌面应用，改回平板原来的桌面</li>
+  </ol>
+  <p>如果做过设备所有者，设置里改不掉桌面，用电脑：</p>
+  <pre>adb shell dpm remove-active-admin com.zhiwei.primaryschool/.KioskAdminReceiver</pre>
+
   <h2>4. 在 Mac 上编译</h2>
   <p>本机已装过的话，在仓库里执行：</p>
   <pre>export JAVA_HOME="$HOME/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home"
