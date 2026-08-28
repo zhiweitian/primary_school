@@ -162,7 +162,7 @@ class PlayTimerService : Service() {
                 .setContentTitle("时间到了，继续做题")
                 .setContentIntent(full)
                 .setFullScreenIntent(full, true)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .build()
         )
         Kiosk.bringStudy(this)
@@ -219,7 +219,7 @@ class PlayTimerService : Service() {
             .setContentIntent(open)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         return if (screenOn) {
             b.setContentTitle("还可以玩 ${fmt(ms)}")
                 .setContentText("到点会回到练习 · 下拉通知栏也能看到")
