@@ -14,6 +14,5 @@ class BootReceiver : BroadcastReceiver() {
             Intent(context, LauncherActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )
-        if (Prefs.isPlayActive()) PlayTimerService.start(context)
     }
 }

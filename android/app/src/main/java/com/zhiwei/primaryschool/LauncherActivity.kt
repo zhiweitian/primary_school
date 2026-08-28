@@ -155,16 +155,14 @@ class LauncherActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.getBooleanExtra("expired", false)) {
-            Prefs.endPlay()
-            PlayTimerService.stop(this)
-        }
+        if (intent.getBooleanExtra("expired", false)) Prefs.endPlay()
+        KeepAliveService.start(this)
         refreshUi()
     }
 
     override fun onResume() {
         super.onResume()
-        if (!Prefs.isPlayActive()) PlayTimerService.stop(this)
+        KeepAliveService.start(this)
         refreshUi()
         uiTick.removeCallbacks(uiLoop)
         uiTick.post(uiLoop)
@@ -205,7 +203,7 @@ class LauncherActivity : AppCompatActivity() {
         grid.visibility = if (play) View.VISIBLE else View.GONE
         if (play) {
             adapter.submit(launchables())
-            PlayTimerService.start(this)
+            KeepAliveService.start(this)
             uiTick.removeCallbacks(uiLoop)
             uiTick.post(uiLoop)
         }
@@ -303,7 +301,7 @@ class LauncherActivity : AppCompatActivity() {
                 if (n >= 0) Prefs.setBalance(n)
                 else Prefs.setBalance(Prefs.balance() - Prefs.POINT_COST)
                 Prefs.startPlay()
-                PlayTimerService.start(this)
+                KeepAliveService.start(this)
                 refreshUi()
             }
         }
@@ -392,7 +390,7 @@ class LauncherActivity : AppCompatActivity() {
                     4 -> askPin("新的家长密码", set = true) {}
                     5 -> {
                         Prefs.endPlay()
-                        PlayTimerService.stop(this)
+                        KeepAliveService.start(this)
                         refreshUi()
                     }
                     6 -> AlertDialog.Builder(this)

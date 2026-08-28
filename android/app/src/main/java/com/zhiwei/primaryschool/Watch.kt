@@ -11,8 +11,8 @@ object Watch {
     private val fmt = SimpleDateFormat("MM-dd HH:mm:ss", Locale.US)
 
     fun log(ctx: Context, msg: String) {
-        Prefs.touchBeat()
         val line = "${fmt.format(Date())} p${Process.myPid()} $msg"
+        Prefs.touchBeat()
         try {
             val f = File(ctx.applicationContext.filesDir, "watch.log")
             f.appendText(line + "\n")
@@ -30,6 +30,6 @@ object Watch {
         } catch (_: Exception) {
             "（还没有日志）"
         }
-        return "默认桌面=${Perms.homeOn(ctx)}\n设备所有者=${Kiosk.isOwner(ctx)}\n自由时间=${Prefs.isPlayActive()}\n上次心跳 $gap\n\n$log"
+        return "默认桌面=${Perms.homeOn(ctx)}\n设备所有者=${Kiosk.isOwner(ctx)}\n电池优化已关=${Perms.batteryOn(ctx)}\n自由时间=${Prefs.isPlayActive()}\n上次心跳 $gap\n\n$log"
     }
 }
