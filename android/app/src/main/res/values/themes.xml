@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.PrimarySchool" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">#5D4037</item>
+        <item name="colorPrimaryContainer">#FFF3E0</item>
+        <item name="android:statusBarColor">#5D4037</item>
+        <item name="android:navigationBarColor">#FAF8F5</item>
+    </style>
+</resources>

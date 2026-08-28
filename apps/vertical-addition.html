@@ -227,6 +227,7 @@
 
   <input type="text" id="hiddenInput" inputmode="numeric" autocomplete="off">
 
+  <script src="../play-wallet.js"></script>
   <script>
     const worksheet = document.getElementById("worksheet");
     const hiddenInput = document.getElementById("hiddenInput");
@@ -415,6 +416,7 @@
       if (currentCol + 1 >= colCount) {
         score++;
         scoreEl.textContent = score;
+        if (window.PlayWallet) PlayWallet.add(1);
         statusEl.textContent = `正确！${a} + ${b} = ${sum}`;
         statusEl.className = "status ok";
         worksheet.classList.add("done");

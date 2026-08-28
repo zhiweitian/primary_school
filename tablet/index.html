@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>专用平板 · 安装</title>
+  <style>
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      max-width: 40rem; margin: 2rem auto; padding: 0 1.2rem;
+      color: #333; line-height: 1.65;
+    }
+    h1 { color: #5d4037; font-size: 1.4rem; }
+    h2 { font-size: 1.05rem; margin-top: 1.6rem; }
+    code, pre {
+      background: #f4f1ee; border-radius: 6px; font-size: 0.85rem;
+    }
+    code { padding: 0.1rem 0.35rem; }
+    pre { padding: 0.8rem 1rem; overflow-x: auto; }
+    .btn {
+      display: inline-block; margin: 0.6rem 0; padding: 0.55rem 1.1rem;
+      background: #5d4037; color: #fff; border-radius: 8px; text-decoration: none;
+    }
+    ol { padding-left: 1.3rem; }
+  </style>
+</head>
+<body>
+  <h1>小学练习 · 专用平板</h1>
+  <p>做成默认桌面：做题攒分，满 40 分可玩 10 分钟（只算亮屏时间），到点回到练习。</p>
+  <p>计分跟网页一样：多数题对一题 1 分，乘法口诀对一题 0.25 分。</p>
+  <a class="btn" href="../downloads/primary-school.apk">下载 APK</a>
+  <p>这个按钮指向仓库里的 <code>downloads/primary-school.apk</code>。推到 GitHub 后，GitHub Pages 就能下；也可以改成 Release 地址（见下面第 5 节）。</p>
+
+  <h2>1. 装到平板</h2>
+  <ol>
+    <li>设置里打开「未知来源 / 允许安装未知应用」</li>
+    <li>用浏览器打开本页，下载并安装</li>
+    <li>打开 App，点右上角人形图标，先设家长密码</li>
+    <li>系统若问默认桌面，选「小学练习」并始终</li>
+  </ol>
+
+  <h2>2. 设成设备所有者（专用平板必做）</h2>
+  <p>否则小孩能在设置里改掉默认桌面。先<strong>恢复出厂</strong>或确保没登录 Google 账号，电脑装好 <code>adb</code> 后：</p>
+  <pre>adb install -r primary-school.apk
+adb shell dpm set-device-owner com.zhiwei.primaryschool/.KioskAdminReceiver</pre>
+  <p>成功后：不能卸载、强制当桌面、练习模式出不去、时间到会灭屏。</p>
+  <p>要取消设备所有者（会清数据）：</p>
+  <pre>adb shell dpm remove-active-admin com.zhiwei.primaryschool/.KioskAdminReceiver</pre>
+
+  <h2>3. 日常</h2>
+  <ul>
+    <li>做题，顶栏积分到 40，点「玩 10 分钟」</li>
+    <li>出现应用列表，去玩游戏；关掉屏幕不计时</li>
+    <li>10 分钟亮屏后回到练习</li>
+    <li>家长：密码 → 系统设置 / 赠送 40 分 / 改网址</li>
+  </ul>
+
+  <h2>4. 在 Mac 上编译</h2>
+  <p>本机已装过的话，在仓库里执行：</p>
+  <pre>export JAVA_HOME="$HOME/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home"
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+cd android
+./gradlew assembleDebug
+cp app/build/outputs/apk/debug/app-debug.apk ../downloads/primary-school.apk</pre>
+  <p>新环境（Apple Silicon Mac）要先装 JDK 17 和 Android SDK，不必装 Android Studio。</p>
+  <ol>
+    <li>JDK 17（Temurin）：从清华镜像下
+      <code>OpenJDK17U-jdk_aarch64_mac_hotspot_*.tar.gz</code>，解压到
+      <code>~/Library/Java/JavaVirtualMachines/temurin-17.jdk</code>（目录里要有 <code>Contents/Home</code>）。</li>
+    <li>命令行工具：
+      <a href="https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip">commandlinetools-mac</a>
+      解压到 <code>~/Library/Android/sdk/cmdline-tools/latest/</code>。</li>
+    <li>安装平台（或按上面那样从 Google 直接下 zip 再解压）：
+      <pre>yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses
+sdkmanager --sdk_root="$ANDROID_HOME" \
+  "platforms;android-34" "build-tools;34.0.0" "platform-tools"</pre>
+    </li>
+    <li>在 <code>android/local.properties</code> 写一行（此文件不进 git）：
+      <pre>sdk.dir=/Users/你的用户名/Library/Android/sdk</pre>
+    </li>
+  </ol>
+  <p>也可安装 <a href="https://developer.android.com/studio">Android Studio</a>，打开 <code>android/</code> 文件夹，菜单 Build → Build APK(s)。</p>
+
+  <h2>5. 从网站提供下载</h2>
+  <p>两种做法都可以，APK 大约 5 MB。</p>
+  <p><strong>A. 跟网页一起推到 GitHub Pages（简单）</strong></p>
+  <ul>
+    <li>把编好的包放到 <code>downloads/primary-school.apk</code></li>
+    <li>commit 并 push 到 GitHub（和现在的 Pages 同一仓库）</li>
+    <li>地址就是：
+      <code>https://zhiweitian.github.io/primary_school/downloads/primary-school.apk</code></li>
+  </ul>
+  <p>GitHub 单文件建议小于 50 MB，这个 APK 没问题。缺点是二进制会进 git 历史，以后每次改包仓库会变大一点。</p>
+  <p><strong>B. GitHub Release（包多了更合适）</strong></p>
+  <ul>
+    <li>在 GitHub 仓库发一个 Release，把 APK 当附件上传</li>
+    <li>把本页下载按钮改成：
+      <code>https://github.com/zhiweitian/primary_school/releases/latest/download/primary-school.apk</code></li>
+  </ul>
+  <p>现在只有一个包、更新不勤，用 <strong>A</strong> 即可：编完拷到 <code>downloads/</code>，跟网页一起 push。</p>
+</body>
+</html>
