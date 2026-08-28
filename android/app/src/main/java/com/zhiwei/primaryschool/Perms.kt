@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.AlarmManager
 import android.app.AppOpsManager
 import android.app.role.RoleManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -88,10 +89,7 @@ object Perms {
                 "usage" -> activity.startActivity(
                     Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(NEW_TASK)
                 )
-                "battery" -> activity.startActivity(
-                    Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkg)
-                        .addFlags(NEW_TASK)
-                )
+                "battery" -> openBattery(activity)
                 "home" -> activity.startActivity(
                     Intent(Settings.ACTION_HOME_SETTINGS).addFlags(NEW_TASK)
                 )
@@ -109,6 +107,36 @@ object Perms {
         }
     }
 
+    private fun openBattery(activity: Activity) {
+        val name = activity.packageName
+        val pkg = Uri.parse("package:$name")
+        val tries = listOf(
+            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).setData(pkg),
+            Intent().setComponent(
+                ComponentName(
+                    "com.miui.powerkeeper",
+                    "com.miui.powerkeeper.ui.HiddenAppsConfigActivity"
+                )
+            ).putExtra("package_name", name).putExtra("package_label", "小学练习"),
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(pkg)
+        )
+        for (i in tries) {
+            try {
+                activity.startActivity(i)
+                if (i.action == Settings.ACTION_APPLICATION_DETAILS_SETTINGS) {
+                    Toast.makeText(
+                        activity,
+                        "打开「电池 / 耗电管理」，设为不限制或不优化",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                return
+            } catch (_: Exception) {
+            }
+        }
+        Toast.makeText(activity, "请到设置 → 应用 → 小学练习 → 电池，关掉优化", Toast.LENGTH_LONG).show()
+    }
+
     fun label(kind: String) = when (kind) {
         "notify" -> "通知"
         "usage" -> "使用情况访问"
@@ -121,7 +149,7 @@ object Perms {
     fun hint(kind: String) = when (kind) {
         "notify" -> "用来在通知栏显示剩余时间。"
         "usage" -> "用来在时间到时把孩子拉回练习。下一页找到「小学练习」并打开。"
-        "battery" -> "关掉电池优化，系统才不会在后台把这个桌面杀掉。原系统桌面是系统应用，杀不掉。"
+        "battery" -> "系统会问是否允许忽略电池优化，选允许。如果进了应用列表，点右上角「全部」，搜「小学练习」。找不到就到应用信息里的电池，设为不优化。"
         "home" -> "设成默认桌面后，上划会回到本 App。不想改可以点跳过。"
         "alarm" -> "让到点更准时。下一页允许精确闹钟。"
         else -> ""
