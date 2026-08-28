@@ -39,6 +39,7 @@ class LauncherActivity : AppCompatActivity() {
     private lateinit var btnPlay: Button
     private lateinit var adapter: AppAdapter
     private var usingCacheFallback = false
+    private var awaitingPerm = false
     private val uiTick = Handler(Looper.getMainLooper())
     private val uiLoop = object : Runnable {
         override fun run() {
@@ -123,6 +124,15 @@ class LauncherActivity : AppCompatActivity() {
         refreshUi()
     }
 
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == Perms.REQ_NOTIFY) stepPerms()
+    }
+
     private fun isOnline(): Boolean {
         val cm = getSystemService(ConnectivityManager::class.java) ?: return false
         val net = cm.activeNetwork ?: return false
@@ -155,6 +165,13 @@ class LauncherActivity : AppCompatActivity() {
         refreshUi()
         uiTick.removeCallbacks(uiLoop)
         uiTick.post(uiLoop)
+        if (awaitingPerm) {
+            awaitingPerm = false
+            stepPerms()
+        } else if (!Kiosk.isOwner(this) && !Prefs.sawPerms() && Perms.nextMissing(this) != null) {
+            Prefs.setSawPerms()
+            explainPerms()
+        }
     }
 
     override fun onPause() {
@@ -199,8 +216,32 @@ class LauncherActivity : AppCompatActivity() {
         }
     }
 
+    private fun explainPerms() {
+        AlertDialog.Builder(this)
+            .setTitle("打开计时权限")
+            .setMessage("游戏上显示倒计时、到点拉回练习，需要系统授权。接下来会一页页弹出，请都选允许。")
+            .setPositiveButton("去打开") { _, _ -> stepPerms() }
+            .setNegativeButton("稍后", null)
+            .show()
+    }
+
+    private fun stepPerms() {
+        val kind = Perms.nextMissing(this)
+        if (kind == null) {
+            Toast.makeText(this, "权限已就绪", Toast.LENGTH_SHORT).show()
+            return
+        }
+        awaitingPerm = kind != "notify"
+        Perms.open(this, kind)
+    }
+
     private fun tryPlay() {
         if (Prefs.isPlayActive()) return
+        if (!Perms.readyForPlay(this)) {
+            Toast.makeText(this, "先打开通知和悬浮窗权限", Toast.LENGTH_LONG).show()
+            explainPerms()
+            return
+        }
         if (Prefs.balance() + 1e-9 < Prefs.POINT_COST) {
             Toast.makeText(this, "满 ${Prefs.POINT_COST.toInt()} 分才能玩", Toast.LENGTH_SHORT).show()
             return
@@ -271,6 +312,7 @@ class LauncherActivity : AppCompatActivity() {
 
     private fun parentMenu() {
         val items = arrayOf(
+            "打开计时权限",
             "打开系统设置",
             "赠送 40 分",
             "改练习网址",
@@ -281,11 +323,12 @@ class LauncherActivity : AppCompatActivity() {
             .setTitle("家长")
             .setItems(items) { _, which ->
                 when (which) {
-                    0 -> {
+                    0 -> explainPerms()
+                    1 -> {
                         Kiosk.allowExtra(this, "com.android.settings")
                         startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
                     }
-                    1 -> {
+                    2 -> {
                         Prefs.setBalance(Prefs.balance() + Prefs.POINT_COST)
                         web.evaluateJavascript(
                             "window.PlayWallet&&PlayWallet.add(${Prefs.POINT_COST})",
@@ -293,9 +336,9 @@ class LauncherActivity : AppCompatActivity() {
                         )
                         updateBar()
                     }
-                    2 -> editUrl()
-                    3 -> askPin("新的家长密码", set = true) {}
-                    4 -> {
+                    3 -> editUrl()
+                    4 -> askPin("新的家长密码", set = true) {}
+                    5 -> {
                         Prefs.endPlay()
                         PlayTimerService.stop(this)
                         refreshUi()

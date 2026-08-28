@@ -79,6 +79,11 @@ object Prefs {
             .apply()
     }
 
+    fun sawPerms(): Boolean = sp().getBoolean("sawPerms", false)
+    fun setSawPerms() {
+        sp().edit().putBoolean("sawPerms", true).apply()
+    }
+
     fun hasPin(): Boolean = !sp().getString("pin", "").isNullOrEmpty()
 
     fun setPin(pin: String) {

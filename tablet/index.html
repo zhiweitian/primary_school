@@ -35,12 +35,12 @@
   <ol>
     <li>设置里打开「未知来源 / 允许安装未知应用」</li>
     <li>用浏览器打开本页，下载并安装</li>
-    <li>打开 App，点右上角人形图标，先设家长密码</li>
-    <li>系统若问默认桌面，选「小学练习」并始终</li>
+    <li>打开 App，按提示打开通知、悬浮窗、使用情况访问，并选「小学练习」为默认桌面</li>
+    <li>点右上角人形图标，设家长密码；以后也可在家长菜单里再开「打开计时权限」</li>
   </ol>
 
-  <h2>2. 设成设备所有者（专用平板必做）</h2>
-  <p>否则小孩能在设置里改掉默认桌面。先<strong>恢复出厂</strong>或确保没登录 Google 账号，电脑装好 <code>adb</code> 后：</p>
+  <h2>2. 设成设备所有者（只有专用平板才需要电脑）</h2>
+  <p>普通使用打开第 1 步那些权限即可计时、到点拉回。要锁死系统桌面、防止小孩改回去，才需要设备所有者。先<strong>恢复出厂</strong>或确保没登录 Google 账号，电脑装好 <code>adb</code> 后：</p>
   <pre>adb install -r primary-school.apk
 adb shell dpm set-device-owner com.zhiwei.primaryschool/.KioskAdminReceiver</pre>
   <p>成功后：不能卸载、强制当桌面、练习模式出不去、时间到会灭屏。</p>
