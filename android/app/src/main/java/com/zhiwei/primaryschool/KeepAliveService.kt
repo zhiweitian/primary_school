@@ -26,6 +26,7 @@ class KeepAliveService : Service() {
     private var lastSec = -1L
     private var homeWasOn = false
     private var lastBeatLog = 0L
+    private var wake: PowerManager.WakeLock? = null
 
     private val screenRecv = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -34,12 +35,14 @@ class KeepAliveService : Service() {
                     Prefs.pausePlayClock()
                     screenOn = false
                     if (Prefs.isPlayActive()) armExpire() else cancelExpire()
+                    syncWake()
                     show()
                 }
                 Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> {
                     screenOn = true
                     Prefs.resumePlayClock()
                     if (Prefs.isPlayActive()) armExpire()
+                    syncWake()
                     show()
                 }
             }
@@ -57,13 +60,14 @@ class KeepAliveService : Service() {
         super.onCreate()
         Prefs.init(this)
         val idle = System.currentTimeMillis() - Prefs.lastBeat()
+        val play = Prefs.isPlayActive()
         if (Prefs.lastBeat() > 0L && idle > 20_000L) {
-            Watch.log(this, "killed idle=${idle / 1000}s (no destroy)")
+            Watch.log(this, if (play) "killed during play idle=${idle / 1000}s" else "killed idle=${idle / 1000}s")
         }
         val pm = getSystemService(POWER_SERVICE) as PowerManager
         screenOn = pm.isInteractive
         homeWasOn = Perms.homeOn(this)
-        Watch.log(this, "KeepAlive create idle=${idle / 1000}s home=$homeWasOn play=${Prefs.isPlayActive()} bat=${Perms.batteryOn(this)}")
+        Watch.log(this, "KeepAlive create idle=${idle / 1000}s home=$homeWasOn play=$play bat=${Perms.batteryOn(this)}")
         registerReceiver(
             screenRecv,
             IntentFilter().apply {
@@ -72,27 +76,28 @@ class KeepAliveService : Service() {
                 addAction(Intent.ACTION_USER_PRESENT)
             }
         )
+        ensureChannels()
         startForeground(NOTE_ID, note())
+        syncWake()
         handler.post(loop)
-        armWatch()
+        armWatch(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTE_ID, note())
         when (intent?.action) {
             ACTION_EXPIRE -> expire()
-            ACTION_WATCH -> {
-                Watch.log(this, "alarm")
-                armWatch()
-            }
+            ACTION_WATCH -> tick()
         }
         return START_STICKY
     }
 
     override fun onDestroy() {
-        Watch.log(this, "KeepAlive destroy")
+        Watch.log(this, "KeepAlive destroy play=${Prefs.isPlayActive()}")
         handler.removeCallbacks(loop)
         cancelExpire()
+        releaseWake()
+        if (Prefs.isPlayActive()) armWatch(applicationContext, 5_000L)
         try {
             unregisterReceiver(screenRecv)
         } catch (_: Exception) {
@@ -107,6 +112,7 @@ class KeepAliveService : Service() {
             expire()
             return
         }
+        syncWake()
         if (Prefs.isPlayActive()) {
             val sec = Prefs.playRemainingMs() / 1000
             if (sec != lastSec) {
@@ -115,6 +121,7 @@ class KeepAliveService : Service() {
             }
             police()
             armExpire()
+            armWatch(this, 12_000L)
         }
         val now = SystemClock.elapsedRealtime()
         if (now - lastBeatLog > 14_000L) {
@@ -129,8 +136,26 @@ class KeepAliveService : Service() {
                 homeWasOn = on
                 Watch.log(this, "home changed -> $on")
             }
-            armWatch()
+            if (!Prefs.isPlayActive()) armWatch(this)
         }
+    }
+
+    private fun syncWake() {
+        if (Prefs.isPlayActive() && screenOn) holdWake() else releaseWake()
+    }
+
+    private fun holdWake() {
+        if (wake?.isHeld == true) return
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
+        wake = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "primaryschool:play").apply {
+            setReferenceCounted(false)
+            acquire(10 * 60 * 60 * 1000L)
+        }
+    }
+
+    private fun releaseWake() {
+        wake?.let { if (it.isHeld) it.release() }
+        wake = null
     }
 
     private fun show() {
@@ -167,6 +192,7 @@ class KeepAliveService : Service() {
             return
         }
         Prefs.endPlay()
+        releaseWake()
         Watch.log(this, "play end")
         cancelExpire()
         val launch = Intent(this, LauncherActivity::class.java)
@@ -181,12 +207,9 @@ class KeepAliveService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        nm.createNotificationChannel(
-            NotificationChannel("play_end", "时间到", NotificationManager.IMPORTANCE_HIGH)
-        )
         nm.notify(
             2,
-            NotificationCompat.Builder(this, "play_end")
+            NotificationCompat.Builder(this, CH_END)
                 .setSmallIcon(R.drawable.ic_stat)
                 .setContentTitle("时间到了，继续做题")
                 .setContentIntent(full)
@@ -195,6 +218,7 @@ class KeepAliveService : Service() {
         )
         Kiosk.bringStudy(this)
         startForeground(NOTE_ID, note())
+        armWatch(this)
     }
 
     private fun armExpire() {
@@ -227,32 +251,20 @@ class KeepAliveService : Service() {
         )
     }
 
-    private fun armWatch() {
-        val am = getSystemService(ALARM_SERVICE) as AlarmManager
-        val at = SystemClock.elapsedRealtime() + 45_000L
-        try {
-            if (Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) {
-                am.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, at, watchPi())
-            } else {
-                am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, at, watchPi())
-            }
-        } catch (_: Exception) {
-            am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, at, watchPi())
-        }
-    }
-
-    private fun watchPi(): PendingIntent {
-        val i = Intent(this, KeepAliveService::class.java).setAction(ACTION_WATCH)
-        return PendingIntent.getForegroundService(
-            this, 9, i, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-    }
-
-    private fun note(): Notification {
+    private fun ensureChannels() {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(
             NotificationChannel(CH, "小学练习", NotificationManager.IMPORTANCE_DEFAULT)
         )
+        nm.createNotificationChannel(
+            NotificationChannel(CH_PLAY, "自由时间", NotificationManager.IMPORTANCE_HIGH)
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(CH_END, "时间到", NotificationManager.IMPORTANCE_HIGH)
+        )
+    }
+
+    private fun note(): Notification {
         val home = Perms.homeOn(this) || Kiosk.isOwner(this)
         val play = Prefs.isPlayActive()
         val open = PendingIntent.getActivity(
@@ -261,21 +273,22 @@ class KeepAliveService : Service() {
                 .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val b = NotificationCompat.Builder(this, CH)
+        val ch = if (play) CH_PLAY else CH
+        val b = NotificationCompat.Builder(this, ch)
             .setSmallIcon(R.drawable.ic_stat)
             .setContentIntent(open)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .setCategory(if (play) NotificationCompat.CATEGORY_ALARM else NotificationCompat.CATEGORY_SERVICE)
         return when {
             play && screenOn -> {
                 val ms = Prefs.playRemainingMs()
-                val sec = ms / 1000
-                if (sec != lastSec) lastSec = sec
                 b.setContentTitle("还可以玩 ${fmt(ms)}")
                     .setContentText("到点会回到练习")
                     .setUsesChronometer(true)
                     .setChronometerCountDown(true)
                     .setWhen(System.currentTimeMillis() + ms)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .build()
             }
             play -> b.setContentTitle("计时已暂停").setContentText("亮屏后继续扣时间").build()
@@ -286,12 +299,34 @@ class KeepAliveService : Service() {
 
     companion object {
         private const val CH = "desk2"
+        private const val CH_PLAY = "play_live"
+        private const val CH_END = "play_end"
         private const val NOTE_ID = 8
         const val ACTION_WATCH = "com.zhiwei.primaryschool.WATCH"
         const val ACTION_EXPIRE = "com.zhiwei.primaryschool.EXPIRE"
 
         fun start(ctx: Context) {
             ctx.startForegroundService(Intent(ctx, KeepAliveService::class.java))
+        }
+
+        fun armWatch(ctx: Context, delayMs: Long = if (Prefs.isPlayActive()) 12_000L else 45_000L) {
+            Prefs.init(ctx)
+            val am = ctx.getSystemService(ALARM_SERVICE) as AlarmManager
+            val at = SystemClock.elapsedRealtime() + delayMs
+            val pi = PendingIntent.getBroadcast(
+                ctx, 9,
+                Intent(ctx, WatchAlarmReceiver::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            try {
+                if (Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) {
+                    am.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, at, pi)
+                } else {
+                    am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, at, pi)
+                }
+            } catch (_: Exception) {
+                am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, at, pi)
+            }
         }
 
         fun fmt(ms: Long): String {

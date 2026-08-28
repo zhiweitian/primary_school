@@ -293,6 +293,7 @@ class LauncherActivity : AppCompatActivity() {
             .setPositiveButton("去打开") { _, _ -> openSettings(kind) }
             .setNegativeButton("跳过") { _, _ ->
                 askedPerms.add(kind)
+                if (kind == "oem") Prefs.setSawOem()
                 stepPerms()
             }
             .show()

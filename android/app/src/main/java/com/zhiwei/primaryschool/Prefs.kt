@@ -94,6 +94,11 @@ object Prefs {
         sp().edit().putLong("beat", System.currentTimeMillis()).apply()
     }
 
+    fun sawOem(): Boolean = sp().getBoolean("sawOem", false)
+    fun setSawOem() {
+        sp().edit().putBoolean("sawOem", true).apply()
+    }
+
     fun hasPin(): Boolean = !sp().getString("pin", "").isNullOrEmpty()
 
     fun setPin(pin: String) {
