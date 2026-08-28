@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.os.Build
 
 object Kiosk {
     fun admin(ctx: Context) = ComponentName(ctx, KioskAdminReceiver::class.java)
@@ -26,11 +27,23 @@ object Kiosk {
             addCategory(Intent.CATEGORY_HOME)
             addCategory(Intent.CATEGORY_DEFAULT)
         }
+        for (pkg in homePackages(ctx)) {
+            try {
+                dpm.clearPackagePersistentPreferredActivities(admin, pkg)
+            } catch (_: Exception) {
+            }
+        }
         dpm.addPersistentPreferredActivity(
             admin,
             filter,
             ComponentName(ctx, LauncherActivity::class.java)
         )
+        if (Build.VERSION.SDK_INT >= 28) {
+            try {
+                dpm.setLockTaskFeatures(admin, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
+            } catch (_: Exception) {
+            }
+        }
         try {
             dpm.setKeyguardDisabled(admin, true)
         } catch (_: Exception) {
@@ -64,11 +77,12 @@ object Kiosk {
 
     fun homePackages(ctx: Context): Set<String> {
         val pm = ctx.packageManager
-        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-        return pm.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        val listed = pm.queryIntentActivities(home, PackageManager.MATCH_ALL)
             .map { it.activityInfo.packageName }
-            .filter { it != ctx.packageName }
-            .toSet()
+        val resolved = pm.resolveActivity(home, PackageManager.MATCH_DEFAULT_ONLY)
+            ?.activityInfo?.packageName
+        return (listed + listOfNotNull(resolved)).filter { it != ctx.packageName }.toSet()
     }
 
     fun otherLaunchers(ctx: Context): Array<String> {
@@ -95,6 +109,18 @@ object Kiosk {
         try {
             dpm.setPackagesSuspended(admin, homes, true)
         } catch (_: Exception) {
+        }
+        for (pkg in homes) {
+            try {
+                dpm.setApplicationHidden(admin, pkg, true)
+            } catch (_: Exception) {
+            }
+        }
+        if (Build.VERSION.SDK_INT >= 28) {
+            try {
+                dpm.setLockTaskFeatures(admin, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
+            } catch (_: Exception) {
+            }
         }
         try {
             dpm.setPackagesSuspended(admin, games, !play)

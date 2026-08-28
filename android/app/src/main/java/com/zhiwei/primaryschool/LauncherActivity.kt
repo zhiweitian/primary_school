@@ -232,6 +232,7 @@ class LauncherActivity : AppCompatActivity() {
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         return pm.queryIntentActivities(intent, 0)
             .filter { it.activityInfo.packageName != packageName }
+            .filter { it.activityInfo.packageName !in Kiosk.homePackages(this) }
             .sortedBy { it.loadLabel(pm).toString() }
     }
 
