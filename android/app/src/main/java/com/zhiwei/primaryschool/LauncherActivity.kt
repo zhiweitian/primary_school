@@ -3,6 +3,8 @@ package com.zhiwei.primaryschool
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.ResolveInfo
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,6 +12,7 @@ import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -33,6 +36,7 @@ class LauncherActivity : AppCompatActivity() {
     private lateinit var barTime: TextView
     private lateinit var btnPlay: Button
     private lateinit var adapter: AppAdapter
+    private var usingCacheFallback = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,6 +67,11 @@ class LauncherActivity : AppCompatActivity() {
         st.mediaPlaybackRequiresUserGesture = false
         st.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
         st.userAgentString = st.userAgentString + " PrimarySchoolTablet/1"
+        st.useWideViewPort = true
+        st.loadWithOverviewMode = true
+        st.setSupportZoom(false)
+        st.builtInZoomControls = false
+        st.displayZoomControls = false
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, true)
         web.addJavascriptInterface(JsBridge(), "PrimarySchool")
@@ -72,7 +81,21 @@ class LauncherActivity : AppCompatActivity() {
                 return false
             }
 
+            override fun onReceivedError(
+                v: WebView,
+                req: WebResourceRequest,
+                error: WebResourceError
+            ) {
+                if (!req.isForMainFrame || usingCacheFallback) return
+                usingCacheFallback = true
+                v.settings.cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+                v.loadUrl(req.url.toString())
+            }
+
             override fun onPageFinished(v: WebView, url: String) {
+                if (!usingCacheFallback && isOnline()) {
+                    v.settings.cacheMode = WebSettings.LOAD_DEFAULT
+                }
                 v.evaluateJavascript(
                     "window.PlayWallet?PlayWallet.get():-1"
                 ) { raw ->
@@ -84,9 +107,25 @@ class LauncherActivity : AppCompatActivity() {
                 }
             }
         }
-        web.loadUrl(Prefs.studyUrl())
+        loadStudy()
         Kiosk.setupOwner(this)
         refreshUi()
+    }
+
+    private fun isOnline(): Boolean {
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return false
+        val net = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(net) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    private fun loadStudy() {
+        usingCacheFallback = !isOnline()
+        web.settings.cacheMode = if (usingCacheFallback)
+            WebSettings.LOAD_CACHE_ELSE_NETWORK
+        else
+            WebSettings.LOAD_NO_CACHE
+        web.loadUrl(Prefs.studyUrl())
     }
 
     override fun onNewIntent(intent: Intent) {
