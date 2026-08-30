@@ -231,6 +231,7 @@
   <script>
     let prof, profUI;
     const MODE = new URLSearchParams(location.search).get("mode") || "";
+    if (MODE === "mental2") window.WALLET_POINTS = 3;
     const isMental = MODE === "mental1" || MODE === "mental2";
     const isGuided = MODE === "guided";
     const worksheet = document.getElementById("worksheet");
