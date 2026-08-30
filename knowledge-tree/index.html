@@ -102,6 +102,7 @@
       1: window.GRADE1_MATH_PRIORITY_TREE,
       2: window.GRADE2_MATH_PRIORITY_TREE
     };
+    const GRADE_LS = "ps-tree-grade";
     let data = GRADE_DATA[1];
     const ORD = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮";
     const ST = {
@@ -699,11 +700,25 @@
       if (!GRADE_DATA[g]) return;
       data = GRADE_DATA[g];
       document.getElementById("grade-select").value = g;
+      try { localStorage.setItem(GRADE_LS, g); } catch (_) {}
       document.getElementById("search").value = "";
       if (simulation) simulation.stop();
       updateChrome();
       buildGraph(data.tree);
       relayout();
+    }
+
+    function savedGrade() {
+      try {
+        const g = localStorage.getItem(GRADE_LS);
+        if (g && GRADE_DATA[g]) return g;
+      } catch (_) {}
+      return "1";
+    }
+
+    function syncGradeFromSelect() {
+      const g = document.getElementById("grade-select").value;
+      if (GRADE_DATA[g] && data !== GRADE_DATA[g]) setGrade(g);
     }
 
     document.getElementById("grade-select").addEventListener("change", e => setGrade(e.target.value));
@@ -809,13 +824,18 @@
     });
 
     window.addEventListener("focus", () => {
+      syncGradeFromSelect();
+      PracticeStats.refresh().then(updatePracticeLabels);
+    });
+
+    window.addEventListener("pageshow", (e) => {
+      if (!e.persisted) return;
+      syncGradeFromSelect();
       PracticeStats.refresh().then(updatePracticeLabels);
     });
 
     PracticeStats.init("../data/practice-stats.json").then(() => {
-      updateChrome();
-      buildGraph(data.tree);
-      relayout();
+      setGrade(savedGrade());
     });
   </script>
 </body>

@@ -110,9 +110,6 @@ class LauncherActivity : AppCompatActivity() {
             }
 
             override fun onPageFinished(v: WebView, url: String) {
-                if (!usingCacheFallback && isOnline()) {
-                    v.settings.cacheMode = WebSettings.LOAD_DEFAULT
-                }
                 v.evaluateJavascript(
                     "window.PlayWallet?PlayWallet.get():-1"
                 ) { raw ->
@@ -149,8 +146,10 @@ class LauncherActivity : AppCompatActivity() {
         usingCacheFallback = !isOnline()
         web.settings.cacheMode = if (usingCacheFallback)
             WebSettings.LOAD_CACHE_ELSE_NETWORK
-        else
+        else {
+            web.clearCache(true)
             WebSettings.LOAD_NO_CACHE
+        }
         web.loadUrl(Prefs.studyUrl())
     }
 
