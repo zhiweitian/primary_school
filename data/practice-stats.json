@@ -92,6 +92,33 @@
       "recent": [
         0
       ]
+    },
+    "multiplication-meaning": {
+      "total": 3,
+      "recent": [
+        1,
+        0,
+        1
+      ]
+    },
+    "multiplication-word": {
+      "total": 1,
+      "recent": [
+        1
+      ]
+    },
+    "division-meaning": {
+      "total": 1,
+      "recent": [
+        1
+      ]
+    },
+    "mul-div-relation": {
+      "total": 2,
+      "recent": [
+        1,
+        1
+      ]
     }
   }
 }

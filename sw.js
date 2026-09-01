@@ -1,4 +1,4 @@
-const CACHE = "ps-v11";
+const CACHE = "ps-v15";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -24,6 +24,10 @@ const PRECACHE = [
   "./apps/grade2/approx-number-basics.html",
   "./apps/grade2/approx-number-basics-steps.html",
   "./apps/grade2/multiplication-table.html",
+  "./apps/grade2/multiplication-meaning.html",
+  "./apps/grade2/multiplication-word.html",
+  "./apps/grade2/division-meaning.html",
+  "./apps/grade2/mul-div-relation.html",
   "./apps/grade2/vertical-division.html",
   "./apps/grade2/read-write-within-yi.html",
   "./apps/grade2/vertical-multiplication.html",

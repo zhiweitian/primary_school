@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>除法的认识</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee; padding: 1rem;
+    }
+    .container {
+      padding: 2rem 1.6rem; width: min(520px, 96vw);
+      background: rgba(255,255,255,0.06); border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 { text-align: center; font-size: 1.4rem; color: #ffd166; margin-bottom: 0.3rem; }
+    .hint { text-align: center; font-size: 0.78rem; color: #888; margin-bottom: 1rem; line-height: 1.5; }
+    .stats { display: flex; justify-content: center; gap: 1.6rem; margin-bottom: 1rem; }
+    .stat-label { font-size: 0.72rem; color: #888; text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #06d6a0; text-align: center; }
+    .stat-value.prof { color: #ffd166; }
+    .card {
+      padding: 1.2rem 1rem; background: rgba(0,0,0,0.25); border-radius: 14px; margin-bottom: 0.9rem;
+    }
+    .ask { text-align: center; font-size: 1.05rem; line-height: 1.6; color: #ddd; margin-bottom: 0.85rem; }
+    .ask .eq { font-family: "Courier New", monospace; font-size: 1.35rem; font-weight: 700; color: #a8dadc; }
+    .ask .n { color: #ffd166; font-weight: 700; }
+    .pile {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 0.28rem;
+      margin: 0.15rem 0 0.95rem; max-width: 16rem; margin-left: auto; margin-right: auto;
+    }
+    .dot {
+      width: 0.78rem; height: 0.78rem; border-radius: 50%; background: #ffd166;
+    }
+    .fill {
+      display: flex; justify-content: center; align-items: center; gap: 0.35rem; flex-wrap: wrap;
+    }
+    .fill input {
+      width: 3.4rem; padding: 0.4rem 0.2rem; border: 2px solid rgba(168,218,220,0.35);
+      border-radius: 10px; background: rgba(0,0,0,0.3); color: #ffd166;
+      font-family: "Courier New", monospace; font-size: 1.6rem; font-weight: 700; text-align: center;
+    }
+    .fill input:focus { outline: none; border-color: #ffd166; }
+    .fill input:disabled { opacity: 0.55; }
+    .op { font-size: 1.4rem; color: #888; font-weight: 700; }
+    .choices { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; }
+    .btn {
+      min-width: 5.2rem; padding: 0.62rem 0.9rem; border: none; border-radius: 10px;
+      font-size: 1.02rem; font-weight: 700; cursor: pointer; background: #a8dadc; color: #1a1a2e;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .actions { display: flex; justify-content: center; margin-top: 0.9rem; }
+    .status { text-align: center; margin-top: 0.7rem; min-height: 1.3rem; font-size: 0.92rem; }
+    .status.ok { color: #06d6a0; }
+    .status.err { color: #ef476f; }
+    .btn-next {
+      display: none; margin: 0.65rem auto 0; padding: 0.45rem 1.3rem;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: transparent;
+      color: #a8dadc; cursor: pointer;
+    }
+    .btn-next.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>➗ 除法的认识</h1>
+    <p class="hint">平均分用除法。被除数 ÷ 除数 = 商，读作「几除以几等于几」</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card">
+      <div class="ask" id="ask"></div>
+      <div id="body"></div>
+    </div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script>
+    let prof, profUI, q = null, answered = false, timer = null, lastKey = "";
+    const AUTO_MS = 1400;
+    const ROLES = ["被除数", "除数", "商"];
+
+    function rand(a, b) {
+      return a + Math.floor(Math.random() * (b - a + 1));
+    }
+
+    function pair() {
+      return { n: rand(2, 6), k: rand(2, 6) };
+    }
+
+    function makeQ() {
+      const kinds = ["equal", "contain", "name"];
+      let kind, n, k, key;
+      do {
+        kind = kinds[rand(0, 2)];
+        ({ n, k } = pair());
+        key = kind + "-" + n + "-" + k;
+      } while (key === lastKey || (kind === "name" && n === k));
+      lastKey = key;
+      const total = n * k;
+      if (kind === "name") {
+        const pick = rand(0, 2);
+        const num = pick === 0 ? total : pick === 1 ? n : k;
+        return { kind, n, k, total, num, role: ROLES[pick] };
+      }
+      return { kind, n, k, total };
+    }
+
+    function pile(total) {
+      return `<div class="pile">${"<div class='dot'></div>".repeat(total)}</div>`;
+    }
+
+    function fillRow() {
+      return `<div class="fill">
+        <input id="a" inputmode="numeric" maxlength="2" autocomplete="off">
+        <span class="op">÷</span>
+        <input id="b" inputmode="numeric" maxlength="2" autocomplete="off">
+        <span class="op">=</span>
+        <input id="p" inputmode="numeric" maxlength="2" autocomplete="off">
+      </div>
+      <div class="actions"><button class="btn" id="okBtn" type="button">确定</button></div>`;
+    }
+
+    function render() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      answered = false;
+      q = makeQ();
+      const ask = document.getElementById("ask");
+      const body = document.getElementById("body");
+      document.getElementById("status").textContent = "";
+      document.getElementById("status").className = "status";
+      document.getElementById("nextBtn").classList.remove("show");
+
+      if (q.kind === "equal") {
+        ask.innerHTML = `一共 <span class="n">${q.total}</span> 个，平均分成 <span class="n">${q.k}</span> 份，每份几个？`;
+        body.innerHTML = pile(q.total) + fillRow();
+        bindFill(q.total, q.k, q.n);
+      } else if (q.kind === "contain") {
+        ask.innerHTML = `一共 <span class="n">${q.total}</span> 个，每 <span class="n">${q.n}</span> 个一份，能分成几份？`;
+        body.innerHTML = pile(q.total) + fillRow();
+        bindFill(q.total, q.n, q.k);
+      } else {
+        ask.innerHTML = `<span class="eq">${q.total} ÷ ${q.n} = ${q.k}</span><br>「${q.num}」叫做什么？`;
+        body.innerHTML = `<div class="choices">${
+          ROLES.map(r => `<button class="btn" data-role="${r}">${r}</button>`).join("")
+        }</div>`;
+        body.querySelectorAll("[data-role]").forEach(b => {
+          b.onclick = () => finish(b.dataset.role === q.role, `「${q.num}」是${q.role}`);
+        });
+      }
+    }
+
+    function bindFill(a, b, p) {
+      const ok = () => {
+        const x = +document.getElementById("a").value;
+        const y = +document.getElementById("b").value;
+        const z = +document.getElementById("p").value;
+        finish(x === a && y === b && z === p, `${a} ÷ ${b} = ${p}`);
+      };
+      document.getElementById("okBtn").onclick = ok;
+      document.querySelectorAll(".fill input").forEach(el => {
+        el.addEventListener("keydown", e => { if (e.key === "Enter") ok(); });
+      });
+      document.getElementById("a").focus();
+    }
+
+    function finish(ok, tip) {
+      if (answered) return;
+      answered = true;
+      document.querySelectorAll("button, input").forEach(el => { el.disabled = true; });
+      document.getElementById("nextBtn").disabled = false;
+      const st = document.getElementById("status");
+      prof.record(ok);
+      profUI.render();
+      if (ok) {
+        st.textContent = "答对了！";
+        st.className = "status ok";
+        timer = setTimeout(render, AUTO_MS);
+      } else {
+        st.textContent = tip;
+        st.className = "status err";
+        document.getElementById("nextBtn").classList.add("show");
+      }
+    }
+
+    document.getElementById("nextBtn").onclick = render;
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      render();
+    });
+  </script>
+</body>
+</html>
