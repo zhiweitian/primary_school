@@ -55,7 +55,7 @@
 
   function compile(id) {
     const n = byId.get(id);
-    const { id: _id, deps, ...rest } = n;
+    const { deps, ...rest } = n;
     if (deps.length) rest.children = deps.map(compile);
     return rest;
   }
@@ -64,6 +64,44 @@
     edition: "人教版（2024）",
     grade: 2,
     subject: "数学",
-    tree: compile("grade2")
+    tree: compile("grade2"),
+    nodes: Object.fromEntries(nodes.map((n) => [n.id, { name: n.name, app: n.app, deps: n.deps || [] }])),
+    routes: [
+      {
+        name: "表内乘除",
+        rows: [
+          ["mul-know"],
+          ["mul-table"],
+          ["mul-word"],
+          ["mul-guided"],
+          ["mul-vertical"],
+          ["mul-mental1"],
+          ["mul-mental2", "mul-div-rel"],
+          ["div-koujue"],
+          ["div-word"],
+          ["mix-op"]
+        ]
+      },
+      {
+        name: "万以内数",
+        rows: [
+          ["num-read"],
+          ["compare-10000"],
+          ["round-add"],
+          ["approx-basics"],
+          ["approx-desc"],
+          ["estimate"]
+        ]
+      },
+      {
+        name: "长度",
+        rows: [
+          ["len-know"],
+          ["len-convert"],
+          ["len-word"]
+        ]
+      },
+      { name: "分类", rows: [["classify"]] }
+    ]
   };
 })();
