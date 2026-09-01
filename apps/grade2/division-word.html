@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>除法实际问题</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee; padding: 1rem;
+    }
+    .container {
+      padding: 2rem 1.6rem; width: min(520px, 96vw);
+      background: rgba(255,255,255,0.06); border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 { text-align: center; font-size: 1.4rem; color: #ffd166; margin-bottom: 0.3rem; }
+    .hint { text-align: center; font-size: 0.78rem; color: #888; margin-bottom: 1rem; line-height: 1.5; }
+    .stats { display: flex; justify-content: center; gap: 1.6rem; margin-bottom: 1rem; }
+    .stat-label { font-size: 0.72rem; color: #888; text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #06d6a0; text-align: center; }
+    .stat-value.prof { color: #ffd166; }
+    .card {
+      padding: 1.2rem 1rem; background: rgba(0,0,0,0.25); border-radius: 14px; margin-bottom: 0.9rem;
+    }
+    .ask { text-align: center; font-size: 1.08rem; line-height: 1.7; color: #ddd; margin-bottom: 1rem; }
+    .ask .n { color: #ffd166; font-weight: 700; }
+    .extra { color: #888; font-size: 0.92rem; }
+    .fill {
+      display: flex; justify-content: center; align-items: center; gap: 0.35rem; flex-wrap: wrap;
+    }
+    .fill input {
+      width: 3.4rem; padding: 0.4rem 0.2rem; border: 2px solid rgba(168,218,220,0.35);
+      border-radius: 10px; background: rgba(0,0,0,0.3); color: #ffd166;
+      font-family: "Courier New", monospace; font-size: 1.6rem; font-weight: 700; text-align: center;
+    }
+    .fill input:focus { outline: none; border-color: #ffd166; }
+    .fill input:disabled { opacity: 0.55; }
+    .op {
+      min-width: 2.4rem; padding: 0.28rem 0.45rem; border-radius: 10px;
+      border: 2px solid rgba(168,218,220,0.35); background: rgba(0,0,0,0.3);
+      color: #a8dadc; font-size: 1.45rem; font-weight: 700; cursor: pointer;
+    }
+    .op:hover:not(:disabled) { border-color: #ffd166; color: #ffd166; }
+    .op:disabled { opacity: 0.55; cursor: default; }
+    .eq { font-size: 1.4rem; color: #888; font-weight: 700; }
+    .actions { display: flex; justify-content: center; margin-top: 0.9rem; }
+    .btn {
+      min-width: 5.4rem; padding: 0.62rem 1rem; border: none; border-radius: 10px;
+      font-size: 1.05rem; font-weight: 700; cursor: pointer; background: #a8dadc; color: #1a1a2e;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .status { text-align: center; margin-top: 0.7rem; min-height: 1.3rem; font-size: 0.92rem; }
+    .status.ok { color: #06d6a0; }
+    .status.err { color: #ef476f; }
+    .btn-next {
+      display: none; margin: 0.65rem auto 0; padding: 0.45rem 1.3rem;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: transparent;
+      color: #a8dadc; cursor: pointer;
+    }
+    .btn-next.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>➗ 除法实际问题</h1>
+    <p class="hint">平均分用除法，求几个几的总数用乘法。点中间符号可切换 × / ÷</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card">
+      <div class="ask" id="ask"></div>
+      <div class="fill">
+        <input id="a" inputmode="numeric" maxlength="3" autocomplete="off">
+        <button class="op" id="opBtn" type="button">÷</button>
+        <input id="b" inputmode="numeric" maxlength="2" autocomplete="off">
+        <span class="eq">=</span>
+        <input id="p" inputmode="numeric" maxlength="3" autocomplete="off">
+      </div>
+      <div class="actions"><button class="btn" id="okBtn" type="button">确定</button></div>
+    </div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script>
+    let prof, profUI, q = null, answered = false, timer = null, lastKey = "", op = "÷";
+    const AUTO_MS = 1400;
+    const EXTRA = ["桌上还有一本书。", "外面在下雨。", "小明今天穿了红衣服。"];
+
+    function rand(a, b) {
+      return a + Math.floor(Math.random() * (b - a + 1));
+    }
+
+    function hl(n) {
+      return `<span class="n">${n}</span>`;
+    }
+
+    const TPL = {
+      equal: [
+        (n, k, t) => `${hl(t)} 个苹果平均放进 ${hl(k)} 个盘子，每个盘子几个？`,
+        (n, k, t) => `${hl(t)} 个粽子平均放到 ${hl(k)} 个笼屉，每个笼屉几个？`,
+        (n, k, t) => `${hl(t)} 本练习本平均分给 ${hl(k)} 人，每人几本？`
+      ],
+      contain: [
+        (n, k, t) => `有 ${hl(t)} 块糖，每 ${hl(n)} 块装一袋，可以装几袋？`,
+        (n, k, t) => `${hl(t)} 个竹笋，每 ${hl(n)} 个放一盘，能放几盘？`,
+        (n, k, t) => `摆一个图形用 ${hl(n)} 根小棒，${hl(t)} 根能摆几个？`
+      ],
+      mul: [
+        (n, k, t) => `每盒 ${hl(n)} 支铅笔，${hl(k)} 盒一共多少支？`,
+        (n, k, t) => `每个秋千坐 ${hl(n)} 人，${hl(k)} 个秋千一共坐多少人？`,
+        (n, k, t) => `${hl(k)} 个人，每人浇 ${hl(n)} 棵树，一共浇多少棵？`
+      ]
+    };
+
+    function makeQ() {
+      const kinds = ["equal", "contain", "mul"];
+      let kind, n, k, i, key;
+      do {
+        kind = kinds[rand(0, 2)];
+        n = rand(2, 6);
+        k = rand(2, 6);
+        i = rand(0, TPL[kind].length - 1);
+        key = kind + "-" + i + "-" + n + "-" + k;
+      } while (key === lastKey);
+      lastKey = key;
+      const t = n * k;
+      let html = TPL[kind][i](n, k, t);
+      if (Math.random() < 0.28) {
+        html += `<div class="extra">${EXTRA[rand(0, EXTRA.length - 1)]}</div>`;
+      }
+      return { kind, n, k, t, html };
+    }
+
+    function setOp(v) {
+      op = v;
+      document.getElementById("opBtn").textContent = v;
+    }
+
+    function render() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      answered = false;
+      q = makeQ();
+      document.getElementById("ask").innerHTML = q.html;
+      ["a", "b", "p"].forEach(id => {
+        const el = document.getElementById(id);
+        el.value = "";
+        el.disabled = false;
+      });
+      document.getElementById("okBtn").disabled = false;
+      document.getElementById("opBtn").disabled = false;
+      setOp(q.kind === "mul" ? "×" : "÷");
+      document.getElementById("status").textContent = "";
+      document.getElementById("status").className = "status";
+      document.getElementById("nextBtn").classList.remove("show");
+      document.getElementById("a").focus();
+    }
+
+    function tip() {
+      if (q.kind === "mul") return `${q.k} × ${q.n} = ${q.t}（或 ${q.n} × ${q.k} = ${q.t}）`;
+      if (q.kind === "equal") return `${q.t} ÷ ${q.k} = ${q.n}`;
+      return `${q.t} ÷ ${q.n} = ${q.k}`;
+    }
+
+    function good() {
+      const x = +document.getElementById("a").value;
+      const y = +document.getElementById("b").value;
+      const z = +document.getElementById("p").value;
+      if (q.kind === "mul") {
+        return op === "×" && z === q.t && ((x === q.k && y === q.n) || (x === q.n && y === q.k));
+      }
+      if (op !== "÷" || x !== q.t) return false;
+      if (q.kind === "equal") return y === q.k && z === q.n;
+      return y === q.n && z === q.k;
+    }
+
+    function finish(ok) {
+      if (answered) return;
+      answered = true;
+      document.querySelectorAll("button, input").forEach(el => { el.disabled = true; });
+      document.getElementById("nextBtn").disabled = false;
+      const st = document.getElementById("status");
+      prof.record(ok);
+      profUI.render();
+      if (ok) {
+        st.textContent = "答对了！";
+        st.className = "status ok";
+        timer = setTimeout(render, AUTO_MS);
+      } else {
+        st.textContent = tip();
+        st.className = "status err";
+        document.getElementById("nextBtn").classList.add("show");
+      }
+    }
+
+    document.getElementById("opBtn").onclick = () => {
+      if (answered) return;
+      setOp(op === "÷" ? "×" : "÷");
+    };
+    document.getElementById("okBtn").onclick = () => finish(good());
+    document.querySelectorAll(".fill input").forEach(el => {
+      el.addEventListener("keydown", e => { if (e.key === "Enter") finish(good()); });
+    });
+    document.getElementById("nextBtn").onclick = render;
+
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      render();
+    });
+  </script>
+</body>
+</html>

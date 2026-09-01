@@ -8,11 +8,8 @@
   const t = (volume, unit, topic) => ({ volume, unit, topic });
   const u16mul = (topic) => t("上册", "1～6的表内乘法", topic);
   const u16div = (topic) => t("上册", "1～6的表内除法", topic);
-  const u79 = (topic) => t("上册", "7～9的表内乘、除法", topic);
   const uTable = (topic) => t("上册", "表内乘、除法", topic);
   const uMix = (topic) => t("下册", "混合运算", topic);
-  const uDiv1 = (topic) => t("下册", "表内除法（一）", topic);
-  const uDiv2 = (topic) => t("下册", "表内除法（二）", topic);
   const uWan = (topic) => t("下册", "万以内数的认识", topic);
   const uSort = (topic) => t("上册", "分类与整理", topic);
   const uLen = (topic) => t("上册", "厘米和米", topic);
@@ -29,35 +26,11 @@
     L("mul-mental2", "口算进阶", { ...uTable("乘两位数"), app: app("vertical-multiplication.html?mode=mental2") }, ["mul-mental1"]),
 
     // 除法与乘除关系
-    L("div-know", "除法的认识", { ...u16div("除法的认识"), app: app("division-meaning.html") }),
-    L("div-koujue", "口诀求商", { ...uTable("用口诀求商"), app: app("vertical-division.html") }, ["div-know", "mul-mental2"]),
-    L("mul-div-rel", "乘除关系", { ...uTable("用口诀求商"), app: app("mul-div-relation.html") }, ["div-koujue"]),
-
-    // 除法应用 → 混合运算
-    L("one-step-div", "一步除法实际问题", u16div("解决问题")),
-    L("avg-vs-contain", "辨析平均分与包含除", u16div("解决问题")),
-    L("pic-div", "看图列除法算式", u16div("解决问题")),
-    L("compare-diff", "比较多少（相差几）", uDiv2("解决问题")),
-    L("choose-info", "选择有效信息", uDiv1("解决问题")),
-    L("choose-mul-div", "选择乘法或除法", u79("解决问题")),
-    N("div-app", "除法应用", { topic: "除法应用" }, ["choose-mul-div", "choose-info", "compare-diff", "pic-div", "avg-vs-contain", "one-step-div", "mul-div-rel"]),
-    L("mul-add", "乘加运算", u79("乘加与乘减")),
-    L("mul-sub", "乘减运算", u79("乘加与乘减")),
-    L("order-mul-add", "运算顺序（先乘后加减）", u79("乘加与乘减")),
-    N("mul-then-add", "先乘后加减", { topic: "先乘后加减" }, ["order-mul-add", "mul-sub", "mul-add", "div-app"]),
-    L("only-addsub", "只有加减的混合运算", uMix("同级运算")),
-    L("only-muldiv", "只有乘除的混合运算", uMix("同级运算")),
-    L("left-to-right", "从左到右计算", uMix("同级运算")),
-    N("same-level", "同级运算", { topic: "同级运算" }, ["left-to-right", "only-muldiv", "only-addsub", "mul-then-add"]),
-    L("paren-change", "小括号改变运算顺序", uMix("含括号的运算")),
-    L("paren-first", "先算括号里", uMix("含括号的运算")),
-    L("two-step-mix", "两步混合运算", uMix("含括号的运算")),
-    N("with-paren", "含括号的运算", { topic: "含括号的运算" }, ["two-step-mix", "paren-first", "paren-change", "same-level"]),
-    L("analyze-qty", "分析数量关系", uMix("解决问题")),
-    L("write-expr", "列综合算式", uMix("解决问题")),
-    L("check-result", "检验计算结果", uMix("解决问题")),
-    N("mix-app", "混合运算应用", uMix("解决问题"), ["check-result", "write-expr", "analyze-qty", "with-paren"]),
-    N("muldiv", "表内乘除", ["mix-app"]),
+    L("mul-div-rel", "乘除关系", { ...uTable("用口诀求商"), app: app("mul-div-relation.html") }),
+    L("div-koujue", "口诀求商", { ...uTable("用口诀求商"), app: app("vertical-division.html") }, ["mul-div-rel", "mul-mental2"]),
+    L("div-word", "除法实际问题", { ...u16div("解决问题"), app: app("division-word.html") }, ["div-koujue"]),
+    L("mix-op", "混合运算", { ...uMix("混合运算"), app: app("mixed-ops.html") }, ["div-word"]),
+    N("muldiv", "表内乘除", ["mix-op"]),
 
     // 万以内数
     L("num-read", "数的认识", { ...uWan("读写亿以内的数"), app: app("read-write-within-yi.html") }),
