@@ -100,58 +100,34 @@
     .cell { display: flex; justify-content: center; min-width: 0; }
     .card {
       position: relative; display: block; text-decoration: none; color: inherit;
-      margin-top: 0.35rem; padding: 0.85rem 0.45rem 0.5rem;
-      width: 100%; min-height: 4.1rem; text-align: center;
-      background: linear-gradient(180deg, #ffe7b8 0%, #f0c56e 72%, #e8b85a 100%);
-      border: 3px solid #c9892e;
-      border-radius: 16px 16px 20px 20px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 3px 0 #b0761c, 0 6px 10px rgba(80,40,0,0.12);
-    }
-    .card::before {
-      content: ""; position: absolute; left: 50%; top: -9px;
-      width: 13px; height: 11px; transform: translateX(-50%);
-      border: 2.5px solid #c9892e; border-bottom: none; border-radius: 8px 8px 0 0;
-      background: #faf8f5;
+      margin-top: 0.55rem; padding: 1.15rem 0.5rem 0.5rem;
+      width: 100%; min-height: 3.5rem; text-align: center;
+      background: #fff; border: 1px solid #e8e4de; border-radius: 8px;
     }
     .card .face {
-      position: absolute; top: -1.45rem; left: 50%;
-      width: 2rem; height: 2rem; transform: translateX(-50%);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.7rem; line-height: 1; pointer-events: none;
-      background: #fff8e8; border: 2.5px solid #c9892e; border-radius: 50%;
-      box-shadow: 0 2px 0 #b0761c;
+      position: absolute; top: -0.7rem; left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.25rem; line-height: 1; pointer-events: none;
     }
-    .card.next .face { border-color: #e67a00; box-shadow: 0 2px 0 #c46200; }
-    .card.done .face { border-color: #5a9a32; box-shadow: 0 2px 0 #3f7a22; }
-    .card .name { font-size: 0.88rem; font-weight: 700; color: #5b3a14; line-height: 1.3; }
-    .card .meta { font-size: 0.7rem; color: #8a5a22; margin-top: 0.18rem; }
+    .card .name { font-size: 0.86rem; font-weight: 650; color: #3d3228; line-height: 1.3; }
+    .card .meta { font-size: 0.68rem; color: #9a8d80; margin-top: 0.14rem; }
     .card .tag {
-      display: inline-block; margin-top: 0.26rem; padding: 0.06rem 0.4rem;
-      border-radius: 999px; font-size: 0.64rem; font-weight: 700;
-      background: rgba(255,255,255,0.55); color: #7a4e16;
+      display: inline-block; margin-top: 0.22rem; padding: 0.04rem 0.35rem;
+      border-radius: 999px; font-size: 0.62rem; font-weight: 650;
+      background: #f3efe8; color: #8a7a6a;
     }
-    .card.next {
-      background: linear-gradient(180deg, #ffe29a 0%, #ffb347 100%);
-      border-color: #e67a00;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 3px 0 #c46200, 0 0 0 3px rgba(230,122,0,0.22);
-    }
+    .card.next { background: #fff8ee; border-color: #e8c48a; }
     .card.next .tag { background: #ef6c00; color: #fff; }
     .card.next .face { animation: hop 1.05s ease-in-out infinite; }
-    .card.done {
-      background: linear-gradient(180deg, #e4f7c8 0%, #9dcc6a 100%);
-      border-color: #5a9a32;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 3px 0 #3f7a22, 0 6px 10px rgba(40,70,10,0.1);
-    }
+    .card.done { background: #f4faf1; border-color: #c8dfb8; }
     .card.done .tag { background: #e8f5e9; color: #2e7d32; }
-    .card.lock {
-      filter: grayscale(0.5) brightness(1.06);
-    }
-    .card.lock .tag { background: #eee; color: #888; }
+    .card.known .tag { background: #fff3e0; color: #a67c3a; }
+    .card.shut { filter: grayscale(0.78) saturate(0.2); }
     .card.idle { cursor: default; }
-    .card.idle .meta { color: #a67c3a; }
+    .card.idle .meta { color: #b0a598; }
     @keyframes hop {
       0%, 100% { transform: translateX(-50%) translateY(0); }
-      50% { transform: translateX(-50%) translateY(-5px); }
+      50% { transform: translateX(-50%) translateY(-4px); }
     }
     .routes-inner.cols-3 { grid-template-columns: 1.15fr 1.15fr 0.85fr; }
     @media (max-width: 1000px) {
@@ -162,12 +138,12 @@
     }
     .g-join { min-height: 20px; }
     .stem {
-      display: block; width: 4px; height: 20px; margin: 0 auto;
-      background: #d4a574; border-radius: 2px;
+      display: block; width: 2px; height: 18px; margin: 0 auto;
+      background: #ddd;
     }
     .track.lanes-2 .g-join.merge { grid-template-columns: 1fr; }
     .g-join.merge svg { display: block; width: 100%; height: 24px; }
-    .g-join.merge path { fill: none; stroke: #d4a574; stroke-width: 3; }
+    .g-join.merge path { fill: none; stroke: #ddd; stroke-width: 2; }
   </style>
 </head>
 <body>
@@ -810,8 +786,54 @@
       return app + sep + "node=" + encodeURIComponent(path);
     }
 
-    function mastered(s) {
-      return s.total >= 8 && s.proficiency != null && s.proficiency >= 80;
+    const NEED = (window.PracticeStats && PracticeStats.WINDOW) || 10;
+    const CREDIT_LS = "ps-route-credit";
+
+    function loadCredit() {
+      try {
+        const a = JSON.parse(localStorage.getItem(CREDIT_LS) || "[]");
+        return new Set(Array.isArray(a) ? a : []);
+      } catch (_) {
+        return new Set();
+      }
+    }
+
+    function saveCredit(set) {
+      try { localStorage.setItem(CREDIT_LS, JSON.stringify([...set])); } catch (_) {}
+    }
+
+    function passed(s) {
+      return s.proficiency != null && s.proficiency >= 90 && s.total >= NEED;
+    }
+
+    function syncCredit(defs, paths) {
+      const credit = loadCredit();
+      let changed = false;
+      Object.keys(defs).forEach(id => {
+        const path = paths[id];
+        if (!path || !passed(PracticeStats.get(path))) return;
+        const stack = [...(defs[id].deps || [])];
+        while (stack.length) {
+          const d = stack.pop();
+          if (credit.has(d)) continue;
+          credit.add(d);
+          changed = true;
+          (defs[d].deps || []).forEach(x => stack.push(x));
+        }
+      });
+      if (changed) saveCredit(credit);
+      return credit;
+    }
+
+    function cleared(id, paths, credit) {
+      return passed(PracticeStats.get(paths[id])) || credit.has(id);
+    }
+
+    function opened(id, defs, paths, credit) {
+      const deps = defs[id].deps || [];
+      if (!deps.length) return true;
+      if (cleared(id, paths, credit)) return true;
+      return deps.every(d => cleared(d, paths, credit));
     }
 
     const FACES = ["🐻", "🐥", "🦊", "🐼", "🐸", "🐯", "🐰", "🐨"];
@@ -829,17 +851,12 @@
       const box = document.getElementById("routes");
       const paths = indexTreePaths(data.tree);
       const defs = data.nodes || {};
+      const credit = syncCredit(defs, paths);
       const tracks = data.routes.map(route => {
         const ids = route.rows.flat();
-        let nextId = null;
-        ids.forEach(id => {
-          const def = defs[id];
-          const s = PracticeStats.get(paths[id]);
-          const ready = (def.deps || []).every(d => PracticeStats.get(paths[d]).total > 0);
-          if (!nextId && ready && !mastered(s)) nextId = id;
-        });
-        const done = ids.filter(id => mastered(PracticeStats.get(paths[id]))).length;
-        return { route, nextId, done, total: ids.length, paths, defs };
+        const nextId = ids.find(id => defs[id].app && opened(id, defs, paths, credit) && !cleared(id, paths, credit)) || null;
+        const done = ids.filter(id => cleared(id, paths, credit)).length;
+        return { route, nextId, done, total: ids.length, paths, defs, credit };
       });
 
       box.innerHTML = `<div class="routes-inner">${tracks.map(t => {
@@ -848,21 +865,23 @@
           const def = t.defs[id];
           const path = t.paths[id];
           const s = PracticeStats.get(path);
-          const ready = (def.deps || []).every(d => PracticeStats.get(t.paths[d]).total > 0);
-          const done = mastered(s);
+          const did = passed(s);
+          const known = !did && t.credit.has(id);
+          const open = opened(id, t.defs, t.paths, t.credit);
           const next = id === t.nextId;
           let cls = "card";
           let tag = "";
+          if (!open) cls += " shut";
           if (!def.app) {
-            return `<div class="card idle">${cardBody(id, def.name, "练习稍后", "")}</div>`;
+            return `<div class="${cls} idle">${cardBody(id, def.name, "练习稍后", "")}</div>`;
           }
-          if (next) { cls += " next"; tag = "下一关"; }
-          else if (done) { cls += " done"; tag = "已过"; }
-          else if (!ready) { cls += " lock"; tag = "先练前面"; }
+          if (did) { cls += " done"; tag = "已过"; }
+          else if (known) { cls += " known"; tag = "已会"; }
+          else if (next) { cls += " next"; tag = "下一关"; }
           else tag = s.total ? "进行中" : "可练";
           const meta = s.total
             ? `${s.total}题 · ${s.proficiency == null ? "—" : s.proficiency + "%"}`
-            : "还没练";
+            : known ? "后面的关带过了" : "点进去练";
           return `<a class="${cls}" href="${appHrefByPath(def.app, path)}">${cardBody(id, def.name, meta, tag)}</a>`;
         };
         const cells = row => {
