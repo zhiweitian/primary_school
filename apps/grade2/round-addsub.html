@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>整百整千口算</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee; padding: 1rem;
+    }
+    .container {
+      padding: 2rem 1.6rem; width: min(520px, 96vw);
+      background: rgba(255,255,255,0.06); border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 { text-align: center; font-size: 1.4rem; color: #ffd166; margin-bottom: 0.3rem; }
+    .hint { text-align: center; font-size: 0.78rem; color: #888; margin-bottom: 0.45rem; line-height: 1.5; }
+    .mode { text-align: center; font-size: 0.72rem; color: #ffd166; margin-bottom: 1rem; min-height: 1.1rem; }
+    .mode.off { color: #06d6a0; }
+    .stats { display: flex; justify-content: center; gap: 1.6rem; margin-bottom: 1rem; }
+    .stat-label { font-size: 0.72rem; color: #888; text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #06d6a0; text-align: center; }
+    .stat-value.prof { color: #ffd166; }
+    .card {
+      padding: 1.2rem 1rem; background: rgba(0,0,0,0.25); border-radius: 14px; margin-bottom: 0.9rem;
+    }
+    .ask { text-align: center; font-size: 0.92rem; color: #888; margin-bottom: 0.7rem; min-height: 1.3rem; }
+    .expr {
+      text-align: center; font-family: "Courier New", monospace;
+      font-size: 2rem; font-weight: 700; color: #a8dadc; margin-bottom: 0.95rem;
+    }
+    .fill { display: flex; justify-content: center; align-items: center; gap: 0.4rem; }
+    .fill input {
+      width: 6.2rem; padding: 0.4rem 0.2rem; border: 2px solid rgba(168,218,220,0.35);
+      border-radius: 10px; background: rgba(0,0,0,0.3); color: #ffd166;
+      font-family: "Courier New", monospace; font-size: 1.7rem; font-weight: 700; text-align: center;
+    }
+    .fill input:focus { outline: none; border-color: #ffd166; }
+    .fill input:disabled { opacity: 0.55; }
+    .actions { display: flex; justify-content: center; margin-top: 0.9rem; }
+    .btn {
+      min-width: 5.4rem; padding: 0.62rem 1rem; border: none; border-radius: 10px;
+      font-size: 1.05rem; font-weight: 700; cursor: pointer; background: #a8dadc; color: #1a1a2e;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .status { text-align: center; margin-top: 0.7rem; min-height: 1.3rem; font-size: 0.92rem; }
+    .status.ok { color: #06d6a0; }
+    .status.err { color: #ef476f; }
+    .btn-next {
+      display: none; margin: 0.65rem auto 0; padding: 0.45rem 1.3rem;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: transparent;
+      color: #a8dadc; cursor: pointer;
+    }
+    .btn-next.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>整百整千口算</h1>
+    <p class="hint">几百加减几百、几千加减几千，先看成几个百、几个千</p>
+    <p class="mode" id="mode"></p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card">
+      <div class="ask" id="ask"></div>
+      <div class="expr" id="expr"></div>
+      <div class="fill">
+        <input id="ans" inputmode="numeric" maxlength="5" autocomplete="off">
+      </div>
+      <div class="actions"><button class="btn" id="okBtn" type="button">确定</button></div>
+    </div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script>
+    let prof, profUI, q = null, step = 0, hint = true, answered = false, timer = null, lastKey = "";
+    const AUTO_MS = 1400;
+
+    function rand(a, b) {
+      return a + Math.floor(Math.random() * (b - a + 1));
+    }
+
+    function needHint() {
+      const s = prof.stats();
+      if (!s.total || s.total < 8) return true;
+      return s.proficiency == null || s.proficiency < 80;
+    }
+
+    function useThousands() {
+      const s = prof.stats();
+      return s.total >= 6 && s.proficiency != null && s.proficiency >= 60;
+    }
+
+    function makeQ() {
+      let item, n = 0;
+      do {
+        const thou = useThousands() && Math.random() < 0.55;
+        const unit = thou ? 1000 : 100;
+        const name = thou ? "千" : "百";
+        const add = Math.random() < 0.55;
+        let x, y;
+        if (add) {
+          x = rand(1, 8);
+          y = rand(1, 8);
+        } else {
+          x = rand(2, 9);
+          y = rand(1, x - 1);
+        }
+        const op = add ? " + " : " - ";
+        const first = add ? x + y : x - y;
+        item = {
+          key: (thou ? "k" : "h") + "-" + x + op + y,
+          show: (x * unit) + op + (y * unit),
+          think: x + " 个" + name + op + y + " 个" + name,
+          first: first,
+          final: first * unit
+        };
+        n++;
+      } while (item.key === lastKey && n < 8);
+      lastKey = item.key;
+      return item;
+    }
+
+    function showQ() {
+      const box = document.getElementById("ans");
+      box.value = "";
+      box.disabled = false;
+      document.getElementById("okBtn").disabled = false;
+      document.getElementById("status").textContent = "";
+      document.getElementById("status").className = "status";
+      document.getElementById("nextBtn").classList.remove("show");
+      if (hint && step === 0) {
+        document.getElementById("ask").textContent = "先看成几个百、几个千";
+        document.getElementById("expr").textContent = q.think;
+      } else {
+        document.getElementById("ask").textContent = "得数是多少？";
+        document.getElementById("expr").textContent = q.show;
+      }
+      box.focus();
+    }
+
+    function setMode() {
+      const mode = document.getElementById("mode");
+      if (hint) {
+        mode.textContent = "提示开着：先算几个百 / 几个千";
+        mode.className = "mode";
+      } else {
+        mode.textContent = "自己算：直接填得数";
+        mode.className = "mode off";
+      }
+    }
+
+    function render() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      answered = false;
+      hint = needHint();
+      step = 0;
+      q = makeQ();
+      setMode();
+      showQ();
+    }
+
+    function finish(ok) {
+      if (answered) return;
+      answered = true;
+      document.getElementById("ans").disabled = true;
+      document.getElementById("okBtn").disabled = true;
+      document.getElementById("nextBtn").disabled = false;
+      const st = document.getElementById("status");
+      prof.record(ok);
+      profUI.render();
+      if (ok) {
+        st.textContent = "答对了！";
+        st.className = "status ok";
+        timer = setTimeout(render, AUTO_MS);
+      } else {
+        st.textContent = q.show + " = " + q.final;
+        st.className = "status err";
+        document.getElementById("nextBtn").classList.add("show");
+      }
+    }
+
+    function submit() {
+      if (answered) return;
+      const v = +document.getElementById("ans").value;
+      if (document.getElementById("ans").value === "") return;
+      if (hint && step === 0) {
+        if (v === q.first) {
+          step = 1;
+          showQ();
+          return;
+        }
+        finish(false);
+        return;
+      }
+      finish(v === q.final);
+    }
+
+    document.getElementById("okBtn").onclick = submit;
+    document.getElementById("ans").addEventListener("keydown", e => {
+      if (e.key === "Enter") submit();
+    });
+    document.getElementById("nextBtn").onclick = render;
+
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      render();
+    });
+  </script>
+</body>
+</html>

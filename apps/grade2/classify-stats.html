@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分类与统计</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee; padding: 1rem;
+    }
+    .container {
+      padding: 2rem 1.6rem; width: min(520px, 96vw);
+      background: rgba(255,255,255,0.06); border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 { text-align: center; font-size: 1.4rem; color: #ffd166; margin-bottom: 0.3rem; }
+    .hint { text-align: center; font-size: 0.78rem; color: #888; margin-bottom: 0.45rem; line-height: 1.5; }
+    .mode { text-align: center; font-size: 0.72rem; color: #ffd166; margin-bottom: 1rem; min-height: 1.1rem; }
+    .mode.off { color: #06d6a0; }
+    .stats { display: flex; justify-content: center; gap: 1.6rem; margin-bottom: 1rem; }
+    .stat-label { font-size: 0.72rem; color: #888; text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #06d6a0; text-align: center; }
+    .stat-value.prof { color: #ffd166; }
+    .card {
+      padding: 1.1rem 1rem; background: rgba(0,0,0,0.25); border-radius: 14px; margin-bottom: 0.9rem;
+    }
+    .ask { text-align: center; font-size: 1.05rem; line-height: 1.6; color: #ddd; margin-bottom: 0.85rem; }
+    .board {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 0.55rem;
+      min-height: 4.2rem; margin-bottom: 0.95rem;
+    }
+    .shape {
+      width: 2.05rem; height: 2.05rem;
+      box-shadow: 0 0 0 2px transparent;
+    }
+    .shape.circle { border-radius: 50%; }
+    .shape.square { border-radius: 5px; }
+    .shape.dim { opacity: 0.32; }
+    .shape.on { box-shadow: 0 0 0 2px #ffd166; }
+    .table {
+      display: none; width: min(280px, 90%); margin: 0 auto 0.95rem;
+      border-collapse: collapse; font-size: 0.98rem;
+    }
+    .table.show { display: table; }
+    .table th, .table td {
+      border: 1px solid rgba(168,218,220,0.28); padding: 0.38rem 0.7rem; text-align: center;
+    }
+    .table th { color: #a8dadc; font-weight: 600; }
+    .table td { color: #eee; }
+    .table tr.hl td { background: rgba(255, 209, 102, 0.16); color: #ffd166; }
+    .fill { display: flex; justify-content: center; align-items: center; gap: 0.4rem; }
+    .fill input {
+      width: 4.2rem; padding: 0.4rem 0.2rem; border: 2px solid rgba(168,218,220,0.35);
+      border-radius: 10px; background: rgba(0,0,0,0.3); color: #ffd166;
+      font-family: "Courier New", monospace; font-size: 1.6rem; font-weight: 700; text-align: center;
+    }
+    .fill input:focus { outline: none; border-color: #ffd166; }
+    .fill input:disabled { opacity: 0.55; }
+    .actions { display: flex; justify-content: center; margin-top: 0.9rem; }
+    .btn {
+      min-width: 5.4rem; padding: 0.62rem 1rem; border: none; border-radius: 10px;
+      font-size: 1.05rem; font-weight: 700; cursor: pointer; background: #a8dadc; color: #1a1a2e;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .status { text-align: center; margin-top: 0.7rem; min-height: 1.3rem; font-size: 0.92rem; }
+    .status.ok { color: #06d6a0; }
+    .status.err { color: #ef476f; }
+    .btn-next {
+      display: none; margin: 0.65rem auto 0; padding: 0.45rem 1.3rem;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: transparent;
+      color: #a8dadc; cursor: pointer;
+    }
+    .btn-next.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>分类与统计</h1>
+    <p class="hint">按颜色或形状分开数；看表时比一比谁多谁少</p>
+    <p class="mode" id="mode"></p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card">
+      <div class="ask" id="ask"></div>
+      <div class="board" id="board"></div>
+      <table class="table" id="table">
+        <thead><tr><th>种类</th><th>个数</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="fill">
+        <input id="ans" inputmode="numeric" maxlength="2" autocomplete="off">
+      </div>
+      <div class="actions"><button class="btn" id="okBtn" type="button">确定</button></div>
+    </div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script>
+    let prof, profUI, q = null, hint = true, answered = false, timer = null, lastKey = "";
+    const AUTO_MS = 1400;
+    const COLORS = [
+      { id: "red", name: "红色", css: "#ef476f" },
+      { id: "yellow", name: "黄色", css: "#ffd166" },
+      { id: "blue", name: "蓝色", css: "#4cc9f0" }
+    ];
+    const SHAPES = [
+      { id: "circle", name: "圆形" },
+      { id: "square", name: "正方形" }
+    ];
+    const FRUITS = ["苹果", "梨", "香蕉"];
+
+    function rand(a, b) {
+      return a + Math.floor(Math.random() * (b - a + 1));
+    }
+
+    function pick(arr) {
+      return arr[rand(0, arr.length - 1)];
+    }
+
+    function needHint() {
+      const s = prof.stats();
+      if (!s.total || s.total < 8) return true;
+      return s.proficiency == null || s.proficiency < 80;
+    }
+
+    function useBoth() {
+      const s = prof.stats();
+      return s.total >= 5 && s.proficiency != null && s.proficiency >= 50;
+    }
+
+    function makeItems() {
+      const n = rand(8, 12);
+      const items = [];
+      for (let i = 0; i < n; i++) {
+        items.push({ color: pick(COLORS), shape: pick(SHAPES) });
+      }
+      return items;
+    }
+
+    function shapeQ() {
+      const items = makeItems();
+      const kind = useBoth() && Math.random() < 0.4 ? "both" : (Math.random() < 0.5 ? "color" : "shape");
+      let match, ask, key;
+      if (kind === "color") {
+        const c = pick(COLORS);
+        match = it => it.color.id === c.id;
+        ask = c.name + "的有几个？";
+        key = "c-" + c.id + "-" + items.map(it => it.color.id[0] + it.shape.id[0]).join("");
+      } else if (kind === "shape") {
+        const s = pick(SHAPES);
+        match = it => it.shape.id === s.id;
+        ask = s.name + "有几个？";
+        key = "s-" + s.id + "-" + items.map(it => it.color.id[0] + it.shape.id[0]).join("");
+      } else {
+        const c = pick(COLORS), s = pick(SHAPES);
+        match = it => it.color.id === c.id && it.shape.id === s.id;
+        ask = c.name + "的" + s.name + "有几个？";
+        key = "b-" + c.id + s.id + "-" + items.map(it => it.color.id[0] + it.shape.id[0]).join("");
+      }
+      const hits = items.map(match);
+      const final = hits.filter(Boolean).length;
+      if (!final) return shapeQ();
+      return { type: "shape", items, hits, ask, final, tip: ask.replace("？", "：" + final), key };
+    }
+
+    function tableQ() {
+      let counts, n = 0;
+      do {
+        counts = FRUITS.map(() => rand(2, 9));
+        n++;
+      } while (new Set(counts).size < 3 && n < 12);
+      const i = rand(0, 2), j = (i + rand(1, 2)) % 3;
+      let ask, final, hl, tip, key;
+      if (Math.random() < 0.5) {
+        let maxI = 0;
+        for (let k = 1; k < 3; k++) if (counts[k] > counts[maxI]) maxI = k;
+        ask = "哪种最多？最多的有几个？";
+        final = counts[maxI];
+        hl = [maxI];
+        tip = FRUITS[maxI] + "最多，有 " + final + " 个";
+        key = "tm-" + counts.join(",");
+      } else {
+        const hi = counts[i] >= counts[j] ? i : j;
+        const lo = hi === i ? j : i;
+        ask = FRUITS[hi] + "比" + FRUITS[lo] + "多几个？";
+        final = counts[hi] - counts[lo];
+        hl = [hi, lo];
+        tip = counts[hi] + " - " + counts[lo] + " = " + final;
+        key = "td-" + hi + lo + "-" + counts.join(",");
+      }
+      return { type: "table", fruits: FRUITS, counts, ask, final, hl, tip, key };
+    }
+
+    function makeQ() {
+      let item, n = 0;
+      do {
+        item = Math.random() < 0.62 ? shapeQ() : tableQ();
+        n++;
+      } while (item.key === lastKey && n < 8);
+      lastKey = item.key;
+      return item;
+    }
+
+    function draw() {
+      const board = document.getElementById("board");
+      const table = document.getElementById("table");
+      const tbody = document.getElementById("tbody");
+      board.innerHTML = "";
+      tbody.innerHTML = "";
+      if (q.type === "shape") {
+        table.classList.remove("show");
+        q.items.forEach((it, i) => {
+          const el = document.createElement("div");
+          el.className = "shape " + it.shape.id;
+          el.style.background = it.color.css;
+          if (hint) el.classList.add(q.hits[i] ? "on" : "dim");
+          board.appendChild(el);
+        });
+      } else {
+        table.classList.add("show");
+        q.fruits.forEach((name, i) => {
+          const tr = document.createElement("tr");
+          if (hint && q.hl.includes(i)) tr.className = "hl";
+          tr.innerHTML = "<td>" + name + "</td><td>" + q.counts[i] + "</td>";
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    function setMode() {
+      const mode = document.getElementById("mode");
+      if (hint) {
+        mode.textContent = "提示开着：高亮要数的那一类";
+        mode.className = "mode";
+      } else {
+        mode.textContent = "自己数：没有高亮";
+        mode.className = "mode off";
+      }
+    }
+
+    function render() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      answered = false;
+      hint = needHint();
+      q = makeQ();
+      document.getElementById("ask").textContent = q.ask;
+      document.getElementById("ans").value = "";
+      document.getElementById("ans").disabled = false;
+      document.getElementById("okBtn").disabled = false;
+      document.getElementById("status").textContent = "";
+      document.getElementById("status").className = "status";
+      document.getElementById("nextBtn").classList.remove("show");
+      setMode();
+      draw();
+      document.getElementById("ans").focus();
+    }
+
+    function finish(ok) {
+      if (answered) return;
+      answered = true;
+      document.getElementById("ans").disabled = true;
+      document.getElementById("okBtn").disabled = true;
+      document.getElementById("nextBtn").disabled = false;
+      const st = document.getElementById("status");
+      prof.record(ok);
+      profUI.render();
+      if (ok) {
+        st.textContent = "答对了！";
+        st.className = "status ok";
+        timer = setTimeout(render, AUTO_MS);
+      } else {
+        st.textContent = q.tip;
+        st.className = "status err";
+        document.getElementById("nextBtn").classList.add("show");
+      }
+    }
+
+    function submit() {
+      if (answered) return;
+      const raw = document.getElementById("ans").value;
+      if (raw === "") return;
+      finish(+raw === q.final);
+    }
+
+    document.getElementById("okBtn").onclick = submit;
+    document.getElementById("ans").addEventListener("keydown", e => {
+      if (e.key === "Enter") submit();
+    });
+    document.getElementById("nextBtn").onclick = render;
+
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      render();
+    });
+  </script>
+</body>
+</html>

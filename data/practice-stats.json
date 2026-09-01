@@ -140,6 +140,27 @@
         1,
         1
       ]
+    },
+    "round-addsub": {
+      "total": 2,
+      "recent": [
+        1,
+        0
+      ]
+    },
+    "length-word": {
+      "total": 2,
+      "recent": [
+        1,
+        0
+      ]
+    },
+    "classify-stats": {
+      "total": 2,
+      "recent": [
+        1,
+        1
+      ]
     }
   }
 }

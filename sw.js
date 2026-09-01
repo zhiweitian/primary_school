@@ -1,4 +1,4 @@
-const CACHE = "ps-v17";
+const CACHE = "ps-v18";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -30,6 +30,9 @@ const PRECACHE = [
   "./apps/grade2/mul-div-relation.html",
   "./apps/grade2/division-word.html",
   "./apps/grade2/mixed-ops.html",
+  "./apps/grade2/round-addsub.html",
+  "./apps/grade2/length-word.html",
+  "./apps/grade2/classify-stats.html",
   "./apps/grade2/vertical-division.html",
   "./apps/grade2/read-write-within-yi.html",
   "./apps/grade2/vertical-multiplication.html",

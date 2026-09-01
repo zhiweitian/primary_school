@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>长度问题</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee; padding: 1rem;
+    }
+    .container {
+      padding: 2rem 1.6rem; width: min(520px, 96vw);
+      background: rgba(255,255,255,0.06); border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 { text-align: center; font-size: 1.4rem; color: #ffd166; margin-bottom: 0.3rem; }
+    .hint { text-align: center; font-size: 0.78rem; color: #888; margin-bottom: 0.45rem; line-height: 1.5; }
+    .mode { text-align: center; font-size: 0.72rem; color: #ffd166; margin-bottom: 1rem; min-height: 1.1rem; }
+    .mode.off { color: #06d6a0; }
+    .stats { display: flex; justify-content: center; gap: 1.6rem; margin-bottom: 1rem; }
+    .stat-label { font-size: 0.72rem; color: #888; text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #06d6a0; text-align: center; }
+    .stat-value.prof { color: #ffd166; }
+    .card {
+      padding: 1.2rem 1rem; background: rgba(0,0,0,0.25); border-radius: 14px; margin-bottom: 0.9rem;
+    }
+    .ask { text-align: center; font-size: 1.08rem; line-height: 1.7; color: #ddd; margin-bottom: 0.85rem; }
+    .ask .n { color: #ffd166; font-weight: 700; }
+    .step { text-align: center; font-size: 0.88rem; color: #888; margin-bottom: 0.7rem; min-height: 1.2rem; }
+    .fill { display: flex; justify-content: center; align-items: center; gap: 0.4rem; }
+    .fill input {
+      width: 5.2rem; padding: 0.4rem 0.2rem; border: 2px solid rgba(168,218,220,0.35);
+      border-radius: 10px; background: rgba(0,0,0,0.3); color: #ffd166;
+      font-family: "Courier New", monospace; font-size: 1.6rem; font-weight: 700; text-align: center;
+    }
+    .fill input:focus { outline: none; border-color: #ffd166; }
+    .fill input:disabled { opacity: 0.55; }
+    .unit { color: #a8dadc; font-size: 1.05rem; font-weight: 700; }
+    .actions { display: flex; justify-content: center; margin-top: 0.9rem; }
+    .btn {
+      min-width: 5.4rem; padding: 0.62rem 1rem; border: none; border-radius: 10px;
+      font-size: 1.05rem; font-weight: 700; cursor: pointer; background: #a8dadc; color: #1a1a2e;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .status { text-align: center; margin-top: 0.7rem; min-height: 1.3rem; font-size: 0.92rem; }
+    .status.ok { color: #06d6a0; }
+    .status.err { color: #ef476f; }
+    .btn-next {
+      display: none; margin: 0.65rem auto 0; padding: 0.45rem 1.3rem;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: transparent;
+      color: #a8dadc; cursor: pointer;
+    }
+    .btn-next.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>长度问题</h1>
+    <p class="hint">比长短、求还剩多少。单位不同时，先都换成厘米</p>
+    <p class="mode" id="mode"></p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card">
+      <div class="ask" id="ask"></div>
+      <div class="step" id="stepAsk"></div>
+      <div class="fill">
+        <input id="ans" inputmode="numeric" maxlength="4" autocomplete="off">
+        <span class="unit" id="unit">厘米</span>
+      </div>
+      <div class="actions"><button class="btn" id="okBtn" type="button">确定</button></div>
+    </div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script>
+    let prof, profUI, q = null, step = 0, hint = true, answered = false, timer = null, lastKey = "";
+    const AUTO_MS = 1400;
+
+    function rand(a, b) {
+      return a + Math.floor(Math.random() * (b - a + 1));
+    }
+
+    function n(v) {
+      return `<span class="n">${v}</span>`;
+    }
+
+    function needHint() {
+      const s = prof.stats();
+      if (!s.total || s.total < 8) return true;
+      return s.proficiency == null || s.proficiency < 80;
+    }
+
+    function compareSame() {
+      const pairs = [["铅笔", "橡皮"], ["桌子", "凳子"], ["红绳", "蓝绳"]];
+      const p = pairs[rand(0, pairs.length - 1)];
+      const a = rand(12, 28), b = rand(4, a - 3);
+      return {
+        key: "cs-" + p[0] + a + "-" + b,
+        html: `${p[0]} ${n(a)} 厘米，${p[1]} ${n(b)} 厘米。${p[0]}比${p[1]}长几厘米？`,
+        firstAsk: "",
+        first: null,
+        final: a - b,
+        tip: a + " - " + b + " = " + (a - b) + " 厘米"
+      };
+    }
+
+    function convertDiff() {
+      const m = rand(1, 2), cm = rand(15, 80);
+      const left = m * 100 - cm;
+      const kinds = [
+        {
+          key: "cd-rope-" + m + "-" + cm,
+          html: `红绳 ${n(m)} 米，蓝绳 ${n(cm)} 厘米。红绳比蓝绳长几厘米？`,
+          firstAsk: m + " 米 = ？厘米",
+          first: m * 100,
+          final: left,
+          tip: m + " 米 = " + (m * 100) + " 厘米，" + (m * 100) + " - " + cm + " = " + left + " 厘米"
+        },
+        {
+          key: "cd-cut-" + m + "-" + cm,
+          html: `一根绳子 ${n(m)} 米，剪去 ${n(cm)} 厘米，还剩多少厘米？`,
+          firstAsk: m + " 米 = ？厘米",
+          first: m * 100,
+          final: left,
+          tip: m + " 米 = " + (m * 100) + " 厘米，" + (m * 100) + " - " + cm + " = " + left + " 厘米"
+        }
+      ];
+      return kinds[rand(0, kinds.length - 1)];
+    }
+
+    function convertTaller() {
+      const m = 1, extra = rand(5, 40);
+      const kid = 100 + extra;
+      return {
+        key: "ct-" + kid,
+        html: `桌子高 ${n(m)} 米，小明身高 ${n(kid)} 厘米。小明比桌子高几厘米？`,
+        firstAsk: "1 米 = ？厘米",
+        first: 100,
+        final: extra,
+        tip: "1 米 = 100 厘米，" + kid + " - 100 = " + extra + " 厘米"
+      };
+    }
+
+    function addSame() {
+      const a = rand(20, 60), b = rand(15, 50);
+      return {
+        key: "as-" + a + "-" + b,
+        html: `先走了 ${n(a)} 厘米，又走了 ${n(b)} 厘米，一共走了多少厘米？`,
+        firstAsk: "",
+        first: null,
+        final: a + b,
+        tip: a + " + " + b + " = " + (a + b) + " 厘米"
+      };
+    }
+
+    function makeQ() {
+      let item, ntry = 0;
+      do {
+        const r = Math.random();
+        item = r < 0.28 ? compareSame() : r < 0.7 ? convertDiff() : r < 0.85 ? convertTaller() : addSame();
+        ntry++;
+      } while (item.key === lastKey && ntry < 8);
+      lastKey = item.key;
+      return item;
+    }
+
+    function showQ() {
+      const box = document.getElementById("ans");
+      box.value = "";
+      box.disabled = false;
+      document.getElementById("okBtn").disabled = false;
+      document.getElementById("status").textContent = "";
+      document.getElementById("status").className = "status";
+      document.getElementById("nextBtn").classList.remove("show");
+      document.getElementById("ask").innerHTML = q.html;
+      const needFirst = hint && q.first != null && step === 0;
+      document.getElementById("stepAsk").textContent = needFirst ? "先换算：" + q.firstAsk : "填得数";
+      box.focus();
+    }
+
+    function setMode() {
+      const mode = document.getElementById("mode");
+      if (hint) {
+        mode.textContent = "提示开着：单位不同先换成厘米";
+        mode.className = "mode";
+      } else {
+        mode.textContent = "自己算：直接填得数";
+        mode.className = "mode off";
+      }
+    }
+
+    function render() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      answered = false;
+      hint = needHint();
+      step = 0;
+      q = makeQ();
+      setMode();
+      showQ();
+    }
+
+    function finish(ok) {
+      if (answered) return;
+      answered = true;
+      document.getElementById("ans").disabled = true;
+      document.getElementById("okBtn").disabled = true;
+      document.getElementById("nextBtn").disabled = false;
+      const st = document.getElementById("status");
+      prof.record(ok);
+      profUI.render();
+      if (ok) {
+        st.textContent = "答对了！";
+        st.className = "status ok";
+        timer = setTimeout(render, AUTO_MS);
+      } else {
+        st.textContent = q.tip;
+        st.className = "status err";
+        document.getElementById("nextBtn").classList.add("show");
+      }
+    }
+
+    function submit() {
+      if (answered) return;
+      const raw = document.getElementById("ans").value;
+      if (raw === "") return;
+      const v = +raw;
+      if (hint && q.first != null && step === 0) {
+        if (v === q.first) {
+          step = 1;
+          showQ();
+          return;
+        }
+        finish(false);
+        return;
+      }
+      finish(v === q.final);
+    }
+
+    document.getElementById("okBtn").onclick = submit;
+    document.getElementById("ans").addEventListener("keydown", e => {
+      if (e.key === "Enter") submit();
+    });
+    document.getElementById("nextBtn").onclick = render;
+
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      render();
+    });
+  </script>
+</body>
+</html>

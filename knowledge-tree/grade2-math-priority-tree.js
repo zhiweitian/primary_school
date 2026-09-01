@@ -34,39 +34,20 @@
 
     // 万以内数
     L("num-read", "数的认识", { ...uWan("读写亿以内的数"), app: app("read-write-within-yi.html") }),
-    L("abacus", "用算盘表示数", uWan("算盘与数的大小")),
-    L("compare-10000", "比较万以内数的大小", { ...uWan("算盘与数的大小"), app: app("compare-within-10000.html") }, ["abacus", "num-read"]),
-    L("add-hundreds", "整百数加减", uWan("整百、整千数加减法"), ["compare-10000"]),
-    L("add-thousands", "整千数加减", uWan("整百、整千数加减法"), ["add-hundreds"]),
-    L("add-round", "口算整百整千加减", uWan("整百、整千数加减法"), ["add-thousands"]),
-    L("approx-basics", "认识近似数", { ...uWan("近似数"), app: app("approx-number-basics.html") }, ["add-round"]),
+    L("compare-10000", "比较万以内数的大小", { ...uWan("算盘与数的大小"), app: app("compare-within-10000.html") }, ["num-read"]),
+    L("round-add", "整百整千口算", { ...uWan("整百、整千数加减法"), app: app("round-addsub.html") }, ["compare-10000"]),
+    L("approx-basics", "认识近似数", { ...uWan("近似数"), app: app("approx-number-basics.html") }, ["round-add"]),
     L("approx-desc", "用近似数描述数量", { ...uWan("近似数"), app: app("approx-describe-quantity.html") }, ["approx-basics"]),
     L("estimate", "估算", { ...uWan("近似数"), app: app("estimate-calc.html") }, ["approx-desc"]),
     N("wan", "万以内数", ["estimate"]),
     N("qty", "数量", ["muldiv", "wan"]),
 
-    // 分类
-    L("classify-one", "按某一标准分类", uSort("分类")),
-    L("classify-multi", "按不同标准分类", uSort("分类"), ["classify-one"]),
-    L("classify-result", "分类结果的整理", uSort("分类"), ["classify-multi"]),
-    L("pic-data", "用图画整理数据", uSort("整理"), ["classify-result"]),
-    L("table-data", "用简单表格整理", uSort("整理"), ["pic-data"]),
-    L("read-stat", "读懂统计表", uSort("整理"), ["table-data"]),
-    L("answer-class", "根据分类结果回答问题", uSort("解决问题")),
-    L("compare-cat", "比较各类数量多少", uSort("解决问题")),
-    N("data-app", "数据应用", { topic: "数据应用" }, ["compare-cat", "answer-class", "read-stat"]),
-
-    // 长度
+    // 分类与长度
+    L("classify", "分类与统计", { ...uSort("分类与整理"), app: app("classify-stats.html") }),
     L("len-know", "认识长度", { ...uLen("认识长度"), app: app("length-units.html") }),
     L("len-convert", "长度换算", { ...uLen("长度换算"), app: app("length-convert.html") }, ["len-know"]),
-    L("line-know", "认识线段", uLen("线段"), ["len-convert"]),
-    L("line-draw", "画线段", uLen("线段"), ["line-know"]),
-    L("est-measure", "估计与测量", uLen("线段"), ["line-draw"]),
-    L("choose-unit", "选择合适的长度单位", uLen("解决问题")),
-    L("compare-len", "比较物体长短", uLen("解决问题")),
-    L("len-word", "简单长度应用题", uLen("解决问题")),
-    N("measure-app", "测量应用", { topic: "测量应用" }, ["len-word", "compare-len", "choose-unit", "est-measure"]),
-    N("stat-measure", "统计与测量", ["data-app", "measure-app"]),
+    L("len-word", "长度问题", { ...uLen("解决问题"), app: app("length-word.html") }, ["len-convert"]),
+    N("stat-measure", "统计与测量", ["classify", "len-word"]),
     N("grade2", "二年级数学", ["qty", "stat-measure"])
   ];
 
