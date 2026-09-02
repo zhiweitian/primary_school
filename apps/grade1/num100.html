@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>100以内认数</title>
+  <link rel="stylesheet" href="g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>100以内认数</h1>
+    <p class="hint">一根橙色是 10，一根黄色是 1</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="g1.js"></script>
+  <script>
+    let q;
+    function opts(n) {
+      const set = new Set([n]);
+      while (set.size < 3) {
+        const t = Math.max(1, n + G1.rand(-12, 12));
+        if (t !== n && t < 100) set.add(t);
+      }
+      return [...set].sort((a, b) => a - b).map(v => ({ v, t: v }));
+    }
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        const n = G1.rand(11, 99);
+        const kind = G1.pick(["count", "组成", "读"]);
+        return { n, kind, tens: Math.floor(n / 10), ones: n % 10, key: kind[0] + n };
+      });
+      if (q.kind === "count") {
+        G1.$("card").innerHTML = `<div class="ask">这是多少？</div>${G1.sticks(q.n)}
+          ${G1.choices(opts(q.n))}`;
+        G1.bindChoices(v => G1.finish(+v === q.n, "是 " + q.n, render));
+      } else if (q.kind === "组成") {
+        G1.$("card").innerHTML = `<div class="ask">${q.n} 里有几个十？</div>${G1.sticks(q.n)}
+          ${G1.choices([q.tens, q.tens === 1 ? 2 : q.tens - 1, q.ones || 3].filter((x, i, a) => a.indexOf(x) === i && x >= 0).map(v => ({ v, t: v + " 个十" })))}`;
+        G1.bindChoices(v => G1.finish(+v === q.tens, q.n + " 有 " + q.tens + " 个十", render));
+      } else {
+        G1.$("card").innerHTML = `<div class="ask">「${q.n}」是几个十、几个一？</div>${G1.sticks(q.n)}
+          <div class="fill">
+            <input id="t" inputmode="numeric" maxlength="1"> <span>个十</span>
+            <input id="o" inputmode="numeric" maxlength="1"> <span>个一</span>
+          </div>
+          <div class="actions"><button class="btn wide" id="ok">确定</button></div>`;
+        G1.$("ok").onclick = () => {
+          const t = +G1.$("t").value, o = +G1.$("o").value;
+          G1.finish(t === q.tens && o === q.ones, q.n + " = " + q.tens + " 个十 + " + q.ones + " 个一", render);
+        };
+        G1.$("t").focus();
+      }
+    }
+    G1.boot(render);
+  </script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>实际问题</title>
+  <link rel="stylesheet" href="g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>实际问题</h1>
+    <p class="hint">一共、又来了 → 加；拿走、还剩、多几 → 减</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="g1.js"></script>
+  <script>
+    let q;
+    const TPL = [
+      (a, b) => ({ add: true, ask: `停车场有 <span class="n">${a}</span> 辆车，又开来 <span class="n">${b}</span> 辆。现在几辆？` }),
+      (a, b) => ({ add: true, ask: `一班 <span class="n">${a}</span> 人，二班 <span class="n">${b}</span> 人。两班一共多少人？` }),
+      (a, b) => ({ add: true, ask: `妈妈买了 <span class="n">${a}</span> 个苹果，又买 <span class="n">${b}</span> 个。一共几个？` }),
+      (a, b) => ({ add: false, ask: `书架有 <span class="n">${a}</span> 本书，借走 <span class="n">${b}</span> 本。还剩几本？` }),
+      (a, b) => ({ add: false, ask: `有 <span class="n">${a}</span> 个气球，飞走 <span class="n">${b}</span> 个。还剩几个？` }),
+      (a, b) => ({ add: false, ask: `红花 <span class="n">${a}</span> 朵，黄花 <span class="n">${b}</span> 朵。红花比黄花多几朵？` })
+    ];
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        const i = G1.rand(0, TPL.length - 1);
+        const add = i < 3;
+        let a, b;
+        if (add) {
+          a = G1.rand(12, 60);
+          b = G1.rand(8, 90 - a);
+        } else {
+          a = G1.rand(25, 90);
+          b = G1.rand(6, a - 5);
+        }
+        const t = TPL[i](a, b);
+        return { a, b, add: t.add, ask: t.ask, ans: t.add ? a + b : a - b, key: i + "-" + a + "-" + b };
+      });
+      const hint = G1.needHint();
+      G1.$("card").innerHTML = `<div class="ask">${q.ask}</div>
+        ${hint ? `<div class="eq">${q.a} ${q.add ? "+" : "−"} ${q.b} = ?</div>` : ""}
+        <div class="fill"><input id="ans" inputmode="numeric" maxlength="3" autocomplete="off"></div>
+        <div class="actions"><button class="btn wide" id="ok">确定</button></div>`;
+      const go = () => {
+        if (G1.$("ans").value === "") return;
+        G1.finish(+G1.$("ans").value === q.ans, q.a + (q.add ? " + " : " − ") + q.b + " = " + q.ans, render);
+      };
+      G1.$("ok").onclick = go;
+      G1.$("ans").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+      G1.$("ans").focus();
+    }
+    G1.boot(render);
+  </script>
+</body>
+</html>

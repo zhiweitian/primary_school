@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>竖式加减</title>
+  <link rel="stylesheet" href="g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>竖式加减</h1>
+    <p class="hint">个位对个位、十位对十位，从个位算起</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="g1.js"></script>
+  <script>
+    let q, step;
+    function digits(n) {
+      return [Math.floor(n / 10), n % 10];
+    }
+    function sheet() {
+      const [at, ao] = digits(q.a);
+      const [bt, bo] = digits(q.b);
+      return `<div class="sheet">
+        <div class="r"><span class="op"></span><span class="c lab">十</span><span class="c lab ones">个</span></div>
+        <div class="r"><span class="op"></span><span class="c">${at}</span><span class="c ones">${ao}</span></div>
+        <div class="r"><span class="op">${q.add ? "+" : "−"}</span><span class="c">${bt}</span><span class="c ones">${bo}</span></div>
+        <hr>
+      </div>`;
+    }
+    function show() {
+      const hint = G1.needHint();
+      const ask = hint && step === 0 ? "先算黄色的个位，得几？（只填个位上的数）" : "得数是多少？";
+      G1.$("card").innerHTML = `<div class="ask">${ask}</div>${sheet()}
+        <div class="fill"><input id="ans" inputmode="numeric" maxlength="3" autocomplete="off"></div>
+        <div class="actions"><button class="btn wide" id="ok">确定</button></div>`;
+      const go = () => {
+        if (G1.$("ans").value === "") return;
+        const v = +G1.$("ans").value;
+        if (hint && step === 0) {
+          if (v === q.onesDigit) { step = 1; show(); return; }
+          G1.finish(false, "个位是 " + q.onesDigit, render);
+          return;
+        }
+        G1.finish(v === q.ans, q.a + (q.add ? " + " : " − ") + q.b + " = " + q.ans, render);
+      };
+      G1.$("ok").onclick = go;
+      G1.$("ans").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+      G1.$("ans").focus();
+    }
+    function render() {
+      G1.resetShell();
+      step = 0;
+      q = G1.fresh(() => {
+        const add = Math.random() < 0.55;
+        let a, b, ans;
+        if (add) {
+          a = G1.rand(12, 78);
+          b = G1.rand(11, 99 - a);
+          ans = a + b;
+        } else {
+          a = G1.rand(21, 99);
+          b = G1.rand(10, a - 1);
+          ans = a - b;
+        }
+        const ones = add ? (a % 10 + b % 10) % 10 : (a % 10 >= b % 10 ? a % 10 - b % 10 : a % 10 + 10 - b % 10);
+        return { a, b, add, ans, onesDigit: ones, key: a + (add ? "+" : "-") + b };
+      });
+      show();
+    }
+    G1.boot(render);
+  </script>
+</body>
+</html>

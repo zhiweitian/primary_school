@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>立体图形</title>
+  <link rel="stylesheet" href="g1.css">
+  <style>
+    .art { width: 88px; height: 80px; display: block; margin: 0 auto; }
+    .art.lg { width: 130px; height: 118px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>立体图形</h1>
+    <p class="hint">球会滚，正方体每一面一样大，长方体像盒子，圆柱像罐子</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="g1.js"></script>
+  <script>
+    const SVG = {
+      球: `<svg class="art" viewBox="0 0 80 80"><defs><radialGradient id="ball" cx="35%" cy="30%"><stop offset="0%" stop-color="#ffe08a"/><stop offset="100%" stop-color="#e07a3d"/></radialGradient></defs><circle cx="40" cy="42" r="26" fill="url(#ball)"/></svg>`,
+      正方体: `<svg class="art" viewBox="0 0 80 80"><path d="M18 30 L40 18 L62 30 L40 42 Z" fill="#ffd166"/><path d="M18 30 L40 42 L40 66 L18 54 Z" fill="#e0b24a"/><path d="M62 30 L40 42 L40 66 L62 54 Z" fill="#c9892e"/></svg>`,
+      长方体: `<svg class="art" viewBox="0 0 80 80"><path d="M10 28 L50 16 L70 28 L30 40 Z" fill="#90dbf4"/><path d="M10 28 L30 40 L30 64 L10 52 Z" fill="#5eb0c9"/><path d="M70 28 L30 40 L30 64 L70 52 Z" fill="#3d8aa3"/></svg>`,
+      圆柱: `<svg class="art" viewBox="0 0 80 80"><ellipse cx="40" cy="58" rx="22" ry="8" fill="#7dcea0"/><rect x="18" y="22" width="44" height="36" fill="#58d68d"/><ellipse cx="40" cy="22" rx="22" ry="8" fill="#abe2c3"/></svg>`
+    };
+    const THING = [
+      { name: "皮球", emoji: "⚽", shape: "球" },
+      { name: "魔方", emoji: "🧊", shape: "正方体" },
+      { name: "鞋盒", emoji: "📦", shape: "长方体" },
+      { name: "易拉罐", emoji: "🥤", shape: "圆柱" }
+    ];
+    const NAMES = Object.keys(SVG);
+    let q;
+    function btns() {
+      return `<div class="shapes">${NAMES.map(n =>
+        `<button class="shape-btn" data-v="${n}">${SVG[n]}<span class="nm">${n}</span></button>`
+      ).join("")}</div>`;
+    }
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        if (Math.random() < 0.5) {
+          const name = G1.pick(NAMES);
+          return { kind: "看", name, key: "s" + name };
+        }
+        const t = G1.pick(THING);
+        return { kind: "物", name: t.shape, thing: t, key: "t" + t.name };
+      });
+      if (q.kind === "看") {
+        G1.$("card").innerHTML = `<div class="ask">这是什么？</div>
+          <div class="big-shape">${SVG[q.name].replace('class="art"', 'class="art lg"')}</div>
+          <div class="choices">${NAMES.map(n => `<button data-v="${n}">${n}</button>`).join("")}</div>`;
+      } else {
+        G1.$("card").innerHTML = `<div class="ask">${q.thing.emoji} ${q.thing.name} 像哪个？</div>${btns()}`;
+      }
+      G1.bindChoices(v => G1.finish(v === q.name, "是 " + q.name, render));
+    }
+    G1.boot(render);
+  </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>比较大小</title>
+  <link rel="stylesheet" href="g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>比较大小</h1>
+    <p class="hint">先数橙色的十，十多的就大；十一样再比黄色的一</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="g1.js"></script>
+  <script>
+    let q;
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        let a = G1.rand(10, 99), b = G1.rand(10, 99);
+        if (Math.random() < 0.15) b = a;
+        const sign = a > b ? ">" : a < b ? "<" : "=";
+        return { a, b, sign, key: a + sign + b };
+      });
+      const hint = G1.needHint();
+      G1.$("card").innerHTML = `<div class="ask">谁大？点中间的符号</div>
+        <div class="pile">
+          <div class="box">
+            ${hint ? G1.sticks(q.a) : ""}
+            <div class="eq" style="margin:0">${q.a}</div>
+          </div>
+          <div class="box">
+            ${hint ? G1.sticks(q.b) : ""}
+            <div class="eq" style="margin:0">${q.b}</div>
+          </div>
+        </div>
+        <div class="choices">
+          <button data-v=">">${q.a} &gt; ${q.b}</button>
+          <button data-v="=">${q.a} = ${q.b}</button>
+          <button data-v="<">${q.a} &lt; ${q.b}</button>
+        </div>`;
+      G1.bindChoices(v => G1.finish(v === q.sign, q.a + " " + q.sign + " " + q.b, render));
+    }
+    G1.boot(render);
+  </script>
+</body>
+</html>

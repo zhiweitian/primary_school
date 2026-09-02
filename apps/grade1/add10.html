@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>10以内加减</title>
+  <link rel="stylesheet" href="g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>10以内加减</h1>
+    <p class="hint">合在一起用加，拿走用减</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="g1.js"></script>
+  <script>
+    let q;
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        const add = Math.random() < 0.55;
+        if (add) {
+          const a = G1.rand(1, 8), b = G1.rand(1, 10 - a);
+          return { add, a, b, ans: a + b, key: "a" + a + "+" + b };
+        }
+        const a = G1.rand(2, 10), b = G1.rand(1, a);
+        return { add, a, b, ans: a - b, key: "s" + a + "-" + b };
+      });
+      const pic = q.add
+        ? `<div class="pile">
+            <div class="box"><div class="things">${G1.fruits(q.a)}</div></div>
+            <span class="plus">+</span>
+            <div class="box"><div class="things">${G1.fruits(q.b)}</div></div>
+          </div>`
+        : `<div class="things">${G1.fruits(q.a, q.a - q.b)}</div>`;
+      const ask = q.add ? "合在一起是几个？" : "划掉的拿走了，还剩几个？";
+      G1.$("card").innerHTML = `<div class="ask">${ask}</div>${pic}
+        <div class="eq">${q.a} ${q.add ? "+" : "−"} ${q.b} = ?</div>
+        <div class="pad" id="pad"></div>`;
+      G1.pad(10, n => G1.finish(n === q.ans, q.a + (q.add ? " + " : " − ") + q.b + " = " + q.ans, render));
+    }
+    G1.boot(render);
+  </script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>加减问题</title>
+  <link rel="stylesheet" href="g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>加减问题</h1>
+    <p class="hint">看图想：是合起来，还是拿走了</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="g1.js"></script>
+  <script>
+    let q;
+    const ADD = [
+      (a, b, f) => [`盘子里有 ${a} 个，又放进 ${b} 个，一共几个？`,
+        `<div class="pile"><div class="box"><div class="things">${f(a)}</div></div><span class="plus">+</span><div class="box"><div class="things">${f(b)}</div></div></div>`],
+      (a, b, f) => [`树上有 ${a} 只鸟，又飞来 ${b} 只，现在几只？`,
+        `<div class="pile"><div class="box"><div class="things">${"🐦".repeat(a)}</div></div><span class="plus">+</span><div class="box"><div class="things">${"🐦".repeat(b)}</div></div></div>`],
+      (a, b, f) => [`左边 ${a} 个，右边 ${b} 个，一共几个？`,
+        `<div class="pile"><div class="box"><div class="things">${f(a)}</div></div><span class="plus">+</span><div class="box"><div class="things">${f(b)}</div></div></div>`]
+    ];
+    const SUB = [
+      (a, b, f) => [`有 ${a} 个，吃掉 ${b} 个，还剩几个？`,
+        `<div class="things">${f(a, a - b)}</div>`],
+      (a, b, f) => [`停车场有 ${a} 辆车，开走 ${b} 辆，还剩几辆？`,
+        `<div class="things">${"🚗".repeat(a - b)}${"<span class='gone'>🚗</span>".repeat(b)}</div>`],
+      (a, b, f) => [`有 ${a} 颗糖，比小明多 ${b} 颗。小明有几颗？`,
+        `<div class="things">${f(a, a - b)}</div>`]
+    ];
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        const add = Math.random() < 0.5;
+        let a, b, ans, i;
+        if (add) {
+          a = G1.rand(2, 9); b = G1.rand(1, Math.min(9, 14 - a));
+          ans = a + b; i = G1.rand(0, ADD.length - 1);
+        } else {
+          a = G1.rand(5, 14); b = G1.rand(1, Math.min(8, a - 1));
+          ans = a - b; i = G1.rand(0, SUB.length - 1);
+        }
+        return { add, a, b, ans, i, key: (add ? "a" : "s") + i + a + b };
+      });
+      const [ask, pic] = (q.add ? ADD : SUB)[q.i](q.a, q.b, (n, keep) => G1.fruits(n, keep));
+      G1.$("card").innerHTML = `<div class="ask">${ask}</div>${pic}
+        <div class="pad" id="pad"></div>`;
+      G1.pad(20, n => G1.finish(n === q.ans, q.a + (q.add ? " + " : " − ") + q.b + " = " + q.ans, render));
+    }
+    G1.boot(render);
+  </script>
+</body>
+</html>

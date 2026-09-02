@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>退位减法</title>
+  <link rel="stylesheet" href="g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>退位减法</h1>
+    <p class="hint">个位不够减，先打开一个十，再拿走</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="g1.js"></script>
+  <script>
+    let q, step;
+    function pic(open) {
+      if (!open) {
+        return `<div class="tf-wrap">${G1.frame(10)}${G1.frame(q.ones)}</div>`;
+      }
+      const keep = 10 + q.ones - q.b;
+      let cells = "";
+      for (let i = 0; i < 10; i++) cells += i < keep ? "<i class='on'></i>" : "<i class='off'></i>";
+      return `<div class="tf-wrap"><div class="tf">${cells}</div></div>`;
+    }
+    function show() {
+      const hint = G1.needHint();
+      const ask = hint && step === 0
+        ? `${q.ones} 不够减 ${q.b}。打开那个十以后，变成几个一？`
+        : "还剩几个？";
+      G1.$("card").innerHTML = `<div class="ask">${ask}</div>
+        ${pic(hint && step === 1)}
+        <div class="eq">${q.a} − ${q.b} = ?</div>
+        <div class="pad" id="pad"></div>`;
+      G1.pad(20, n => {
+        if (hint && step === 0) {
+          if (n === 10 + q.ones) { step = 1; show(); return; }
+          G1.finish(false, "打开十以后是 " + (10 + q.ones) + " 个一", render);
+          return;
+        }
+        G1.finish(n === q.ans, q.a + " − " + q.b + " = " + q.ans, render);
+      });
+    }
+    function render() {
+      G1.resetShell();
+      step = 0;
+      q = G1.fresh(() => {
+        const ones = G1.rand(1, 8);
+        const b = G1.rand(ones + 1, 9);
+        const a = 10 + ones;
+        return { a, b, ones, ans: a - b, key: a + "-" + b };
+      });
+      show();
+    }
+    G1.boot(render);
+  </script>
+</body>
+</html>

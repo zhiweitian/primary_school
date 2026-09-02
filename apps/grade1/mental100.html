@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>口算加减</title>
+  <link rel="stylesheet" href="g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>口算加减</h1>
+    <p class="hint">整十先数捆；不是整十就先算个位</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="g1.js"></script>
+  <script>
+    let q;
+    function make() {
+      const hard = !G1.needHint();
+      const add = Math.random() < 0.55;
+      let a, b;
+      const kind = hard ? G1.pick(["十", "位"]) : "十";
+      if (kind === "十") {
+        if (add) {
+          a = G1.rand(1, 7) * 10;
+          b = G1.rand(1, 9 - a / 10) * 10;
+        } else {
+          a = G1.rand(2, 9) * 10;
+          b = G1.rand(1, a / 10 - 1) * 10;
+        }
+      } else if (add) {
+        a = G1.rand(21, 78);
+        b = G1.rand(2, 9);
+        if (a % 10 + b > 9 && Math.random() < 0.4) a -= (a % 10);
+      } else {
+        a = G1.rand(21, 89);
+        b = G1.rand(2, 9);
+        if (a % 10 < b) a += 10 - (a % 10);
+      }
+      return { a, b, add, ans: add ? a + b : a - b, key: a + (add ? "+" : "-") + b };
+    }
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(make);
+      const hint = G1.needHint();
+      G1.$("card").innerHTML = `<div class="ask">${hint ? "可以看着小棒算" : "得数是多少？"}</div>
+        ${hint ? `<div class="pile"><div class="box">${G1.sticks(q.a)}</div><span class="plus">${q.add ? "+" : "−"}</span><div class="box">${G1.sticks(q.b)}</div></div>` : ""}
+        <div class="eq">${q.a} ${q.add ? "+" : "−"} ${q.b} = ?</div>
+        <div class="fill"><input id="ans" inputmode="numeric" maxlength="3" autocomplete="off"></div>
+        <div class="actions"><button class="btn wide" id="ok">确定</button></div>`;
+      const go = () => {
+        if (G1.$("ans").value === "") return;
+        G1.finish(+G1.$("ans").value === q.ans, q.a + (q.add ? " + " : " − ") + q.b + " = " + q.ans, render);
+      };
+      G1.$("ok").onclick = go;
+      G1.$("ans").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+      G1.$("ans").focus();
+    }
+    G1.boot(render);
+  </script>
+</body>
+</html>

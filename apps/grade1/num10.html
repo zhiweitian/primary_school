@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>10以内认数</title>
+  <link rel="stylesheet" href="g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>10以内认数</h1>
+    <p class="hint">看图数一数，点出有几个</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="g1.js"></script>
+  <script>
+    let q;
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        const kind = G1.pick(["count", "more", "合"]);
+        if (kind === "count") {
+          const n = G1.rand(1, 10);
+          return { kind, n, key: "c" + n };
+        }
+        if (kind === "more") {
+          let a = G1.rand(1, 8), b = G1.rand(1, 8);
+          if (a === b) b = a === 8 ? 7 : a + 1;
+          return { kind, a, b, ans: a > b ? "左" : "右", key: "m" + a + "-" + b };
+        }
+        const n = G1.rand(4, 10);
+        const left = G1.rand(1, n - 1);
+        return { kind, n, left, right: n - left, key: "h" + n + "-" + left };
+      });
+      const card = G1.$("card");
+      if (q.kind === "count") {
+        card.innerHTML = `<div class="ask">有几个？</div>
+          <div class="things">${G1.fruits(q.n)}</div><div class="pad" id="pad"></div>`;
+        G1.pad(10, n => G1.finish(n === q.n, "是 " + q.n + " 个", render));
+      } else if (q.kind === "more") {
+        card.innerHTML = `<div class="ask">哪边多？</div>
+          <div class="pile">
+            <div class="box"><div class="things">${G1.fruits(q.a)}</div><div class="lab">左边</div></div>
+            <div class="box"><div class="things">${G1.fruits(q.b)}</div><div class="lab">右边</div></div>
+          </div>
+          <div class="choices">
+            <button data-v="左">左边多</button>
+            <button data-v="右">右边多</button>
+          </div>`;
+        G1.bindChoices(v => G1.finish(v === q.ans, q.ans === "左" ? "左边多" : "右边多", render));
+      } else {
+        card.innerHTML = `<div class="ask">合起来是几个？</div>
+          <div class="pile">
+            <div class="box"><div class="things">${G1.fruits(q.left)}</div></div>
+            <span class="plus">+</span>
+            <div class="box"><div class="things">${G1.fruits(q.right)}</div></div>
+          </div>
+          <div class="pad" id="pad"></div>`;
+        G1.pad(10, n => G1.finish(n === q.n, q.left + " + " + q.right + " = " + q.n, render));
+      }
+    }
+    G1.boot(render);
+  </script>
+</body>
+</html>

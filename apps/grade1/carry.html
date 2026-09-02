@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>进位加法</title>
+  <link rel="stylesheet" href="g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>进位加法</h1>
+    <p class="hint">先把第一格凑满 10，再加剩下的</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="g1.js"></script>
+  <script>
+    let q, step;
+    function pic(showMove) {
+      const need = 10 - q.a;
+      let first = "";
+      for (let i = 0; i < 10; i++) {
+        if (i < q.a) first += "<i class='on'></i>";
+        else if (showMove && i < q.a + need) first += "<i class='in'></i>";
+        else first += "<i></i>";
+      }
+      const left = showMove ? q.b - need : q.b;
+      return `<div class="tf-wrap">
+        <div class="tf">${first}</div>
+        <div class="tf">${"<i class='on'></i>".repeat(left)}${"<i></i>".repeat(10 - left)}</div>
+      </div>`;
+    }
+    function show() {
+      const hint = G1.needHint();
+      const ask = hint && step === 0
+        ? `先凑十：${q.a} 再拿几个能满 10？`
+        : `一共几个？`;
+      G1.$("card").innerHTML = `<div class="ask">${ask}</div>
+        ${pic(hint && step === 1)}
+        <div class="eq">${q.a} + ${q.b} = ?</div>
+        <div class="pad" id="pad"></div>`;
+      G1.pad(20, n => {
+        if (hint && step === 0) {
+          if (n === q.need) { step = 1; show(); return; }
+          G1.finish(false, "还差 " + q.need + " 个就满 10", render);
+          return;
+        }
+        G1.finish(n === q.ans, q.a + " + " + q.b + " = " + q.ans, render);
+      });
+    }
+    function render() {
+      G1.resetShell();
+      step = 0;
+      q = G1.fresh(() => {
+        const a = G1.rand(2, 9);
+        const b = G1.rand(11 - a, 9);
+        return { a, b, need: 10 - a, ans: a + b, key: a + "+" + b };
+      });
+      show();
+    }
+    G1.boot(render);
+  </script>
+</body>
+</html>

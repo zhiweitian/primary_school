@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>20以内认数</title>
+  <link rel="stylesheet" href="g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>20以内认数</h1>
+    <p class="hint">一满格是 10，再数剩下的就是十几</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="g1.js"></script>
+  <script>
+    let q;
+    function frames(n) {
+      if (n <= 10) return G1.frame(n);
+      return G1.frame(10) + G1.frame(n - 10);
+    }
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        const n = G1.rand(11, 20);
+        const kind = G1.pick(["count", "组成"]);
+        return { n, kind, tens: Math.floor(n / 10), ones: n % 10, key: kind[0] + n };
+      });
+      if (q.kind === "count") {
+        G1.$("card").innerHTML = `<div class="ask">满格是 10，一共几个？</div>
+          <div class="tf-wrap">${frames(q.n)}</div>
+          <div class="pad" id="pad"></div>`;
+        G1.pad(20, n => G1.finish(n === q.n, "是 " + q.n, render));
+      } else {
+        G1.$("card").innerHTML = `<div class="ask">${q.n} 里面有几个十、几个一？</div>
+          <div class="tf-wrap">${frames(q.n)}</div>
+          <div class="fill">
+            <input id="t" inputmode="numeric" maxlength="1"> <span>个十</span>
+            <input id="o" inputmode="numeric" maxlength="1"> <span>个一</span>
+          </div>
+          <div class="actions"><button class="btn wide" id="ok">确定</button></div>`;
+        const ok = () => {
+          const t = +G1.$("t").value, o = +G1.$("o").value;
+          G1.finish(t === q.tens && o === q.ones, q.n + " = " + q.tens + " 个十 + " + q.ones + " 个一", render);
+        };
+        G1.$("ok").onclick = ok;
+        G1.$("t").focus();
+      }
+    }
+    G1.boot(render);
+  </script>
+</body>
+</html>

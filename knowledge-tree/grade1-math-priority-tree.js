@@ -17,26 +17,27 @@
   const uRel = (topic) => t("下册", "数量间的加减关系", topic);
   const uSolid = (topic) => t("上册", "认识立体图形", topic);
   const uPlane = (topic) => t("下册", "认识平面图形", topic);
+  const app = (file) => "../apps/grade1/" + file;
 
   const nodes = [
-    L("num10", "10以内认数", u15("认数与比大小")),
-    L("add10", "10以内加减", u610("加减法"), ["num10"]),
-    L("num20", "20以内认数", u1120("十几与数位"), ["add10"]),
-    L("carry", "进位加法", uCarry("凑十法"), ["num20"]),
-    L("borrow", "退位减法", uBorrow("破十与想加算减"), ["carry"]),
-    L("word20", "加减问题", uBorrow("解决问题"), ["borrow"]),
+    L("num10", "10以内认数", { ...u15("认数与比大小"), app: app("num10.html") }),
+    L("add10", "10以内加减", { ...u610("加减法"), app: app("add10.html") }, ["num10"]),
+    L("num20", "20以内认数", { ...u1120("十几与数位"), app: app("num20.html") }, ["add10"]),
+    L("carry", "进位加法", { ...uCarry("凑十法"), app: app("carry.html") }, ["num20"]),
+    L("borrow", "退位减法", { ...uBorrow("破十与想加算减"), app: app("borrow.html") }, ["carry"]),
+    L("word20", "加减问题", { ...uBorrow("解决问题"), app: app("word20.html") }, ["borrow"]),
     N("g20", "20以内加减", ["word20"]),
 
-    L("num100", "100以内认数", u100n("读写与组成")),
-    L("cmp100", "比较大小", u100n("比较大小"), ["num100"]),
-    L("mental100", "口算加减", u100m("口算加减"), ["cmp100"]),
-    L("written", "竖式加减", u100w("笔算加减"), ["mental100"]),
-    L("word100", "实际问题", uRel("解决问题"), ["written"]),
+    L("num100", "100以内认数", { ...u100n("读写与组成"), app: app("num100.html") }),
+    L("cmp100", "比较大小", { ...u100n("比较大小"), app: app("cmp100.html") }, ["num100"]),
+    L("mental100", "口算加减", { ...u100m("口算加减"), app: app("mental100.html") }, ["cmp100"]),
+    L("written", "竖式加减", { ...u100w("笔算加减"), app: app("written.html") }, ["mental100"]),
+    L("word100", "实际问题", { ...uRel("解决问题"), app: app("word100.html") }, ["written"]),
     N("g100", "100以内", ["word100"]),
     N("qty", "数量", ["g20", "g100"]),
 
-    L("solid", "立体图形", uSolid("辨认与分类")),
-    L("plane", "平面图形", uPlane("认识与拼组"), ["solid"]),
+    L("solid", "立体图形", { ...uSolid("辨认与分类"), app: app("solid.html") }),
+    L("plane", "平面图形", { ...uPlane("认识与拼组"), app: app("plane.html") }, ["solid"]),
     N("geo", "图形", ["plane"]),
     N("grade1", "一年级数学", ["qty", "geo"])
   ];

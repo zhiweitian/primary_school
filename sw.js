@@ -1,4 +1,4 @@
-const CACHE = "ps-v25";
+const CACHE = "ps-v26";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -14,6 +14,21 @@ const PRECACHE = [
   "./knowledge-tree/index.html",
   "./knowledge-tree/grade1-math-priority-tree.js",
   "./knowledge-tree/grade2-math-priority-tree.js",
+  "./apps/grade1/g1.css",
+  "./apps/grade1/g1.js",
+  "./apps/grade1/num10.html",
+  "./apps/grade1/add10.html",
+  "./apps/grade1/num20.html",
+  "./apps/grade1/carry.html",
+  "./apps/grade1/borrow.html",
+  "./apps/grade1/word20.html",
+  "./apps/grade1/num100.html",
+  "./apps/grade1/cmp100.html",
+  "./apps/grade1/mental100.html",
+  "./apps/grade1/written.html",
+  "./apps/grade1/word100.html",
+  "./apps/grade1/solid.html",
+  "./apps/grade1/plane.html",
   "./apps/vertical-addition.html",
   "./apps/vertical-subtraction.html",
   "./apps/word-typing.html",
