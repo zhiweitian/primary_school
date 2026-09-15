@@ -125,6 +125,7 @@
     .card.shut { filter: grayscale(0.78) saturate(0.2); }
     .card.idle { cursor: default; }
     .card.idle .meta { color: #b0a598; }
+    .card.full { cursor: default; }
     @keyframes hop {
       0%, 100% { transform: translateX(-50%) translateY(0); }
       50% { transform: translateX(-50%) translateY(-4px); }
@@ -172,6 +173,7 @@
 
   <script src="../pwa.js"></script>
   <script src="../vendor/d3.min.js"></script>
+  <script src="../practice-stats-config.js"></script>
   <script src="../practice-stats-store.js"></script>
   <script src="../play-wallet.js"></script>
   <script src="grade1-math-priority-tree.js?v=12"></script>
@@ -786,7 +788,8 @@
       return app + sep + "node=" + encodeURIComponent(path);
     }
 
-    const NEED = (window.PracticeStats && PracticeStats.WINDOW) || 10;
+    const NEED = (window.PracticeStats && PracticeStats.WINDOW) || 20;
+    const MASTERED = (window.PS_CONFIG && PS_CONFIG.masteredAt) || 90;
     const CREDIT_LS = "ps-route-credit";
 
     function loadCredit() {
@@ -803,7 +806,22 @@
     }
 
     function passed(s) {
-      return s.proficiency != null && s.proficiency >= 90 && s.total >= NEED;
+      return s.own != null && s.own >= 90 && s.total >= NEED;
+    }
+
+    function mastered(s) {
+      return s.proficiency != null && s.proficiency >= MASTERED;
+    }
+
+    function wireDownstream(defs, paths) {
+      const direct = {};
+      Object.keys(defs).forEach(id => {
+        (defs[id].deps || []).forEach(pre => {
+          if (!paths[pre] || !paths[id]) return;
+          (direct[paths[pre]] = direct[paths[pre]] || []).push(paths[id]);
+        });
+      });
+      if (window.PracticeStats && PracticeStats.setDownstream) PracticeStats.setDownstream(direct);
     }
 
     function syncCredit(defs, paths) {
@@ -851,10 +869,14 @@
       const box = document.getElementById("routes");
       const paths = indexTreePaths(data.tree);
       const defs = data.nodes || {};
+      wireDownstream(defs, paths);
       const credit = syncCredit(defs, paths);
       const tracks = data.routes.map(route => {
         const ids = route.rows.flat();
-        const nextId = ids.find(id => defs[id].app && opened(id, defs, paths, credit) && !cleared(id, paths, credit)) || null;
+        const nextId = ids.find(id => {
+          if (!defs[id].app || !opened(id, defs, paths, credit) || cleared(id, paths, credit)) return false;
+          return !mastered(PracticeStats.get(paths[id]));
+        }) || null;
         const done = ids.filter(id => cleared(id, paths, credit)).length;
         return { route, nextId, done, total: ids.length, paths, defs, credit };
       });
@@ -875,14 +897,18 @@
           if (!def.app) {
             return `<div class="${cls} idle">${cardBody(id, def.name, "练习稍后", "")}</div>`;
           }
-          if (did) { cls += " done"; tag = "已过"; }
+          const full = mastered(s);
+          if (full) { cls += " full"; if (did) cls += " done"; tag = did ? "已过" : "已会"; }
+          else if (did) { cls += " done"; tag = "复习"; }
           else if (known) { cls += " known"; tag = "已会"; }
           else if (next) { cls += " next"; tag = "下一关"; }
           else tag = s.total ? "进行中" : "可练";
           const meta = s.total
             ? `${s.total}题 · ${s.proficiency == null ? "—" : s.proficiency + "%"}`
-            : known ? "后面的关带过了" : "点进去练";
-          return `<a class="${cls}" href="${appHrefByPath(def.app, path)}">${cardBody(id, def.name, meta, tag)}</a>`;
+            : known ? "后面的关带过了" : full ? "已经会了" : "点进去练";
+          const body = cardBody(id, def.name, meta, tag);
+          if (full) return `<div class="${cls}">${body}</div>`;
+          return `<a class="${cls}" href="${appHrefByPath(def.app, path)}">${body}</a>`;
         };
         const cells = row => {
           const html = [];
@@ -927,6 +953,7 @@
       const g = String(grade);
       if (!GRADE_DATA[g]) return;
       data = GRADE_DATA[g];
+      wireDownstream(data.nodes || {}, indexTreePaths(data.tree));
       document.getElementById("grade-select").value = g;
       try { localStorage.setItem(GRADE_LS, g); } catch (_) {}
       document.getElementById("search").value = "";

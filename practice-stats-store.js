@@ -1,5 +1,6 @@
 (function (global) {
-  const WINDOW = 10;
+  const CFG = global.PS_CONFIG || {};
+  const WINDOW = CFG.window || 20;
   const LS_KEY = "ps-practice-stats";
   const SAVE_API = "/api/practice-stats";
 
@@ -22,10 +23,114 @@
     return { nodes: {} };
   }
 
-  function rate(recent) {
+  let downstreamOf = {};
+
+  function entryOk(x) {
+    if (x && typeof x === "object") return x.ok ? 1 : 0;
+    return x ? 1 : 0;
+  }
+
+  function entryAt(x) {
+    return x && typeof x === "object" && x.at ? x.at : 0;
+  }
+
+  function dayKey(at) {
+    const d = new Date(at);
+    return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
+  }
+
+  function ownBase(recent) {
     if (!recent || !recent.length) return null;
-    const ok = recent.reduce((s, x) => s + x, 0);
-    return Math.round((ok / recent.length) * 100);
+    const slice = recent.slice(-WINDOW);
+    const ok = slice.reduce((s, x) => s + entryOk(x), 0);
+    return ok / WINDOW;
+  }
+
+  function strength(recent) {
+    const days = new Set();
+    let minAt = Infinity, maxAt = 0;
+    (recent || []).forEach(x => {
+      if (!entryOk(x)) return;
+      const at = entryAt(x);
+      if (!at) return;
+      days.add(dayKey(at));
+      if (at < minAt) minAt = at;
+      if (at > maxAt) maxAt = at;
+    });
+    const okDays = days.size;
+    const span = okDays ? (maxAt - minAt) / 86400000 : 0;
+    return 1 + okDays / (CFG.strengthOkDays || 5) + Math.min(span, CFG.strengthSpanCap || 60) / (CFG.strengthSpanDays || 30);
+  }
+
+  function descendants(id, maxDepth) {
+    const out = [];
+    const seen = new Set([id]);
+    let layer = (downstreamOf[id] || []).map(x => ({ id: x, dist: 1 }));
+    while (layer.length) {
+      const next = [];
+      layer.forEach(({ id: cur, dist }) => {
+        if (seen.has(cur) || dist > maxDepth) return;
+        seen.add(cur);
+        out.push({ id: cur, dist });
+        (downstreamOf[cur] || []).forEach(ch => next.push({ id: ch, dist: dist + 1 }));
+      });
+      layer = next;
+    }
+    return out;
+  }
+
+  function downstreamEvents(nodeId) {
+    const depth = CFG.downstreamDepth || 3;
+    const events = [];
+    const nodes = ensureCache().nodes;
+    descendants(nodeId, depth).forEach(({ id, dist }) => {
+      const w = Math.pow(0.5, dist - 1);
+      (nodes[id]?.recent || []).forEach(x => {
+        if (!entryOk(x)) return;
+        events.push({ at: entryAt(x), w });
+      });
+    });
+    events.sort((a, b) => b.at - a.at);
+    return events;
+  }
+
+  function lastAt(recent, events) {
+    let last = 0;
+    (recent || []).forEach(x => {
+      const at = entryAt(x);
+      if (at > last) last = at;
+    });
+    (events || []).forEach(e => {
+      if (e.at > last) last = e.at;
+    });
+    return last;
+  }
+
+  function displayScore(nodeId, recent) {
+    const own = ownBase(recent);
+    const events = downstreamEvents(nodeId);
+    const slice = (recent || []).slice(-WINDOW);
+    let empty = WINDOW - slice.length;
+    let filled = 0;
+    for (let i = 0; i < events.length && empty > 0; i++) {
+      filled += events[i].w;
+      empty -= 1;
+    }
+    if (own == null && filled <= 0) return null;
+    const base = Math.min(1, ((own || 0) * WINDOW + filled) / WINDOW);
+    const S = strength(recent);
+    const last = lastAt(recent, events);
+    const age = last ? Math.max(0, (Date.now() - last) / 86400000) : 0;
+    const H = CFG.halfLifeDays || 14;
+    return Math.min(1, base * Math.exp(-age / (H * S)));
+  }
+
+  function pct(x) {
+    return x == null ? null : Math.round(x * 100);
+  }
+
+  function setDownstream(map) {
+    downstreamOf = map || {};
   }
 
   function readLS() {
@@ -178,8 +283,13 @@
 
   function get(nodeId) {
     const n = ensureCache().nodes[nodeId];
-    if (!n) return { total: 0, proficiency: null };
-    return { total: n.total || 0, proficiency: rate(n.recent) };
+    if (!n) return { total: 0, proficiency: null, own: null };
+    const own = pct(ownBase(n.recent));
+    return {
+      total: n.total || 0,
+      own,
+      proficiency: pct(displayScore(nodeId, n.recent))
+    };
   }
 
   function format(nodeId) {
@@ -193,8 +303,7 @@
     const store = ensureCache();
     const n = store.nodes[nodeId] || { total: 0, recent: [] };
     n.total += 1;
-    n.recent.push(correct ? 1 : 0);
-    if (n.recent.length > WINDOW) n.recent.shift();
+    n.recent.push({ ok: correct ? 1 : 0, at: Date.now() });
     store.nodes[nodeId] = n;
     commitStore(store);
     scheduleSave();
@@ -277,7 +386,8 @@
     format,
     record,
     create,
-    nodeId
+    nodeId,
+    setDownstream
   };
   global.Proficiency = { create, nodeId, WINDOW };
 })(window);

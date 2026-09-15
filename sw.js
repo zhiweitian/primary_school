@@ -1,4 +1,4 @@
-const CACHE = "ps-v27";
+const CACHE = "ps-v30";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -7,6 +7,7 @@ const PRECACHE = [
   "./icons/icon.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./practice-stats-config.js",
   "./practice-stats-store.js",
   "./play-wallet.js",
   "./vendor/d3.min.js",
