@@ -58,7 +58,7 @@
 <body>
   <div class="container">
     <h1>🧮 估算</h1>
-    <p class="hint">先把每个数近似成整百数，再口算</p>
+    <p class="hint">先把每个数看成整十、整百或整千，再算</p>
     <div class="stats">
       <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
       <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
@@ -77,25 +77,64 @@
   <script src="../../play-wallet.js"></script>
   <script>
     let prof, profUI;
-    let a = 0, b = 0, op = "+", answered = false, timer = null;
-    let answer = 0, ra = 0, rb = 0;
+    let q = null, answered = false, timer = null;
     const AUTO_MS = 1400;
+    const STEPS = [10, 100, 1000];
+    const STEP_NAME = { 10: "整十", 100: "整百", 1000: "整千" };
 
-    function round100(x) { return Math.round(x / 100) * 100; }
+    function roundTo(x, s) { return Math.round(x / s) * s; }
+    function calc(x, y, add) { return add ? x + y : x - y; }
 
-    function rand100to9999() {
-      return Math.floor(Math.random() * 9900) + 100;
+    function exactNear(exact) {
+      const s = new Set([exact]);
+      STEPS.forEach(step => {
+        const r = roundTo(exact, step);
+        if (r > 0) s.add(r);
+      });
+      return s;
+    }
+
+    function methodsOf(a, b, add) {
+      const near = exactNear(calc(a, b, add));
+      const list = [];
+      STEPS.forEach(step => {
+        const ra = roundTo(a, step);
+        const rb = roundTo(b, step);
+        if (ra <= 0 || rb <= 0) return;
+        const est = calc(ra, rb, add);
+        if (est <= 0 || near.has(est)) return;
+        list.push({ step, name: STEP_NAME[step], ra, rb, est });
+      });
+      return list;
+    }
+
+    function randNum(kind) {
+      if (kind === 0) return 11 + Math.floor(Math.random() * 88);
+      if (kind === 1) return 101 + Math.floor(Math.random() * 898);
+      return 1001 + Math.floor(Math.random() * 8998);
+    }
+
+    function makeQ() {
+      for (let i = 0; i < 80; i++) {
+        const kind = Math.floor(Math.random() * 3);
+        const add = Math.random() < 0.55;
+        let a = randNum(kind), b = randNum(kind);
+        if (!add && b > a) [a, b] = [b, a];
+        if (a === b) continue;
+        const goods = methodsOf(a, b, add);
+        if (!goods.length) continue;
+        const pick = goods[Math.floor(Math.random() * goods.length)];
+        return { a, b, add, goods, ...pick };
+      }
     }
 
     function buildReason() {
-      const sym = op === "+" ? "+" : "−";
-      const est = op === "+" ? ra + rb : ra - rb;
-      const lines = [
-        `把每个数<strong>近似成整百数</strong>：${a} ≈ ${ra}，${b} ≈ ${rb}。`,
-        `估算：${ra} ${sym} ${rb} = <strong>${est}</strong>。`,
-        `（准确算是 ${a} ${sym} ${b} = ${op === "+" ? a + b : a - b}，估算只要接近即可。）`
+      const sym = q.add ? "+" : "−";
+      return [
+        `把每个数看成<strong>${q.name}数</strong>：${q.a} ≈ ${q.ra}，${q.b} ≈ ${q.rb}。`,
+        `估算：${q.ra} ${sym} ${q.rb} = <strong>${q.est}</strong>。`,
+        `这几项里只有 <strong>${q.est}</strong>。`
       ];
-      return lines;
     }
 
     function shuffle(arr) {
@@ -106,13 +145,28 @@
       return arr;
     }
 
-    function makeOptions(correct) {
-      const s = new Set([correct]);
-      const exact = op === "+" ? a + b : a - b;
-      [exact, correct + 100, correct - 100, correct + 200, correct - 200, round100(exact)]
-        .forEach(v => { if (v > 0 && v <= 20000) s.add(v); });
-      while (s.size < 4) s.add(correct + (Math.random() < 0.5 ? -1 : 1) * 100);
-      return shuffle([...s].slice(0, 4));
+    function makeOptions() {
+      const exact = calc(q.a, q.b, q.add);
+      const no = exactNear(exact);
+      q.goods.forEach(g => { if (g.est !== q.est) no.add(g.est); });
+      const w = [];
+      const add = v => {
+        if (v > 0 && v !== q.est && !no.has(v) && !w.includes(v)) w.push(v);
+      };
+      add(calc(Math.floor(q.a / q.step) * q.step, Math.floor(q.b / q.step) * q.step, q.add));
+      add(q.est + q.step);
+      add(q.est - q.step);
+      add(q.est + 2 * q.step);
+      add(q.est - 2 * q.step);
+      if (q.add) add(Math.abs(q.ra - q.rb));
+      else add(q.ra + q.rb);
+      let k = 3;
+      while (w.length < 3 && k < 20) {
+        add(q.est + k * q.step);
+        add(q.est - k * q.step);
+        k++;
+      }
+      return shuffle([q.est, ...w.slice(0, 3)]);
     }
 
     function newProblem() {
@@ -123,20 +177,14 @@
       document.getElementById("nextBtn").classList.remove("show");
       document.getElementById("reason").textContent = "选出合理的估算结果。";
 
-      op = Math.random() < 0.55 ? "+" : "−";
-      a = rand100to9999();
-      b = rand100to9999();
-      if (op === "−" && b > a) [a, b] = [b, a];
-      ra = round100(a);
-      rb = round100(b);
-      answer = op === "+" ? ra + rb : ra - rb;
-
-      document.getElementById("expr").textContent = `${a} ${op} ${b} ≈ ?`;
-      document.getElementById("sub").textContent = "（每个数先近似成整百数）";
+      q = makeQ();
+      const sym = q.add ? "+" : "−";
+      document.getElementById("expr").textContent = `${q.a} ${sym} ${q.b} ≈ ?`;
+      document.getElementById("sub").textContent = "";
 
       const box = document.getElementById("choices");
       box.innerHTML = "";
-      makeOptions(answer).forEach(v => {
+      makeOptions().forEach(v => {
         const btn = document.createElement("button");
         btn.className = "btn";
         btn.textContent = v;
@@ -150,7 +198,7 @@
       answered = true;
       document.querySelectorAll(".btn").forEach(b => b.disabled = true);
       const st = document.getElementById("status");
-      const ok = v === answer;
+      const ok = v === q.est;
       prof.record(ok);
       profUI.render();
       if (ok) {
@@ -158,7 +206,7 @@
         st.className = "status ok";
         timer = setTimeout(() => newProblem(), AUTO_MS);
       } else {
-        st.textContent = `估算结果约为 ${answer}`;
+        st.textContent = `应选 ${q.est}`;
         st.className = "status err";
         document.getElementById("nextBtn").classList.add("show");
       }

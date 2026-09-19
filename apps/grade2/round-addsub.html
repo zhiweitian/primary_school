@@ -39,8 +39,13 @@
       border-radius: 10px; background: rgba(0,0,0,0.3); color: #ffd166;
       font-family: "Courier New", monospace; font-size: 1.7rem; font-weight: 700; text-align: center;
     }
+    .fill input.short { width: 4.2rem; }
     .fill input:focus { outline: none; border-color: #ffd166; }
     .fill input:disabled { opacity: 0.55; }
+    .unit {
+      display: none; font-size: 1.25rem; font-weight: 700; color: #a8dadc; white-space: nowrap;
+    }
+    .unit.show { display: inline; }
     .actions { display: flex; justify-content: center; margin-top: 0.9rem; }
     .btn {
       min-width: 5.4rem; padding: 0.62rem 1rem; border: none; border-radius: 10px;
@@ -73,6 +78,7 @@
       <div class="expr" id="expr"></div>
       <div class="fill">
         <input id="ans" inputmode="numeric" maxlength="5" autocomplete="off">
+        <span class="unit" id="unit"></span>
       </div>
       <div class="actions"><button class="btn" id="okBtn" type="button">确定</button></div>
     </div>
@@ -122,6 +128,7 @@
           key: (thou ? "k" : "h") + "-" + x + op + y,
           show: (x * unit) + op + (y * unit),
           think: x + " 个" + name + op + y + " 个" + name,
+          unitName: name,
           first: first,
           final: first * unit
         };
@@ -133,6 +140,7 @@
 
     function showQ() {
       const box = document.getElementById("ans");
+      const unitEl = document.getElementById("unit");
       box.value = "";
       box.disabled = false;
       document.getElementById("okBtn").disabled = false;
@@ -142,9 +150,17 @@
       if (hint && step === 0) {
         document.getElementById("ask").textContent = "先看成几个百、几个千";
         document.getElementById("expr").textContent = q.think;
+        box.maxLength = 2;
+        box.classList.add("short");
+        unitEl.textContent = "个" + q.unitName;
+        unitEl.classList.add("show");
       } else {
         document.getElementById("ask").textContent = "得数是多少？";
         document.getElementById("expr").textContent = q.show;
+        box.maxLength = 5;
+        box.classList.remove("short");
+        unitEl.textContent = "";
+        unitEl.classList.remove("show");
       }
       box.focus();
     }

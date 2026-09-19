@@ -58,7 +58,7 @@
 <body>
   <div class="container">
     <h1>📊 用近似数描述数量</h1>
-    <p class="hint">生活中常用「大约」来说一个接近的整十、整百数</p>
+    <p class="hint">选出用「大约」说得合适的那一句</p>
     <div class="stats">
       <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
       <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
@@ -76,27 +76,37 @@
   <script src="../../play-wallet.js"></script>
   <script>
     let prof, profUI;
-    const SCENES = [
-      { thing: "本", unit: "书", step: 100 },
-      { thing: "名", unit: "学生", step: 100 },
-      { thing: "棵", unit: "树", step: 10 },
-      { thing: "张", unit: "邮票", step: 10 },
-      { thing: "个", unit: "座位", step: 100 },
-      { thing: "页", unit: "练习纸", step: 10 }
-    ];
+    const UNITS = ["书", "学生", "树", "邮票", "座位", "练习纸"];
 
     let answered = false, timer = null;
-    let exact = 0, approx = 0, step = 100, scene = null;
+    let exact = 0, approx = 0, unit = "书";
     const AUTO_MS = 1400;
+    const STEPS = [10, 100, 1000];
 
     function roundTo(x, s) { return Math.round(x / s) * s; }
 
+    function candidates(n) {
+      const list = [];
+      STEPS.forEach(s => {
+        if (n < s) return;
+        const a = roundTo(n, s);
+        if (a > 0 && a !== n) list.push(a);
+      });
+      return [...new Set(list)];
+    }
+
+    function pickExact() {
+      const kind = Math.floor(Math.random() * 3);
+      if (kind === 0) return 11 + Math.floor(Math.random() * 88);
+      if (kind === 1) return 101 + Math.floor(Math.random() * 898);
+      return 1001 + Math.floor(Math.random() * 8998);
+    }
+
     function buildReason() {
-      const u = step === 10 ? "整十" : step === 100 ? "整百" : "整千";
       return [
-        `准确数量是 <strong>${exact}</strong> ${scene.unit}。`,
-        `说「大约有 …」时，一般近似成<strong>${u}数</strong>，方便表达。`,
-        `<strong>${approx}</strong> 与 ${exact} 最接近，所以选「大约有 ${approx} ${scene.unit}」。`
+        `准确数量是 <strong>${exact}</strong> ${unit}。`,
+        `「大约」要用接近的整十、整百或整千来说。`,
+        `这几句里只有「大约有 <strong>${approx}</strong> ${unit}」是对的。`
       ];
     }
 
@@ -108,20 +118,24 @@
       return a;
     }
 
-    function wrongOptions() {
-      const w = new Set();
-      const tries = [
-        roundTo(exact, step === 10 ? 100 : 10),
-        approx + step * 2,
-        approx - step * 2,
-        exact,
-        Math.max(step, approx + step)
-      ];
-      for (const v of tries) {
-        if (v > 0 && v !== approx && v <= 9999) w.add(v);
+    function wrongNums(ok, banned) {
+      const w = [];
+      const add = v => {
+        if (v > 0 && v !== ok && !banned.has(v) && !w.includes(v)) w.push(v);
+      };
+      STEPS.forEach(s => {
+        add(Math.floor(exact / s) * s);
+        add(Math.ceil(exact / s) * s);
+        add(roundTo(exact, s) + s);
+        add(roundTo(exact, s) - s);
+      });
+      let k = 2;
+      while (w.length < 2) {
+        add(ok + k * 10);
+        add(ok + k * 100);
+        k++;
       }
-      while (w.size < 3) w.add(approx + (Math.random() < 0.5 ? -1 : 1) * step * 3);
-      return [...w].slice(0, 3);
+      return w.slice(0, 2);
     }
 
     function newProblem() {
@@ -132,19 +146,23 @@
       document.getElementById("nextBtn").classList.remove("show");
       document.getElementById("reason").textContent = "选出最合适的说法。";
 
-      scene = SCENES[Math.floor(Math.random() * SCENES.length)];
-      step = scene.step;
-      const min = step === 10 ? 18 : 105;
-      exact = Math.floor(Math.random() * (9999 - min)) + min;
-      approx = roundTo(exact, step);
-      if (approx === exact) exact += step === 10 ? 3 : 37;
+      unit = UNITS[Math.floor(Math.random() * UNITS.length)];
+      let goods = [];
+      do {
+        exact = pickExact();
+        goods = candidates(exact);
+      } while (!goods.length);
+
+      approx = goods[Math.floor(Math.random() * goods.length)];
+      const banned = new Set(goods);
 
       document.getElementById("scene").innerHTML =
-        `数一数，有 <span class="exact">${exact}</span> ${scene.unit}。<br>下面哪种说法最合适？`;
+        `数一数，有 <span class="exact">${exact}</span> ${unit}。<br>下面哪种说法最合适？`;
 
       const opts = shuffle([
-        { text: `大约有 ${approx} ${scene.unit}`, ok: true },
-        ...wrongOptions().map(v => ({ text: `大约有 ${v} ${scene.unit}`, ok: false }))
+        { text: `大约有 ${approx} ${unit}`, ok: true },
+        { text: `有 ${exact} ${unit}`, ok: false },
+        ...wrongNums(approx, banned).map(v => ({ text: `大约有 ${v} ${unit}`, ok: false }))
       ]);
 
       const box = document.getElementById("choices");
@@ -170,7 +188,7 @@
         st.className = "status ok";
         timer = setTimeout(() => newProblem(), AUTO_MS);
       } else {
-        st.textContent = `应选：大约有 ${approx} ${scene.unit}`;
+        st.textContent = `应选：大约有 ${approx} ${unit}`;
         st.className = "status err";
         document.getElementById("nextBtn").classList.add("show");
       }
