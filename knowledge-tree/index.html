@@ -33,6 +33,22 @@
     .search-wrap { flex: 1; max-width: 200px; }
     .search-wrap input { width: 100%; padding: 0.32rem 0.6rem; border: 1px solid #ccc; border-radius: 6px; font-size: 0.8rem; }
     .stats { font-size: 0.72rem; color: #aaa; margin-left: auto; }
+    .use-mask {
+      display: none; position: fixed; inset: 0; z-index: 20;
+      background: rgba(0,0,0,0.35); align-items: center; justify-content: center; padding: 1rem;
+    }
+    .use-mask.show { display: flex; }
+    .use-box {
+      width: min(420px, 96vw); max-height: 80vh; overflow: auto;
+      background: #fff; border-radius: 12px; padding: 1rem 1.1rem 0.9rem;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+    }
+    .use-box h3 { font-size: 0.95rem; color: #5d4037; margin-bottom: 0.7rem; }
+    .use-box ul { list-style: none; font-size: 0.88rem; color: #444; }
+    .use-box li { padding: 0.38rem 0; border-bottom: 1px solid #f0ece6; font-variant-numeric: tabular-nums; }
+    .use-box li:last-child { border-bottom: none; }
+    .use-box .empty { font-size: 0.82rem; color: #999; padding: 0.4rem 0 0.8rem; }
+    .use-box .use-close { margin-top: 0.8rem; }
     .wallet {
       font-size: 0.72rem; color: #5d4037; font-weight: 600;
       background: #fff3e0; border: 1px solid #ffe0b2; border-radius: 6px;
@@ -162,6 +178,7 @@
       <button class="btn tree-only" id="zoom-out" type="button">−</button>
       <button class="btn tree-only" id="zoom-in" type="button">+</button>
       <span class="wallet" id="walletChip">积分 0</span>
+      <button class="btn" id="use-log" type="button">使用记录</button>
       <span class="stats" id="stats"></span>
     </div>
   </header>
@@ -170,6 +187,14 @@
     <div class="hint">叶子在下先学 · 往上晋级 · 拖节点 · 拖空白平移 · 双指缩放</div>
   </div>
   <div class="routes" id="routes" hidden></div>
+  <div class="use-mask" id="use-mask">
+    <div class="use-box">
+      <h3>开始使用时间</h3>
+      <p class="empty" id="use-empty">还没有记录</p>
+      <ul id="use-list"></ul>
+      <button class="btn use-close" id="use-close" type="button">关闭</button>
+    </div>
+  </div>
 
   <script src="../pwa.js"></script>
   <script src="../vendor/d3.min.js"></script>
@@ -788,7 +813,6 @@
       return app + sep + "node=" + encodeURIComponent(path);
     }
 
-    const NEED = (window.PracticeStats && PracticeStats.WINDOW) || 20;
     const MASTERED = (window.PS_CONFIG && PS_CONFIG.masteredAt) || 90;
     const CREDIT_LS = "ps-route-credit";
 
@@ -806,7 +830,7 @@
     }
 
     function passed(s) {
-      return s.own != null && s.own >= 90 && s.total >= NEED;
+      return !!(s && s.passed);
     }
 
     function mastered(s) {
@@ -854,6 +878,29 @@
       return deps.every(d => cleared(d, paths, credit));
     }
 
+    function laterOf(defs) {
+      const kids = {};
+      Object.keys(defs).forEach(id => {
+        (defs[id].deps || []).forEach(pre => {
+          (kids[pre] = kids[pre] || []).push(id);
+        });
+      });
+      return kids;
+    }
+
+    function laterPassed(id, defs, paths, kids) {
+      const stack = [...(kids[id] || [])];
+      const seen = new Set();
+      while (stack.length) {
+        const cur = stack.pop();
+        if (seen.has(cur)) continue;
+        seen.add(cur);
+        if (paths[cur] && passed(PracticeStats.get(paths[cur]))) return true;
+        (kids[cur] || []).forEach(x => stack.push(x));
+      }
+      return false;
+    }
+
     const FACES = ["🐻", "🐥", "🦊", "🐼", "🐸", "🐯", "🐰", "🐨"];
     function faceOf(id) {
       let h = 0;
@@ -871,6 +918,7 @@
       const defs = data.nodes || {};
       wireDownstream(defs, paths);
       const credit = syncCredit(defs, paths);
+      const kids = laterOf(defs);
       const tracks = data.routes.map(route => {
         const ids = route.rows.flat();
         const nextId = ids.find(id => {
@@ -878,7 +926,7 @@
           return !mastered(PracticeStats.get(paths[id]));
         }) || null;
         const done = ids.filter(id => cleared(id, paths, credit)).length;
-        return { route, nextId, done, total: ids.length, paths, defs, credit };
+        return { route, nextId, done, total: ids.length, paths, defs, credit, kids };
       });
 
       box.innerHTML = `<div class="routes-inner">${tracks.map(t => {
@@ -898,16 +946,21 @@
             return `<div class="${cls} idle">${cardBody(id, def.name, "练习稍后", "")}</div>`;
           }
           const full = mastered(s);
-          if (full) { cls += " full"; if (did) cls += " done"; tag = did ? "已过" : "已会"; }
+          const locked = laterPassed(id, t.defs, t.paths, t.kids);
+          if (full || locked) {
+            cls += " full";
+            if (did) cls += " done";
+            tag = did ? "已过" : "已会";
+          }
           else if (did) { cls += " done"; tag = "复习"; }
           else if (known) { cls += " known"; tag = "已会"; }
           else if (next) { cls += " next"; tag = "下一关"; }
           else tag = s.total ? "进行中" : "可练";
           const meta = s.total
             ? `${s.total}题 · ${s.proficiency == null ? "—" : s.proficiency + "%"}`
-            : known ? "后面的关带过了" : full ? "已经会了" : "点进去练";
+            : known || locked ? "后面的关已经过了" : full ? "已经会了" : "点进去练";
           const body = cardBody(id, def.name, meta, tag);
-          if (full) return `<div class="${cls}">${body}</div>`;
+          if (full || locked) return `<div class="${cls}">${body}</div>`;
           return `<a class="${cls}" href="${appHrefByPath(def.app, path)}">${body}</a>`;
         };
         const cells = row => {
@@ -1097,7 +1150,56 @@
       PracticeStats.refresh().then(updatePracticeLabels);
     });
 
+    const USE_LS = "ps-use-starts";
+    const USE_FLAG = "ps-use-once";
+
+    function loadStarts() {
+      try {
+        const a = JSON.parse(localStorage.getItem(USE_LS) || "[]");
+        return Array.isArray(a) ? a.filter(x => typeof x === "number") : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+    function fmtStart(t) {
+      const d = new Date(t);
+      return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate())
+        + " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+    }
+
+    function markUse() {
+      try {
+        if (sessionStorage.getItem(USE_FLAG)) return;
+        sessionStorage.setItem(USE_FLAG, "1");
+      } catch (_) {}
+      const a = loadStarts();
+      a.push(Date.now());
+      if (a.length > 200) a.splice(0, a.length - 200);
+      try { localStorage.setItem(USE_LS, JSON.stringify(a)); } catch (_) {}
+    }
+
+    function showUseLog() {
+      const a = loadStarts().slice().reverse();
+      const empty = document.getElementById("use-empty");
+      const list = document.getElementById("use-list");
+      empty.style.display = a.length ? "none" : "block";
+      list.innerHTML = a.map(t => "<li>" + fmtStart(t) + "</li>").join("");
+      document.getElementById("use-mask").classList.add("show");
+    }
+
+    document.getElementById("use-log").onclick = showUseLog;
+    document.getElementById("use-close").onclick = () => {
+      document.getElementById("use-mask").classList.remove("show");
+    };
+    document.getElementById("use-mask").onclick = e => {
+      if (e.target.id === "use-mask") document.getElementById("use-mask").classList.remove("show");
+    };
+
     PracticeStats.init("../data/practice-stats.json").then(() => {
+      markUse();
       setGrade(savedGrade());
     });
   </script>

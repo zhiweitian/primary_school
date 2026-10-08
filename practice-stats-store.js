@@ -1,6 +1,6 @@
 (function (global) {
   const CFG = global.PS_CONFIG || {};
-  const WINDOW = CFG.window || 20;
+  const WINDOW = CFG.window || 50;
   const LS_KEY = "ps-practice-stats";
   const SAVE_API = "/api/practice-stats";
 
@@ -39,11 +39,39 @@
     return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
   }
 
+  function recencyW(i) {
+    return i + 1;
+  }
+
+  function recencySum() {
+    return WINDOW * (WINDOW + 1) / 2;
+  }
+
+  function stampPassed(n) {
+    if (!n || n.passed) return;
+    if ((n.total || 0) < WINDOW) return;
+    if (pct(ownBase(n.recent)) >= 90) {
+      n.passed = true;
+      return;
+    }
+    if (n.scanned) return;
+    n.scanned = true;
+    const r = n.recent || [];
+    for (let i = WINDOW; i < r.length; i++) {
+      if (pct(ownBase(r.slice(0, i))) >= 90) {
+        n.passed = true;
+        return;
+      }
+    }
+  }
+
   function ownBase(recent) {
     if (!recent || !recent.length) return null;
     const slice = recent.slice(-WINDOW);
-    const ok = slice.reduce((s, x) => s + entryOk(x), 0);
-    return ok / WINDOW;
+    const empty = WINDOW - slice.length;
+    let got = 0;
+    for (let i = empty; i < WINDOW; i++) got += entryOk(slice[i - empty]) * recencyW(i);
+    return got / recencySum();
   }
 
   function strength(recent) {
@@ -110,14 +138,13 @@
     const own = ownBase(recent);
     const events = downstreamEvents(nodeId);
     const slice = (recent || []).slice(-WINDOW);
-    let empty = WINDOW - slice.length;
+    const empty = WINDOW - slice.length;
     let filled = 0;
-    for (let i = 0; i < events.length && empty > 0; i++) {
-      filled += events[i].w;
-      empty -= 1;
+    for (let i = 0; i < events.length && i < empty; i++) {
+      filled += events[i].w * recencyW(i);
     }
     if (own == null && filled <= 0) return null;
-    const base = Math.min(1, ((own || 0) * WINDOW + filled) / WINDOW);
+    const base = Math.min(1, ((own || 0) * recencySum() + filled) / recencySum());
     const S = strength(recent);
     const last = lastAt(recent, events);
     const age = last ? Math.max(0, (Date.now() - last) / 86400000) : 0;
@@ -148,14 +175,14 @@
   }
 
   function mergeNodes(a, b) {
-    if (!a) return b ? { total: b.total || 0, recent: [...(b.recent || [])] } : null;
-    if (!b) return { total: a.total || 0, recent: [...(a.recent || [])] };
+    if (!a) return b ? { total: b.total || 0, recent: [...(b.recent || [])], passed: !!b.passed } : null;
+    if (!b) return { total: a.total || 0, recent: [...(a.recent || [])], passed: !!a.passed };
     const total = Math.max(a.total || 0, b.total || 0);
     let recent;
     if ((a.total || 0) > (b.total || 0)) recent = a.recent || [];
     else if ((b.total || 0) > (a.total || 0)) recent = b.recent || [];
     else recent = (b.recent?.length || 0) >= (a.recent?.length || 0) ? (b.recent || []) : (a.recent || []);
-    return { total, recent: [...recent] };
+    return { total, recent: [...recent], passed: !!(a.passed || b.passed) };
   }
 
   function mergeStores(a, b) {
@@ -283,11 +310,13 @@
 
   function get(nodeId) {
     const n = ensureCache().nodes[nodeId];
-    if (!n) return { total: 0, proficiency: null, own: null };
+    if (!n) return { total: 0, proficiency: null, own: null, passed: false };
+    stampPassed(n);
     const own = pct(ownBase(n.recent));
     return {
       total: n.total || 0,
       own,
+      passed: !!n.passed,
       proficiency: pct(displayScore(nodeId, n.recent))
     };
   }
@@ -304,6 +333,8 @@
     const n = store.nodes[nodeId] || { total: 0, recent: [] };
     n.total += 1;
     n.recent.push({ ok: correct ? 1 : 0, at: Date.now() });
+    n.scanned = false;
+    stampPassed(n);
     store.nodes[nodeId] = n;
     commitStore(store);
     scheduleSave();

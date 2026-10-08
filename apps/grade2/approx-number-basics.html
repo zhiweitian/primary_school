@@ -90,7 +90,6 @@
 <body>
   <div class="container">
     <h1>📐 认识近似数</h1>
-    <p class="hint">从个位开始填写；满 5 时在判断位连打两位（先写进位、再写 0），与加法进位相同</p>
     <div class="stats">
       <div class="stat">
         <span class="stat-label">做题数</span>
@@ -201,10 +200,15 @@
       return col > 0 && carryIn[col] !== null ? carryIn[col] : 0;
     }
 
+    function needHint() {
+      const s = prof && prof.stats();
+      if (!s || !s.total) return true;
+      return s.proficiency == null || s.proficiency < 80;
+    }
+
     function expectedAt(col) {
       if (col < lookCol) return { result: 0, carry: 0 };
-      if (col === lookCol && willCarry) return { result: 0, carry: 1 };
-      if (col === lookCol) return { result: digitAtCol(answer, col), carry: 0 };
+      if (col === lookCol) return { result: 0, carry: willCarry ? 1 : 0 };
       if (col >= targetCol) {
         const d = digitAtCol(n, col) + incomingCarry(col);
         return { result: d % 10, carry: Math.floor(d / 10) };
@@ -263,31 +267,30 @@
       hiddenInput.focus();
     }
 
+    function writeVal(exp) {
+      return exp.carry > 0 ? "10" : String(exp.result);
+    }
+
     function updateBuffer() {
-      const place = placeLabel(currentCol);
+      if (!needHint()) {
+        bufferEl.innerHTML = digitBuffer ? `当前输入：<span>${digitBuffer}</span>` : "";
+        return;
+      }
       const exp = expectedAt(currentCol);
       const cin = incomingCarry(currentCol);
+      const w = `<span>${writeVal(exp)}</span>`;
       let hint;
       if (currentCol < lookCol) {
-        hint = `填 <span>0</span>`;
-      } else if (currentCol === lookCol && willCarry) {
-        hint = `满 5 进位，连打两位：先写进位，再写 <span>0</span>`;
-      } else if (exp.carry > 0) {
-        hint = cin > 0
-          ? `加上进位 ${cin} 后再进位，连打两位：先写进位，再写本位列`
-          : `连打两位：先写进位，再写本位列`;
-      } else if (cin > 0) {
-        hint = `加上进位 <span>${cin}</span> 写结果`;
-      } else if (currentCol > targetCol) {
-        hint = `保留这一位`;
-      } else if (currentCol === targetCol && willCarry) {
-        hint = `目标位加进位写结果`;
+        hint = `不是判断位，直接写 ${w}`;
+      } else if (currentCol === lookCol) {
+        hint = `判断位，四舍五入，所以写 ${w}`;
+      } else if (cin > 0 || (currentCol === targetCol && willCarry)) {
+        hint = `保留位，原数加上进位，写 ${w}`;
       } else {
-        hint = `填 <span>0</span>`;
+        hint = `保留位，写 ${w}`;
       }
-      bufferEl.innerHTML = digitBuffer
-        ? `当前输入：<span>${digitBuffer}</span>`
-        : `正在填写<span>${place}</span>位 · ${hint}`;
+      if (digitBuffer) hint += ` · 当前输入：<span>${digitBuffer}</span>`;
+      bufferEl.innerHTML = hint;
     }
 
     function finishProblem() {

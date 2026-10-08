@@ -58,7 +58,7 @@
 <body>
   <div class="container">
     <h1>🧮 估算</h1>
-    <p class="hint">先把每个数看成整十、整百或整千，再算</p>
+    <p class="hint">题里写看成哪一位，就按那位估</p>
     <div class="stats">
       <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
       <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
@@ -85,29 +85,6 @@
     function roundTo(x, s) { return Math.round(x / s) * s; }
     function calc(x, y, add) { return add ? x + y : x - y; }
 
-    function exactNear(exact) {
-      const s = new Set([exact]);
-      STEPS.forEach(step => {
-        const r = roundTo(exact, step);
-        if (r > 0) s.add(r);
-      });
-      return s;
-    }
-
-    function methodsOf(a, b, add) {
-      const near = exactNear(calc(a, b, add));
-      const list = [];
-      STEPS.forEach(step => {
-        const ra = roundTo(a, step);
-        const rb = roundTo(b, step);
-        if (ra <= 0 || rb <= 0) return;
-        const est = calc(ra, rb, add);
-        if (est <= 0 || near.has(est)) return;
-        list.push({ step, name: STEP_NAME[step], ra, rb, est });
-      });
-      return list;
-    }
-
     function randNum(kind) {
       if (kind === 0) return 11 + Math.floor(Math.random() * 88);
       if (kind === 1) return 101 + Math.floor(Math.random() * 898);
@@ -117,23 +94,26 @@
     function makeQ() {
       for (let i = 0; i < 80; i++) {
         const kind = Math.floor(Math.random() * 3);
+        const step = STEPS[kind];
         const add = Math.random() < 0.55;
         let a = randNum(kind), b = randNum(kind);
+        if (a % step === 0 || b % step === 0) continue;
         if (!add && b > a) [a, b] = [b, a];
         if (a === b) continue;
-        const goods = methodsOf(a, b, add);
-        if (!goods.length) continue;
-        const pick = goods[Math.floor(Math.random() * goods.length)];
-        return { a, b, add, goods, ...pick };
+        const ra = roundTo(a, step);
+        const rb = roundTo(b, step);
+        const est = calc(ra, rb, add);
+        if (ra <= 0 || rb <= 0 || est <= 0) continue;
+        if (est === calc(a, b, add)) continue;
+        return { a, b, add, step, name: STEP_NAME[step], ra, rb, est };
       }
     }
 
     function buildReason() {
       const sym = q.add ? "+" : "−";
       return [
-        `把每个数看成<strong>${q.name}数</strong>：${q.a} ≈ ${q.ra}，${q.b} ≈ ${q.rb}。`,
-        `估算：${q.ra} ${sym} ${q.rb} = <strong>${q.est}</strong>。`,
-        `这几项里只有 <strong>${q.est}</strong>。`
+        `题里要求看成<strong>${q.name}数</strong>：${q.a} ≈ ${q.ra}，${q.b} ≈ ${q.rb}。`,
+        `估算：${q.ra} ${sym} ${q.rb} = <strong>${q.est}</strong>。`
       ];
     }
 
@@ -147,8 +127,11 @@
 
     function makeOptions() {
       const exact = calc(q.a, q.b, q.add);
-      const no = exactNear(exact);
-      q.goods.forEach(g => { if (g.est !== q.est) no.add(g.est); });
+      const no = new Set([exact]);
+      STEPS.forEach(s => {
+        const r = roundTo(exact, s);
+        if (r > 0 && r !== q.est) no.add(r);
+      });
       const w = [];
       const add = v => {
         if (v > 0 && v !== q.est && !no.has(v) && !w.includes(v)) w.push(v);
@@ -180,7 +163,7 @@
       q = makeQ();
       const sym = q.add ? "+" : "−";
       document.getElementById("expr").textContent = `${q.a} ${sym} ${q.b} ≈ ?`;
-      document.getElementById("sub").textContent = "";
+      document.getElementById("sub").textContent = "先把每个数看成" + q.name + "数，再算";
 
       const box = document.getElementById("choices");
       box.innerHTML = "";
