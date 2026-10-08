@@ -316,18 +316,11 @@ class LauncherActivity : AppCompatActivity() {
             explainPerms()
             return
         }
-        if (Prefs.balance() + 1e-9 < Prefs.POINT_COST) {
-            Toast.makeText(this, "满 ${Prefs.POINT_COST.toInt()} 分才能玩", Toast.LENGTH_SHORT).show()
-            return
-        }
-        web.evaluateJavascript("window.PlayWallet?PlayWallet.spend(${Prefs.POINT_COST}):-1") { raw ->
-            val n = raw?.trim('"')?.toDoubleOrNull() ?: -1.0
+        web.evaluateJavascript("window.PlayWallet&&PlayWallet.tryPlay()") { raw ->
             runOnUiThread {
-                if (n >= 0) Prefs.setBalance(n)
-                else Prefs.setBalance(Prefs.balance() - Prefs.POINT_COST)
-                Prefs.startPlay()
-                KeepAliveService.start(this)
-                refreshUi()
+                if (raw != "true") {
+                    Toast.makeText(this, "满 ${Prefs.POINT_COST.toInt()} 分才能玩", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -458,6 +451,24 @@ class LauncherActivity : AppCompatActivity() {
                     updateBar()
                 }
             } catch (_: Exception) {
+            }
+        }
+
+        @JavascriptInterface
+        fun startPlay() {
+            runOnUiThread {
+                if (!Perms.readyForPlay(this@LauncherActivity)) {
+                    web.evaluateJavascript(
+                        "window.PlayWallet&&PlayWallet.add(${Prefs.POINT_COST})",
+                        null
+                    )
+                    Toast.makeText(this@LauncherActivity, "先打开通知权限", Toast.LENGTH_LONG).show()
+                    explainPerms()
+                    return@runOnUiThread
+                }
+                if (!Prefs.isPlayActive()) Prefs.startPlay()
+                KeepAliveService.start(this@LauncherActivity)
+                refreshUi()
             }
         }
     }

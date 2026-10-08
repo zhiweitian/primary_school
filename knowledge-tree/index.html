@@ -24,7 +24,7 @@
     }
     h1 { font-size: 1.1rem; color: #5d4037; }
     .subtitle { font-size: 0.74rem; color: #888; margin-top: 0.2rem; }
-    .toolbar { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.55rem; }
+    .toolbar { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.55rem; flex-wrap: wrap; }
     .btn {
       padding: 0.32rem 0.7rem; border: 1px solid #ccc; border-radius: 6px;
       background: #fff; font-size: 0.78rem; cursor: pointer;
@@ -37,6 +37,7 @@
       display: none; position: fixed; inset: 0; z-index: 20;
       background: rgba(0,0,0,0.35); align-items: center; justify-content: center; padding: 1rem;
     }
+    #use-mask { z-index: 21; }
     .use-mask.show { display: flex; }
     .use-box {
       width: min(420px, 96vw); max-height: 80vh; overflow: auto;
@@ -49,6 +50,8 @@
     .use-box li:last-child { border-bottom: none; }
     .use-box .empty { font-size: 0.82rem; color: #999; padding: 0.4rem 0 0.8rem; }
     .use-box .use-close { margin-top: 0.8rem; }
+    .play-time { font-size: 1.6rem; font-weight: 700; color: #ef6c00; text-align: center; margin: 0.4rem 0 0.8rem; }
+    .btn:disabled { opacity: 0.45; cursor: default; }
     .wallet {
       font-size: 0.72rem; color: #5d4037; font-weight: 600;
       background: #fff3e0; border: 1px solid #ffe0b2; border-radius: 6px;
@@ -178,6 +181,7 @@
       <button class="btn tree-only" id="zoom-out" type="button">−</button>
       <button class="btn tree-only" id="zoom-in" type="button">+</button>
       <span class="wallet" id="walletChip">积分 0</span>
+      <button class="btn" id="play-btn" type="button">玩 10 分钟</button>
       <button class="btn" id="use-log" type="button">使用记录</button>
       <span class="stats" id="stats"></span>
     </div>
@@ -189,10 +193,19 @@
   <div class="routes" id="routes" hidden></div>
   <div class="use-mask" id="use-mask">
     <div class="use-box">
-      <h3>开始使用时间</h3>
-      <p class="empty" id="use-empty">还没有记录</p>
+      <h3>花积分开始时间</h3>
+      <p class="empty" id="use-empty">还没有花积分玩过</p>
       <ul id="use-list"></ul>
       <button class="btn use-close" id="use-close" type="button">关闭</button>
+    </div>
+  </div>
+  <div class="use-mask" id="play-mask">
+    <div class="use-box">
+      <h3>自由时间</h3>
+      <p class="play-time" id="play-left">10:00</p>
+      <p class="empty">这 10 分钟可以休息。到点后回来继续练习。</p>
+      <button class="btn" id="play-use-log" type="button">使用记录</button>
+      <a class="btn" href="../apps/dino.html">去玩抓恐龙</a>
     </div>
   </div>
 
@@ -997,10 +1010,19 @@
         ? data.edition + " · 从上往下打关"
         : data.edition + " · 叶子在下 · 往上晋级";
       const w = window.PlayWallet ? PlayWallet.get() : 0;
-      document.getElementById("walletChip").textContent =
-        "积分 " + w + " · 满 " + (window.PlayWallet ? PlayWallet.COST : 40) + " 玩 10 分钟";
+      const cost = window.PlayWallet ? PlayWallet.COST : 40;
+      document.getElementById("walletChip").textContent = "积分 " + w;
+      const playBtn = document.getElementById("play-btn");
+      const playing = window.PlayWallet && PlayWallet.isPlayActive();
+      const left = playing ? PlayWallet.playLeftMs() : 0;
+      playBtn.disabled = !playing && w + 1e-9 < cost;
+      playBtn.textContent = playing
+        ? "剩余 " + Math.floor(left / 60000) + ":" + String(Math.floor(left / 1000) % 60).padStart(2, "0")
+        : "玩 10 分钟";
+      syncPlayMask();
     }
     window.addEventListener("ps-wallet", updateChrome);
+    window.addEventListener("ps-play", updateChrome);
 
     function setGrade(grade) {
       const g = String(grade);
@@ -1150,18 +1172,6 @@
       PracticeStats.refresh().then(updatePracticeLabels);
     });
 
-    const USE_LS = "ps-use-starts";
-    const USE_FLAG = "ps-use-once";
-
-    function loadStarts() {
-      try {
-        const a = JSON.parse(localStorage.getItem(USE_LS) || "[]");
-        return Array.isArray(a) ? a.filter(x => typeof x === "number") : [];
-      } catch (_) {
-        return [];
-      }
-    }
-
     function pad2(n) { return (n < 10 ? "0" : "") + n; }
 
     function fmtStart(t) {
@@ -1170,19 +1180,22 @@
         + " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
     }
 
-    function markUse() {
-      try {
-        if (sessionStorage.getItem(USE_FLAG)) return;
-        sessionStorage.setItem(USE_FLAG, "1");
-      } catch (_) {}
-      const a = loadStarts();
-      a.push(Date.now());
-      if (a.length > 200) a.splice(0, a.length - 200);
-      try { localStorage.setItem(USE_LS, JSON.stringify(a)); } catch (_) {}
+    function hasNativePlay() {
+      return !!(window.PrimarySchool && typeof PrimarySchool.startPlay === "function");
+    }
+
+    function syncPlayMask() {
+      const mask = document.getElementById("play-mask");
+      const on = window.PlayWallet && PlayWallet.isPlayActive() && !hasNativePlay();
+      mask.classList.toggle("show", !!on);
+      if (!on) return;
+      const left = PlayWallet.playLeftMs();
+      document.getElementById("play-left").textContent =
+        Math.floor(left / 60000) + ":" + String(Math.floor(left / 1000) % 60).padStart(2, "0");
     }
 
     function showUseLog() {
-      const a = loadStarts().slice().reverse();
+      const a = (window.PlayWallet ? PlayWallet.starts() : []).slice().reverse();
       const empty = document.getElementById("use-empty");
       const list = document.getElementById("use-list");
       empty.style.display = a.length ? "none" : "block";
@@ -1190,16 +1203,23 @@
       document.getElementById("use-mask").classList.add("show");
     }
 
+    document.getElementById("play-btn").onclick = () => {
+      if (!window.PlayWallet) return;
+      if (PlayWallet.isPlayActive()) return;
+      if (!PlayWallet.tryPlay()) return;
+      updateChrome();
+    };
     document.getElementById("use-log").onclick = showUseLog;
+    document.getElementById("play-use-log").onclick = showUseLog;
     document.getElementById("use-close").onclick = () => {
       document.getElementById("use-mask").classList.remove("show");
     };
     document.getElementById("use-mask").onclick = e => {
       if (e.target.id === "use-mask") document.getElementById("use-mask").classList.remove("show");
     };
+    setInterval(updateChrome, 1000);
 
     PracticeStats.init("../data/practice-stats.json").then(() => {
-      markUse();
       setGrade(savedGrade());
     });
   </script>

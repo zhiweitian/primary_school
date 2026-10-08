@@ -25,8 +25,41 @@
     }
   }
 
+  const PLAY_MS = 10 * 60 * 1000;
+  const PLAY_LS = "ps-play-until";
+  const STARTS_LS = "ps-play-starts";
+
+  function loadStarts() {
+    try {
+      const a = JSON.parse(localStorage.getItem(STARTS_LS) || "[]");
+      return Array.isArray(a) ? a.filter(x => typeof x === "number") : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function logStart() {
+    const a = loadStarts();
+    a.push(Date.now());
+    if (a.length > 200) a.splice(0, a.length - 200);
+    try { localStorage.setItem(STARTS_LS, JSON.stringify(a)); } catch (_) {}
+  }
+
+  function playUntil() {
+    try { return Number(localStorage.getItem(PLAY_LS)) || 0; } catch (_) { return 0; }
+  }
+
+  function playLeftMs() {
+    return Math.max(0, playUntil() - Date.now());
+  }
+
+  function emitPlay() {
+    try { global.dispatchEvent(new Event("ps-play")); } catch (_) {}
+  }
+
   const PlayWallet = {
     COST,
+    PLAY_MS,
     get() {
       return load().balance || 0;
     },
@@ -50,6 +83,26 @@
       const s = { balance: round(Math.max(0, Number(balance) || 0)) };
       save(s);
       return s.balance;
+    },
+    playLeftMs,
+    isPlayActive() {
+      return playLeftMs() > 0;
+    },
+    starts() {
+      return loadStarts();
+    },
+    tryPlay() {
+      if (playLeftMs() > 0) return false;
+      const n = this.spend(this.COST);
+      if (n < 0) return false;
+      logStart();
+      try { localStorage.setItem(PLAY_LS, String(Date.now() + PLAY_MS)); } catch (_) {}
+      emitPlay();
+      const b = global.PrimarySchool;
+      if (b && typeof b.startPlay === "function") {
+        try { b.startPlay(); } catch (_) {}
+      }
+      return true;
     }
   };
 
