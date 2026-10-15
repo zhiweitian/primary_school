@@ -28,19 +28,21 @@
       padding: 1.5rem 1rem; background: rgba(0,0,0,0.25); border-radius: 14px; margin-bottom: 0.8rem;
       text-align: center;
     }
-    .question {
-      font-family: "Courier New", monospace; font-size: 2.4rem; font-weight: 700;
-      color: #a8dadc; margin-bottom: 1rem;
+    .eq { display: flex; justify-content: center; align-items: flex-start; gap: 0.4rem; margin-bottom: 0.4rem; }
+    .part { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; min-width: 4.2rem; }
+    .num {
+      min-width: 4.2rem; height: 3.2rem; display: flex; align-items: center; justify-content: center;
+      font-family: "Courier New", monospace; font-size: 2.1rem; font-weight: 700; color: #a8dadc;
     }
-    .question .eq { color: #888; font-weight: 400; margin: 0 0.35rem; }
-    .answer-row { display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
-    .answer-row input {
-      width: 5rem; padding: 0.55rem 0.4rem; border: 2px solid rgba(168,218,220,0.35);
+    .part input {
+      width: 4.2rem; height: 3.2rem; padding: 0; border: 2px solid rgba(168,218,220,0.35);
       border-radius: 10px; background: rgba(0,0,0,0.3); color: #ffd166;
-      font-family: "Courier New", monospace; font-size: 2rem; font-weight: 700; text-align: center;
+      font-family: "Courier New", monospace; font-size: 2.1rem; font-weight: 700; text-align: center;
     }
-    .answer-row input:focus { outline: none; border-color: #ffd166; }
-    .answer-row input:disabled { opacity: 0.55; }
+    .part input:focus { outline: none; border-color: #ffd166; }
+    .part input:disabled { opacity: 0.55; }
+    .role { font-size: 0.78rem; font-weight: 700; color: #ffd166; letter-spacing: 0.04em; }
+    .op { height: 3.2rem; display: flex; align-items: center; font-size: 1.7rem; font-weight: 700; color: #888; }
     .reveal {
       margin-top: 1rem; font-size: 1.35rem; color: #ffd166; font-weight: 700;
       min-height: 1.8rem; letter-spacing: 0.08em;
@@ -65,7 +67,7 @@
 <body>
   <div class="container">
     <h1>✖️ 乘法口诀背诵</h1>
-    <p class="hint">连对 10 次该口诀熟练度 100% · 不熟的口诀出现概率更高</p>
+    <p class="hint">被乘数 × 乘数 = 积。连对 10 次该口诀熟练度 100% · 不熟的口诀出现概率更高</p>
     <div class="stats">
       <div>
         <div class="stat-label">分数</div>
@@ -81,10 +83,7 @@
       </div>
     </div>
     <div class="card">
-      <div class="question" id="question"></div>
-      <div class="answer-row">
-        <input type="text" id="answer" inputmode="numeric" autocomplete="off" placeholder="?">
-      </div>
+      <div class="eq" id="question"></div>
       <div class="reveal" id="reveal"></div>
       <div class="actions">
         <button class="btn ghost" id="showBtn" type="button">看答案</button>
@@ -122,7 +121,7 @@
     let missCount = 0;
 
     const questionEl = document.getElementById("question");
-    const answerEl = document.getElementById("answer");
+    let answerEl = null;
     const revealEl = document.getElementById("reveal");
     const statusEl = document.getElementById("status");
     const showBtn = document.getElementById("showBtn");
@@ -222,7 +221,7 @@
 
     function setLocked(v) {
       locked = v;
-      answerEl.disabled = v;
+      if (answerEl) answerEl.disabled = v;
       showBtn.disabled = v;
     }
 
@@ -244,11 +243,15 @@
       revealEl.textContent = "";
       statusEl.textContent = "";
       statusEl.className = "status";
-      answerEl.value = "";
-      answerEl.disabled = false;
       showBtn.disabled = false;
       questionEl.innerHTML =
-        `${current.da}<span class="eq">×</span>${current.db}<span class="eq">=</span>`;
+        `<div class="part"><div class="num">${current.da}</div><div class="role">被乘数</div></div>`
+        + `<div class="op">×</div>`
+        + `<div class="part"><div class="num">${current.db}</div><div class="role">乘数</div></div>`
+        + `<div class="op">=</div>`
+        + `<div class="part"><input type="text" id="answer" inputmode="numeric" autocomplete="off" placeholder="?"><div class="role">积</div></div>`;
+      answerEl = document.getElementById("answer");
+      answerEl.addEventListener("input", checkAnswer);
       renderStats();
       answerEl.focus();
     }
@@ -323,7 +326,6 @@
       if (raw.length >= String(expected).length) onWrong();
     }
 
-    answerEl.addEventListener("input", checkAnswer);
     showBtn.addEventListener("click", onReveal);
 
     loadStore();

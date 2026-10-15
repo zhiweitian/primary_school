@@ -185,6 +185,44 @@
     return { total, recent: [...recent], passed: !!(a.passed || b.passed) };
   }
 
+  // 旧版按树里的位置记熟练度，一、二年级位置重号的归二年级。
+  const LEGACY_PATHS = {
+    "0/0/0/0": "mix-op",
+    "0/0/0/0/0": "div-word",
+    "0/0/0/0/0/0": "div-koujue",
+    "0/0/0/0/0/0/0": "mul-div-rel",
+    "0/0/0/0/0/0/0/0": "add10",
+    "0/0/0/0/0/0/0/0/0": "num10",
+    "0/0/0/0/0/0/1": "mul-mental2",
+    "0/0/0/0/0/0/1/0": "mul-mental1",
+    "0/0/0/0/0/0/1/0/0": "mul-vertical",
+    "0/0/0/0/0/0/1/0/0/0": "mul-guided",
+    "0/0/0/0/0/0/1/0/0/0/0": "mul-word",
+    "0/0/0/0/0/0/1/0/0/0/0/0": "mul-table",
+    "0/0/0/0/0/0/1/0/0/0/0/0/0": "mul-know",
+    "0/0/1/0": "estimate",
+    "0/0/1/0/0": "approx-desc",
+    "0/0/1/0/0/0": "approx-basics",
+    "0/0/1/0/0/0/0": "round-add",
+    "0/0/1/0/0/0/0/0": "compare-10000",
+    "0/0/1/0/0/0/0/0/0": "num-read",
+    "0/1/0": "classify",
+    "0/1/0/0": "solid",
+    "0/1/1": "len-word",
+    "0/1/1/0": "len-convert",
+    "0/1/1/0/0": "len-know"
+  };
+
+  function migratePaths(store) {
+    Object.keys(LEGACY_PATHS).forEach(path => {
+      if (!store.nodes[path]) return;
+      const id = LEGACY_PATHS[path];
+      store.nodes[id] = mergeNodes(store.nodes[id], store.nodes[path]);
+      delete store.nodes[path];
+    });
+    return store;
+  }
+
   function mergeStores(a, b) {
     const out = emptyStore();
     const nodesA = a?.nodes || {};
@@ -194,7 +232,7 @@
       const merged = mergeNodes(nodesA[id], nodesB[id]);
       if (merged) out.nodes[id] = merged;
     });
-    return out;
+    return migratePaths(out);
   }
 
   function commitStore(store) {

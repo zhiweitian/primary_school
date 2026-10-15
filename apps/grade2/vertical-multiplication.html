@@ -142,6 +142,17 @@
       margin-right: 0.3rem;
     }
     .sign-cell.empty { visibility: hidden; }
+    .role-cell {
+      width: 3rem;
+      margin-left: 0.45rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #ffd166;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      text-align: left;
+      flex-shrink: 0;
+    }
+    .role-cell.empty { visibility: hidden; }
 
     .line-row { width: 100%; padding: 0.2rem 0 0.4rem; }
     .line-row hr {
@@ -197,7 +208,7 @@
 <body>
   <div class="container">
     <h1 id="pageTitle">✖️ 竖式乘法练习</h1>
-    <p class="hint" id="pageHint">从个位开始输入；连打两位时，前一位自动填入进位</p>
+    <p class="hint" id="pageHint">上面是被乘数，乘号旁是乘数，得数是积。从个位开始输入；连打两位时，前一位自动填入进位</p>
 
     <div class="stats">
       <div class="stat">
@@ -232,6 +243,7 @@
   <script>
     let prof, profUI;
     const MODE = new URLSearchParams(location.search).get("mode") || "";
+    if (MODE === "mental1") window.WALLET_POINTS = 2;
     if (MODE === "mental2") window.WALLET_POINTS = 3;
     const isMental = MODE === "mental1" || MODE === "mental2";
     const isGuided = MODE === "guided";
@@ -246,16 +258,20 @@
     if (MODE === "guided") {
       document.title = "竖式乘法（逐步提示）";
       document.getElementById("pageTitle").textContent = "✖️ 竖式乘法（逐步提示）";
-      document.getElementById("pageHint").textContent = "高亮的两个数相乘；有进位时连打两位";
+      document.getElementById("pageHint").textContent = "上面是被乘数，乘号旁是乘数，得数是积。高亮的两个数相乘；有进位时连打两位";
+    } else if (MODE === "two") {
+      document.title = "竖式乘两位数";
+      document.getElementById("pageTitle").textContent = "✖️ 竖式乘两位数";
+      document.getElementById("pageHint").textContent = "上面是被乘数，乘号旁是乘数，得数是积。先用乘数的个位乘，再用十位乘，最后相加";
     } else if (MODE === "mental1") {
       document.title = "口算乘法";
       document.getElementById("pageTitle").textContent = "✖️ 口算乘法";
-      document.getElementById("pageHint").textContent = "两位数或三位数乘一位数，从个位起只填得数";
+      document.getElementById("pageHint").textContent = "上面是被乘数，乘号旁是乘数，得数是积。两位数或三位数乘一位数，从个位起只填积";
       document.body.classList.add("mental");
     } else if (MODE === "mental2") {
       document.title = "口算乘法进阶";
       document.getElementById("pageTitle").textContent = "✖️ 口算乘法进阶";
-      document.getElementById("pageHint").textContent = "乘两位数，从个位起只填得数";
+      document.getElementById("pageHint").textContent = "上面是被乘数，乘号旁是乘数，得数是积。乘两位数，从个位起只填积";
       document.body.classList.add("mental");
     }
 
@@ -274,13 +290,6 @@
     const MISS_LIMIT = 3;
     let missCount = 0;
 
-    function randomNumber(maxDigits) {
-      const digits = Math.floor(Math.random() * maxDigits) + 1;
-      const min = digits === 1 ? 1 : 10 ** (digits - 1);
-      const max = 10 ** digits - 1;
-      return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-
     function randomNDigit(n) {
       const min = n === 1 ? 2 : 10 ** (n - 1);
       const max = 10 ** n - 1;
@@ -293,15 +302,13 @@
         b = randomNDigit(1);
         return;
       }
-      if (MODE === "mental2") {
+      if (MODE === "mental2" || MODE === "two") {
         a = randomNDigit(Math.random() < 0.5 ? 2 : 3);
         b = randomNDigit(2);
         return;
       }
-      const aDigits = Math.floor(Math.random() * 4) + 1;
-      const bDigitsCount = Math.floor(Math.random() * 2) + 1;
-      a = randomNumber(aDigits);
-      b = randomNumber(bDigitsCount);
+      a = randomNDigit(Math.floor(Math.random() * 3) + 2);
+      b = randomNDigit(1);
     }
 
     function padLeft(str, len) {
@@ -380,6 +387,13 @@
       row.appendChild(el);
     }
 
+    function addRoleCell(row, text) {
+      const el = document.createElement("div");
+      el.className = "role-cell" + (text ? "" : " empty");
+      el.textContent = text || "";
+      row.appendChild(el);
+    }
+
     function render() {
       const aStr = padLeft(String(a), colCount);
       const bStr = padLeft(String(b), colCount);
@@ -431,6 +445,12 @@
         carryRow.appendChild(cCell);
       }
 
+      const showSum = isMental || bDigits.length > 1;
+      addRoleCell(placeRow, "");
+      addRoleCell(rowA, "被乘数");
+      addRoleCell(rowB, "乘数");
+      addRoleCell(carryRow, "");
+
       if (!isMental) {
         for (let k = 0; k < bDigits.length; k++) {
           const row = document.createElement("div");
@@ -466,11 +486,11 @@
               row.appendChild(makeCell("", "partial"));
             }
           }
+          addRoleCell(row, !showSum && k === bDigits.length - 1 ? "积" : "");
           partialRows.appendChild(row);
         }
       }
 
-      const showSum = isMental || bDigits.length > 1;
       sumLine.style.display = showSum ? "" : "none";
       addSignCell(answerRow, "", true);
 
@@ -492,6 +512,7 @@
             answerRow.appendChild(makeCell("", "answer"));
           }
         }
+        addRoleCell(answerRow, "积");
       } else {
         answerRow.style.display = "none";
       }

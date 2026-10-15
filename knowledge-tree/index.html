@@ -30,8 +30,6 @@
       background: #fff; font-size: 0.78rem; cursor: pointer;
     }
     #grade-select { padding: 0.32rem 0.5rem; }
-    .search-wrap { flex: 1; max-width: 200px; }
-    .search-wrap input { width: 100%; padding: 0.32rem 0.6rem; border: 1px solid #ccc; border-radius: 6px; font-size: 0.8rem; }
     .stats { font-size: 0.72rem; color: #aaa; margin-left: auto; }
     .use-mask {
       display: none; position: fixed; inset: 0; z-index: 20;
@@ -57,52 +55,22 @@
       background: #fff3e0; border: 1px solid #ffe0b2; border-radius: 6px;
       padding: 0.22rem 0.5rem; white-space: nowrap;
     }
-    .canvas-wrap { flex: 1 1 0; position: relative; min-height: 0; }
-    #tree-svg { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
-    #tree-svg.panning { cursor: grabbing; }
-    #tree-svg.node-drag { cursor: move; }
-    .link {
-      fill: none;
-      stroke-linecap: round; stroke-linejoin: round;
-    }
-    .link.dim { opacity: 0.06; }
-    .node { cursor: grab; }
-    .node:active { cursor: grabbing; }
-    .node.dim { opacity: 0.1; }
-    .node rect { stroke-width: 1.5; }
-    .node .leaf-shape { stroke-width: 1.5; stroke-linejoin: round; }
-    .node .leaf-vein { pointer-events: none; }
-    .node.match rect,
-    .node.match .leaf-shape { stroke: #ff9800 !important; stroke-width: 2; }
-    .node text { pointer-events: none; font-family: inherit; text-anchor: middle; dominant-baseline: central; }
-    .node .app-btn { cursor: pointer; }
-    .node .app-btn rect { fill: rgba(255, 255, 255, 0.92); stroke: rgba(0, 0, 0, 0.18); stroke-width: 1; }
-    .node .app-btn text { font-size: 9px; font-weight: 700; fill: #2e7d32; pointer-events: none; }
-    .node.dim .app-btn { pointer-events: none; }
-    .ord { font-size: 10px; font-weight: 700; fill: #8d6e63; text-anchor: middle; }
-    .prof-stats { font-size: 6.5px; font-weight: 600; fill: #1b5e20; opacity: 0.88; }
-    .hint {
-      position: absolute; bottom: 8px; left: 8px; font-size: 0.68rem; color: #999;
-      background: rgba(255,255,255,0.92); padding: 0.3rem 0.5rem; border-radius: 4px;
-    }
-    body.mode-routes .tree-only { display: none; }
-    body.mode-routes .canvas-wrap { display: none; }
-    body.mode-tree .routes { display: none; }
     .routes {
-      display: none; flex: 1 1 0; overflow: auto; min-height: 0;
+      flex: 1 1 0; overflow: auto; min-height: 0;
       padding: 0.9rem 1rem 2.2rem; -webkit-overflow-scrolling: touch;
     }
-    body.mode-routes .routes { display: block; }
     .routes-inner {
       width: min(1220px, 100%); margin: 0 auto;
       display: grid; grid-template-columns: 1.7fr 1fr 0.9fr 0.8fr;
       gap: 1.1rem 1rem; align-items: start;
     }
+    .routes-inner.cols-3 { grid-template-columns: 1.15fr 1.15fr 0.85fr; }
+    .routes-inner.cols-2 { grid-template-columns: 1fr 1fr; width: min(820px, 100%); }
     @media (max-width: 1000px) {
-      .routes-inner { grid-template-columns: 1.5fr 1fr; }
+      .routes-inner, .routes-inner.cols-3 { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 640px) {
-      .routes-inner { grid-template-columns: 1fr; }
+      .routes-inner, .routes-inner.cols-3, .routes-inner.cols-2 { grid-template-columns: 1fr; }
     }
     .track-head {
       display: flex; align-items: baseline; justify-content: space-between;
@@ -128,6 +96,11 @@
       transform: translateX(-50%);
       font-size: 1.25rem; line-height: 1; pointer-events: none;
     }
+    .card .grade {
+      position: absolute; top: 0.3rem; right: 0.35rem;
+      padding: 0 0.32rem; border-radius: 999px;
+      font-size: 0.58rem; font-weight: 650; color: #5c6bc0; background: #e8eaf6;
+    }
     .card .name { font-size: 0.86rem; font-weight: 650; color: #3d3228; line-height: 1.3; }
     .card .meta { font-size: 0.68rem; color: #9a8d80; margin-top: 0.14rem; }
     .card .tag {
@@ -142,19 +115,10 @@
     .card.done .tag { background: #e8f5e9; color: #2e7d32; }
     .card.known .tag { background: #fff3e0; color: #a67c3a; }
     .card.shut { filter: grayscale(0.78) saturate(0.2); }
-    .card.idle { cursor: default; }
-    .card.idle .meta { color: #b0a598; }
     .card.full { cursor: default; }
     @keyframes hop {
       0%, 100% { transform: translateX(-50%) translateY(0); }
       50% { transform: translateX(-50%) translateY(-4px); }
-    }
-    .routes-inner.cols-3 { grid-template-columns: 1.15fr 1.15fr 0.85fr; }
-    @media (max-width: 1000px) {
-      .routes-inner.cols-3 { grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 640px) {
-      .routes-inner.cols-3 { grid-template-columns: 1fr; }
     }
     .g-join { min-height: 20px; }
     .stem {
@@ -168,29 +132,17 @@
 </head>
 <body>
   <header class="header">
-    <h1 id="page-title">人教版小学数学 · 先修知识树</h1>
+    <h1>人教版小学数学 · 先修知识树</h1>
     <p class="subtitle" id="edition-label"></p>
     <div class="toolbar">
-      <select id="grade-select" class="btn" aria-label="年级">
-        <option value="1">一年级</option>
-        <option value="2">二年级</option>
-      </select>
-      <div class="search-wrap tree-only"><input type="search" id="search" placeholder="搜索…" /></div>
-      <button class="btn tree-only" id="reset-layout">重置布局</button>
-      <button class="btn tree-only" id="fit-view">适应窗口</button>
-      <button class="btn tree-only" id="zoom-out" type="button">−</button>
-      <button class="btn tree-only" id="zoom-in" type="button">+</button>
+      <select id="grade-select" class="btn" aria-label="年级"></select>
       <span class="wallet" id="walletChip">积分 0</span>
       <button class="btn" id="play-btn" type="button">玩 10 分钟</button>
       <button class="btn" id="use-log" type="button">使用记录</button>
       <span class="stats" id="stats"></span>
     </div>
   </header>
-  <div class="canvas-wrap">
-    <svg id="tree-svg"><g id="tree-root"><g class="links"></g><g class="nodes"></g></g></svg>
-    <div class="hint">叶子在下先学 · 往上晋级 · 拖节点 · 拖空白平移 · 双指缩放</div>
-  </div>
-  <div class="routes" id="routes" hidden></div>
+  <div class="routes" id="routes"></div>
   <div class="use-mask" id="use-mask">
     <div class="use-box">
       <h3>花积分开始时间</h3>
@@ -210,624 +162,22 @@
   </div>
 
   <script src="../pwa.js"></script>
-  <script src="../vendor/d3.min.js"></script>
   <script src="../practice-stats-config.js"></script>
   <script src="../practice-stats-store.js"></script>
   <script src="../play-wallet.js"></script>
-  <script src="grade1-math-priority-tree.js?v=12"></script>
-  <script src="grade2-math-priority-tree.js?v=20"></script>
+  <script src="math-tree.js?v=1"></script>
   <script>
-    const GRADE_DATA = {
-      1: window.GRADE1_MATH_PRIORITY_TREE,
-      2: window.GRADE2_MATH_PRIORITY_TREE
-    };
+    const data = window.MATH_TREE;
+    const defs = data.nodes;
     const GRADE_LS = "ps-tree-grade";
-    let data = GRADE_DATA[1];
-    const ORD = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮";
-    const ST = {
-      root:   { h: 32, fs: 12, fw: 700, fill: "#5d4037", stroke: "#4e342e", tc: "#fff", pad: 14 },
-      domain: { h: 28, fs: 11, fw: 700, fill: "#1565c0", stroke: "#0d47a1", tc: "#fff", pad: 12 },
-      group:  { h: 28, fs: 11, fw: 700, fill: "#fff3e0", stroke: "#ef6c00", tc: "#e65100", pad: 12 },
-      scope:  { h: 26, fs: 10, fw: 600, fill: "#2e7d32", stroke: "#1b5e20", tc: "#fff", pad: 10 },
-      topic:  { h: 24, fs: 10, fw: 600, fill: "#546e7a", stroke: "#455a64", tc: "#fff", pad: 10 },
-      leaf:   { h: 28, fs: 8,  fw: 400, fill: "#fff",    stroke: "#cfd8dc", tc: "#1b3d1f", pad: 12 }
-    };
-    const TREE_FILL_ROOT = "#6d4c35";
-    const TREE_FILL_LEAF = "#66bb6a";
-    const TREE_STROKE_ROOT = "#4e342e";
-    const TREE_STROKE_LEAF = "#2e7d32";
-    const PROF_FILL_0 = "#43a047";
-    const PROF_FILL_100 = "#e53935";
-    const PROF_STROKE_0 = "#2e7d32";
-    const PROF_STROKE_100 = "#b71c1c";
-
-    function profColorAt(pct) {
-      const t = Math.max(0, Math.min(100, pct == null ? 0 : pct)) / 100;
-      return {
-        fill: d3.interpolateRgb(PROF_FILL_0, PROF_FILL_100)(t),
-        stroke: d3.interpolateRgb(PROF_STROKE_0, PROF_STROKE_100)(t),
-        tc: t > 0.52 ? "#fff" : "#1b3d1f"
-      };
-    }
-
-    function leafNodeColor(n) {
-      if (!n.data.app) return treeColorAt(n.depth);
-      return profColorAt(PracticeStats.get(n.path).proficiency);
-    }
-
-    function treeColorAt(depth) {
-      const t = maxDepth > 0 ? Math.pow(depth / maxDepth, 0.4) : 0;
-      return {
-        fill: d3.interpolateRgb(TREE_FILL_ROOT, TREE_FILL_LEAF)(t),
-        stroke: d3.interpolateRgb(TREE_STROKE_ROOT, TREE_STROKE_LEAF)(t),
-        tc: t < 0.72 ? "#fff" : "#1b3d1f"
-      };
-    }
-    const LEAF_UNIT_W = 25;
-    const OVERLAP_MIN = 0.1;
-
-    function overlapCoef(scA, scB) {
-      const diff = Math.abs(scA - scB);
-      const sum = scA + scB;
-      return Math.max(OVERLAP_MIN, 1 - diff / (sum + 1));
-    }
-
-    function siblingXDelta(prev, cur) {
-      const sc0 = prev.subCount || 1;
-      const sc1 = cur.subCount || 1;
-      return 0.5 * (sc0 + sc1) * LEAF_UNIT_W * overlapCoef(sc0, sc1);
-    }
-
-    function shiftSubtree(id, dx) {
-      if (!dx) return;
-      byId.get(id).tx += dx;
-      childrenOf(id).forEach(k => shiftSubtree(k.id, dx));
-    }
-
-    function layoutChildrenX(kids) {
-      if (!kids.length) return;
-      const firstTx = 0.5 * (kids[0].subCount || 1) * LEAF_UNIT_W;
-      shiftSubtree(kids[0].id, firstTx - kids[0].tx);
-      for (let i = 1; i < kids.length; i++) {
-        const prev = kids[i - 1];
-        const cur = kids[i];
-        shiftSubtree(cur.id, prev.tx + siblingXDelta(prev, cur) - cur.tx);
-      }
-    }
-
-    function layoutNodeX(id) {
-      const n = byId.get(id);
-      const kids = childrenOf(id);
-      if (!kids.length) {
-        n.tx = 0;
-        return;
-      }
-      kids.forEach(k => layoutNodeX(k.id));
-      layoutChildrenX(kids);
-      n.tx = weightedCenterTx(kids);
-    }
-
-    function verticalGap(p, c) {
-      const minGap = (p.h + c.h) * 0.45 + 8;
-      const sibs = childrenOf(p.id).length;
-      const extra = sibs > 1 ? 14 * Math.log2(1 + (c.subCount || 1)) : 10;
-      return Math.min(96, minGap + extra);
-    }
-
-    function trunkEdgeGap(p, c) {
-      return verticalGap(p, c);
-    }
-
-    let nodes = [], links = [], maxDepth = 0, byId = new Map();
-    let transform = { x: 30, y: 30, scale: 1 };
-    let simulation = null;
-    let linkSel, nodeSel;
-
-    const svg = d3.select("#tree-svg");
-    const rootG = d3.select("#tree-root");
-    const lg = rootG.select(".links");
-    const ng = rootG.select(".nodes");
-
-    function kind(node, d) {
-      if (d === 0) return "root";
-      if (d === 1) return "domain";
-      if (node.leaf) return "leaf";
-      if (node.name === "20以内" || node.name === "100以内") return "group";
-      if (node.unit && node.children?.[0]?.topic) return "scope";
-      if (node.topic) return "topic";
-      if (!node.unit && node.children?.length) return "group";
-      return "scope";
-    }
-
-    const measureCtx = document.createElement("canvas").getContext("2d");
-
-    function measureLabelW(text, fs, fw) {
-      measureCtx.font = `${fw} ${fs}px "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif`;
-      return measureCtx.measureText(text).width;
-    }
-
-    const APP_BTN_W = 22;
-    const APP_BTN_GAP = 5;
-    const LEAF_W_EXTRA = 10;
-    const LEAF_APP_W_EXTRA = 14;
-    const PROF_STAT_FS = 6.5;
-    const PROF_STAT_SAMPLE = "99题 · 100%";
-
-    function appHref(node) {
-      const base = node.data.app;
-      const sep = base.includes("?") ? "&" : "?";
-      return base + sep + "node=" + encodeURIComponent(node.path);
-    }
-
-    function leafPath(w, h) {
-      const cx = w * 0.5;
-      const tip = 2;
-      const base = h - 1;
-      return `M ${cx} ${tip}`
-        + ` C ${w - 0.4} ${h * 0.28}, ${w * 0.98} ${h * 0.68}, ${w * 0.58} ${base}`
-        + ` Q ${cx} ${h * 0.92} ${w * 0.42} ${base}`
-        + ` C ${w * 0.02} ${h * 0.68}, ${0.8} ${h * 0.28}, ${cx} ${tip} Z`;
-    }
-
-    function leafLabelY(h, hasProf) {
-      return hasProf ? h / 2 - 4.5 : h / 2;
-    }
-
-    function leafProfY(h) {
-      return h / 2 + 5.5;
-    }
-
-    function nw(node, type) {
-      const s = ST[type];
-      const label = node.name || "";
-      const minW = type === "leaf" ? 52 : 36;
-      const pad = s.pad + (type === "leaf" && node.app ? 2 : 0);
-      let w = measureLabelW(label, s.fs, s.fw) + pad * 2;
-      if (type === "leaf") {
-        w += LEAF_W_EXTRA;
-        if (node.app) {
-          const btnBlock = APP_BTN_W + APP_BTN_GAP;
-          const profW = measureLabelW(PROF_STAT_SAMPLE, PROF_STAT_FS, 600) + pad * 2 + btnBlock;
-          w = Math.max(w + btnBlock, profW) + LEAF_APP_W_EXTRA;
-        }
-      }
-      return Math.ceil(Math.max(minW, w));
-    }
-
-    function leafClipId(node) {
-      return "leaf-clip-" + node.id.replace(/\//g, "_");
-    }
-
-    function hash(s, salt) {
-      let h = salt | 0;
-      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-      return (h >>> 0) / 4294967296;
-    }
-
-    function buildGraph(tree) {
-      nodes = [];
-      links = [];
-      maxDepth = 0;
-      function walk(node, depth, path, parentId, idx, showOrd) {
-        maxDepth = Math.max(maxDepth, depth);
-        const type = kind(node, depth);
-        const id = path;
-        nodes.push({
-          id, data: node, path, depth, type,
-          w: nw(node, type),
-          h: ST[type].h + (type === "leaf" && node.app ? 14 : 0),
-          idx, showOrd, parentId, x: 0, y: 0, tx: 0, ty: 0
-        });
-        if (parentId != null) links.push({ source: parentId, target: id });
-        (node.children || []).forEach((c, i) => walk(c, depth + 1, path + "/" + i, id, i, !!node.ordered));
-      }
-      walk(tree, 0, "0", null, 0, false);
-      byId = new Map(nodes.map(n => [n.id, n]));
-      fillSubCount("0");
-      totalLeaves = byId.get("0").subCount || 1;
-    }
-
-    function fillSubCount(id) {
-      const n = byId.get(id);
-      const kids = childrenOf(id);
-      if (!kids.length) {
-        n.subCount = 1;
-        return 1;
-      }
-      n.subCount = kids.reduce((s, k) => s + fillSubCount(k.id), 0);
-      return n.subCount;
-    }
-
-    function linkNode(l, end) {
-      const id = end === "t" ? (l.target.id || l.target) : (l.source.id || l.source);
-      return byId.get(id);
-    }
-
-    function branchStiffness(n) {
-      return Math.min(0.96, 0.1 + (n.subCount || 1) / 90);
-    }
-
-    let totalLeaves = 1;
-
-    const ANCHOR_SCALE = 0.1;
-
-    function anchorPull(n) {
-      if (n.depth === 0) return 1;
-      return ANCHOR_SCALE * (n.subCount || 1) / totalLeaves;
-    }
-
-    const CHARGE_STRENGTH = -6;
-    const CHARGE_RANGE = 480;
-
-    function chargeStrength(n) {
-      return n.depth === 0 ? 0 : CHARGE_STRENGTH;
-    }
-
-    function childrenOf(id) {
-      return nodes.filter(n => n.parentId === id).sort((a, b) => a.idx - b.idx);
-    }
-
-    function weightedCenterTx(kids) {
-      const w = kids.reduce((s, k) => s + (k.subCount || 1), 0);
-      return kids.reduce((s, k) => s + k.tx * (k.subCount || 1), 0) / w;
-    }
-
-    function initVerticalLayout() {
-      const root = byId.get("0");
-
-      function applyNoise(n) {
-        const parent = n.parentId ? byId.get(n.parentId) : null;
-        const jitter = parent
-          ? (hash(n.path, 42) - 0.5) * verticalGap(parent, n) * 0.12
-          : 0;
-        n.tx += (Math.random() - 0.5) * 16;
-        n.ty += jitter;
-      }
-
-      function setChildTy(child, parent) {
-        const gap = verticalGap(parent, child);
-        const sibs = childrenOf(parent.id);
-        const yOff = sibs.length > 1 ? (hash(child.path, 17) - 0.5) * gap * 0.35 : 0;
-        child.ty = parent.ty + gap + yOff;
-      }
-
-      function layoutNodeY(id) {
-        const n = byId.get(id);
-        const parent = n.parentId ? byId.get(n.parentId) : null;
-        if (parent) setChildTy(n, parent);
-        applyNoise(n);
-        childrenOf(id).forEach(k => layoutNodeY(k.id));
-      }
-
-      layoutNodeX("0");
-
-      root.ty = 0;
-      layoutNodeY("0");
-
-      nodes.forEach(n => {
-        n.x = n.tx;
-        n.y = n.ty;
-      });
-
-      const pad = 28;
-      const minX = Math.min(...nodes.map(n => n.x - n.w / 2)) - pad;
-      const minY = Math.min(...nodes.map(n => n.y - n.h / 2)) - pad;
-      nodes.forEach(n => {
-        n.x -= minX; n.y -= minY;
-        n.tx -= minX; n.ty -= minY;
-      });
-    }
-
-    function linkEndpoint(n, other) {
-      return other.y < n.y ? { x: n.x, y: n.y - n.h / 2 } : { x: n.x, y: n.y + n.h / 2 };
-    }
-
-    function branchLink(p, c) {
-      const a = linkEndpoint(p, c);
-      const b = linkEndpoint(c, p);
-      const x1 = a.x, y1 = a.y, x2 = b.x, y2 = b.y;
-      const rise = y1 - y2;
-      const bend = Math.max(8, Math.abs(rise) * 0.35);
-      if (Math.abs(x2 - x1) < 4) {
-        const d1 = rise >= 0 ? -bend : bend;
-        const d2 = rise >= 0 ? bend * 0.2 : -bend * 0.2;
-        return `M ${x1} ${y1} C ${x1} ${y1 + d1}, ${x2} ${y2 + d2}, ${x2} ${y2}`;
-      }
-      const midY = y1 - rise * 0.48;
-      return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
-    }
-
-    function linkStyle(l) {
-      const p = linkNode(l, "s");
-      const c = linkNode(l, "t");
-      const n = c ? c.subCount : 1;
-      const depth = ((p?.depth ?? 0) + (c?.depth ?? 0)) / 2;
-      const width = 5 * Math.sqrt(n);
-      return {
-        width,
-        stroke: treeColorAt(depth).fill,
-        opacity: Math.max(0.35, 0.45 + Math.min(0.5, n / 90))
-      };
-    }
-
-    function queryState() {
-      const q = search.value.trim().toLowerCase();
-      const hit = new Set();
-      if (q) nodes.forEach(n => {
-        const d = n.data;
-        if ((d.name + (d.unit || "") + (d.topic || "")).toLowerCase().includes(q)) hit.add(n.path);
-      });
-      const visible = path => {
-        if (!q || !hit.size) return true;
-        return [...hit].some(h => path.startsWith(h) || h.startsWith(path));
-      };
-      return { q, hit, visible };
-    }
-
-    function updatePositions() {
-      const { q, hit, visible } = queryState();
-      linkSel
-        .classed("dim", l => q && !visible(byId.get(l.target).path))
-        .attr("d", l => {
-          const p = byId.get(l.source.id || l.source);
-          const c = byId.get(l.target.id || l.target);
-          return p && c ? branchLink(p, c) : "";
-        })
-        .style("stroke-width", l => linkStyle(l).width + "px")
-        .style("stroke", l => linkStyle(l).stroke)
-        .style("stroke-opacity", l => linkStyle(l).opacity);
-      nodeSel
-        .classed("dim", n => q && !visible(n.path))
-        .classed("match", n => q && hit.has(n.path))
-        .attr("transform", n => `translate(${n.x - n.w / 2},${n.y - n.h / 2})`);
-    }
-
-    function bindNodes() {
-      nodeSel = ng.selectAll("g.node").data(nodes, d => d.id);
-      nodeSel.exit().remove();
-      const enter = nodeSel.enter().append("g").attr("class", "node");
-      enter.append("rect");
-      enter.append("path").attr("class", "leaf-shape").style("display", "none");
-      enter.append("line").attr("class", "leaf-vein").style("display", "none");
-      enter.append("text").attr("class", "label");
-      enter.append("text").attr("class", "prof-stats");
-      enter.append("g").attr("class", "app-btn");
-      enter.append("text").attr("class", "ord");
-      nodeSel = enter.merge(nodeSel);
-
-      nodeSel.each(function(n) {
-        const s = ST[n.type];
-        const isLeaf = n.type === "leaf";
-        const c = isLeaf ? leafNodeColor(n) : treeColorAt(n.depth);
-        const g = d3.select(this);
-        const btnW = n.data.app ? APP_BTN_W + APP_BTN_GAP : 0;
-        const labelCx = (n.w - btnW) / 2;
-        const box = g.select("rect");
-        const leafEl = g.select("path.leaf-shape");
-        const vein = g.select("line.leaf-vein");
-        if (isLeaf) {
-          box.style("display", "none");
-          const clipId = leafClipId(n);
-          let clip = g.select("clipPath");
-          if (clip.empty()) {
-            clip = g.insert("clipPath", ":first-child").attr("id", clipId);
-            clip.append("path");
-          } else {
-            clip.attr("id", clipId);
-          }
-          const leafD = leafPath(n.w, n.h);
-          clip.select("path").attr("d", leafD);
-          leafEl.style("display", null)
-            .attr("d", leafD)
-            .attr("fill", c.fill).attr("stroke", c.stroke);
-          vein.style("display", null)
-            .attr("x1", n.w / 2).attr("y1", 5)
-            .attr("x2", n.w / 2).attr("y2", n.h - 4)
-            .attr("stroke", c.stroke)
-            .attr("stroke-width", 0.75)
-            .attr("opacity", 0.35);
-          const clipRef = `url(#${clipId})`;
-          g.select("text.label").attr("clip-path", clipRef);
-          g.select("text.prof-stats").attr("clip-path", clipRef);
-        } else {
-          box.style("display", null)
-            .attr("width", n.w).attr("height", n.h)
-            .attr("rx", 6)
-            .attr("fill", c.fill).attr("stroke", c.stroke);
-          leafEl.style("display", "none");
-          vein.style("display", "none");
-          g.select("text.label").attr("clip-path", null);
-          g.select("text.prof-stats").attr("clip-path", null);
-        }
-        const hasApp = !!n.data.app;
-        const pad = s.pad + (isLeaf && hasApp ? 2 : 0);
-        const profTxt = hasApp ? PracticeStats.format(n.path) : "";
-        const hasProf = !!profTxt;
-        g.select("text.label")
-          .attr("x", labelCx)
-          .attr("y", isLeaf ? leafLabelY(n.h, hasProf) : n.h / 2)
-          .attr("fill", c.tc).attr("font-size", s.fs).attr("font-weight", s.fw)
-          .text(n.data.name);
-        g.select("text.prof-stats")
-          .attr("x", labelCx)
-          .attr("y", isLeaf && hasProf ? leafProfY(n.h) : n.h - 3)
-          .classed("prof-stats", true)
-          .attr("fill", c.tc === "#fff" ? "rgba(255,255,255,0.9)" : "#1b5e20")
-          .text(profTxt)
-          .style("display", profTxt ? null : "none");
-        const ord = g.select("text.ord");
-        if (n.showOrd && n.idx >= 0) {
-          ord.attr("x", labelCx).attr("y", -5).text(ORD[n.idx] || n.idx + 1).style("display", null);
-        } else ord.style("display", "none");
-
-        const appG = g.select("g.app-btn");
-        appG.selectAll("*").remove();
-        if (n.data.app) {
-          const bx = n.w - pad - APP_BTN_W + 1;
-          const by = (n.h - 14) / 2;
-          const link = appG.append("a")
-            .attr("href", appHref(n))
-            .attr("target", "_blank")
-            .attr("title", "打开练习");
-          link.append("rect")
-            .attr("x", bx).attr("y", by)
-            .attr("width", APP_BTN_W - 2).attr("height", 14)
-            .attr("rx", 3);
-          link.append("text")
-            .attr("x", bx + (APP_BTN_W - 2) / 2).attr("y", by + 7)
-            .text("练");
-          link.on("mousedown", e => e.stopPropagation())
-            .on("click", e => e.stopPropagation());
-        }
-      });
-
-      nodeSel.call(d3.drag()
-        .on("start", (event, d) => {
-          if (!event.active && simulation) simulation.alphaTarget(0.25).restart();
-          d.fx = d.x; d.fy = d.y;
-          svg.classed("node-drag", true);
-        })
-        .on("drag", (event, d) => {
-          const [px, py] = d3.pointer(event, rootG.node());
-          d.fx = px; d.fy = py;
-        })
-        .on("end", (event, d) => {
-          if (!event.active && simulation) simulation.alphaTarget(0);
-          d.fx = null; d.fy = null;
-          svg.classed("node-drag", false);
-        }));
-    }
-
-    function updatePracticeLabels() {
-      if (isRouteMap()) {
-        renderRoutes();
-        return;
-      }
-      if (!nodeSel) return;
-      nodeSel.each(function(n) {
-        if (n.type !== "leaf" || !n.data.app) return;
-        const g = d3.select(this);
-        const c = leafNodeColor(n);
-        g.select("path.leaf-shape").attr("fill", c.fill).attr("stroke", c.stroke);
-        g.select("line.leaf-vein").attr("stroke", c.stroke);
-        const txt = PracticeStats.format(n.path);
-        const hasProf = !!txt;
-        const btnW = APP_BTN_W + APP_BTN_GAP;
-        const labelCx = (n.w - btnW) / 2;
-        g.select("text.label")
-          .attr("y", leafLabelY(n.h, hasProf))
-          .attr("fill", c.tc);
-        g.select("text.prof-stats")
-          .attr("x", labelCx)
-          .attr("y", hasProf ? leafProfY(n.h) : n.h - 3)
-          .attr("fill", c.tc === "#fff" ? "rgba(255,255,255,0.9)" : "#1b5e20")
-          .text(txt)
-          .style("display", txt ? null : "none");
-      });
-    }
-
-    function bindLinks() {
-      linkSel = lg.selectAll("path.link").data(links, l => l.source + ">" + l.target);
-      linkSel.exit().remove();
-      linkSel = linkSel.enter().append("path").attr("class", "link").merge(linkSel);
-    }
-
-    function startSimulation() {
-      if (simulation) simulation.stop();
-
-      const root = byId.get("0");
-      simulation = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d => d.id)
-          .distance(l => {
-            const p = linkNode(l, "s"), c = linkNode(l, "t");
-            const base = Math.max(36, (p.h + c.h) * 0.55 + 24);
-            return base + trunkEdgeGap(p, c) * 0.55;
-          })
-          .strength(l => branchStiffness(linkNode(l, "t"))))
-        .force("y", d3.forceY(d => d.ty).strength(d => anchorPull(d)))
-        .force("x", d3.forceX(d => d.tx).strength(d => anchorPull(d)))
-        .force("collide", d3.forceCollide().radius(d => Math.hypot(d.w, d.h) * 0.55 + 12).iterations(3))
-        .force("charge", d3.forceManyBody()
-          .strength(chargeStrength)
-          .distanceMax(CHARGE_RANGE).distanceMin(10))
-        .alphaDecay(0.028)
-        .velocityDecay(0.35)
-        .on("tick", updatePositions);
-
-      root.fx = root.x;
-      root.fy = root.y;
-
-      simulation.on("end", () => {
-        root.fx = root.fy = null;
-      });
-    }
-
-    function applyTransform() {
-      rootG.attr("transform", `translate(${transform.x},${transform.y}) scale(${transform.scale})`);
-    }
-
-    function zoomAt(mx, my, ns) {
-      ns = Math.min(3, Math.max(0.05, ns));
-      const k = ns / transform.scale;
-      transform.x = mx - (mx - transform.x) * k;
-      transform.y = my - (my - transform.y) * k;
-      transform.scale = ns;
-      applyTransform();
-    }
-
-    function canvasCenter() {
-      const rect = svg.node().getBoundingClientRect();
-      return { x: rect.width / 2, y: rect.height / 2 };
-    }
-
-    function fitView() {
-      if (!nodes.length) return;
-      const pad = 36;
-      const minX = Math.min(...nodes.map(n => n.x - n.w / 2)) - pad;
-      const maxX = Math.max(...nodes.map(n => n.x + n.w / 2)) + pad;
-      const minY = Math.min(...nodes.map(n => n.y - n.h / 2)) - pad;
-      const rect = svg.node().getBoundingClientRect();
-      const scW = rect.width / Math.max(1, maxX - minX);
-      transform.scale = Math.max(0.35, Math.min(scW, 1.05));
-      transform.x = (rect.width - (maxX - minX) * transform.scale) / 2 - minX * transform.scale;
-      transform.y = 12 - minY * transform.scale;
-      applyTransform();
-    }
-
-    function relayout() {
-      initVerticalLayout();
-      nodes.forEach(n => { n.fx = n.fy = null; });
-      bindLinks();
-      bindNodes();
-      startSimulation();
-      updatePositions();
-      fitView();
-      document.getElementById("stats").textContent = nodes.length + " 节点";
-    }
-
-    const PAGE_TITLE = "人教版小学数学 · 先修知识树";
-
-    function isRouteMap() {
-      return !!(data && data.routes);
-    }
-
-    function indexTreePaths(tree) {
-      const map = {};
-      function walk(node, path) {
-        if (node.id) map[node.id] = path;
-        (node.children || []).forEach((c, i) => walk(c, path + "/" + i));
-      }
-      walk(tree, "0");
-      return map;
-    }
-
-    function appHrefByPath(app, path) {
-      const sep = app.includes("?") ? "&" : "?";
-      return app + sep + "node=" + encodeURIComponent(path);
-    }
-
-    const MASTERED = (window.PS_CONFIG && PS_CONFIG.masteredAt) || 90;
     const CREDIT_LS = "ps-route-credit";
+    const MASTERED = (window.PS_CONFIG && PS_CONFIG.masteredAt) || 90;
+    let grade = "1";
+
+    function appHref(id) {
+      const app = defs[id].app;
+      return app + (app.includes("?") ? "&" : "?") + "node=" + encodeURIComponent(id);
+    }
 
     function loadCredit() {
       try {
@@ -850,66 +200,56 @@
       return s.proficiency != null && s.proficiency >= MASTERED;
     }
 
-    function wireDownstream(defs, paths) {
-      const direct = {};
-      Object.keys(defs).forEach(id => {
-        (defs[id].deps || []).forEach(pre => {
-          if (!paths[pre] || !paths[id]) return;
-          (direct[paths[pre]] = direct[paths[pre]] || []).push(paths[id]);
-        });
-      });
-      if (window.PracticeStats && PracticeStats.setDownstream) PracticeStats.setDownstream(direct);
-    }
-
-    function syncCredit(defs, paths) {
-      const credit = loadCredit();
-      let changed = false;
-      Object.keys(defs).forEach(id => {
-        const path = paths[id];
-        if (!path || !passed(PracticeStats.get(path))) return;
-        const stack = [...(defs[id].deps || [])];
-        while (stack.length) {
-          const d = stack.pop();
-          if (credit.has(d)) continue;
-          credit.add(d);
-          changed = true;
-          (defs[d].deps || []).forEach(x => stack.push(x));
-        }
-      });
-      if (changed) saveCredit(credit);
-      return credit;
-    }
-
-    function cleared(id, paths, credit) {
-      return passed(PracticeStats.get(paths[id])) || credit.has(id);
-    }
-
-    function opened(id, defs, paths, credit) {
-      const deps = defs[id].deps || [];
-      if (!deps.length) return true;
-      if (cleared(id, paths, credit)) return true;
-      return deps.every(d => cleared(d, paths, credit));
-    }
-
-    function laterOf(defs) {
+    function laterOf() {
       const kids = {};
       Object.keys(defs).forEach(id => {
-        (defs[id].deps || []).forEach(pre => {
+        defs[id].deps.forEach(pre => {
           (kids[pre] = kids[pre] || []).push(id);
         });
       });
       return kids;
     }
 
-    function laterPassed(id, defs, paths, kids) {
-      const stack = [...(kids[id] || [])];
+    const KIDS = laterOf();
+    PracticeStats.setDownstream(KIDS);
+
+    function syncCredit() {
+      const credit = loadCredit();
+      let changed = false;
+      Object.keys(defs).forEach(id => {
+        if (!passed(PracticeStats.get(id))) return;
+        const stack = [...defs[id].deps];
+        while (stack.length) {
+          const d = stack.pop();
+          if (credit.has(d)) continue;
+          credit.add(d);
+          changed = true;
+          defs[d].deps.forEach(x => stack.push(x));
+        }
+      });
+      if (changed) saveCredit(credit);
+      return credit;
+    }
+
+    function cleared(id, credit) {
+      return passed(PracticeStats.get(id)) || credit.has(id);
+    }
+
+    function opened(id, credit) {
+      const deps = defs[id].deps;
+      if (!deps.length || cleared(id, credit)) return true;
+      return deps.every(d => cleared(d, credit));
+    }
+
+    function laterPassed(id) {
+      const stack = [...(KIDS[id] || [])];
       const seen = new Set();
       while (stack.length) {
         const cur = stack.pop();
         if (seen.has(cur)) continue;
         seen.add(cur);
-        if (paths[cur] && passed(PracticeStats.get(paths[cur]))) return true;
-        (kids[cur] || []).forEach(x => stack.push(x));
+        if (passed(PracticeStats.get(cur))) return true;
+        (KIDS[cur] || []).forEach(x => stack.push(x));
       }
       return false;
     }
@@ -921,94 +261,69 @@
       return FACES[(h >>> 0) % FACES.length];
     }
 
-    function cardBody(id, name, meta, tag) {
-      return `<span class="face" aria-hidden="true">${faceOf(id)}</span><div class="name">${name}</div><div class="meta">${meta}</div>${tag ? `<div class="tag">${tag}</div>` : ""}`;
+    function card(id, nextId, credit) {
+      const def = defs[id];
+      const s = PracticeStats.get(id);
+      const did = passed(s);
+      const known = !did && credit.has(id);
+      const full = mastered(s);
+      const locked = laterPassed(id);
+      let cls = "card";
+      let tag;
+      if (!opened(id, credit)) cls += " shut";
+      if (full || locked) {
+        cls += " full";
+        if (did) cls += " done";
+        tag = did ? "已过" : "已会";
+      }
+      else if (did) { cls += " done"; tag = "复习"; }
+      else if (known) { cls += " known"; tag = "已会"; }
+      else if (id === nextId) { cls += " next"; tag = "下一关"; }
+      else tag = s.total ? "进行中" : "可练";
+      const meta = s.total
+        ? `${s.total}题 · ${s.proficiency == null ? "—" : s.proficiency + "%"}`
+        : known || locked ? "后面的关已经过了" : full ? "已经会了" : "点进去练";
+      const gradeTag = String(def.grade) === grade ? "" : `<span class="grade">${data.grades[def.grade]}</span>`;
+      const body = `<span class="face" aria-hidden="true">${faceOf(id)}</span>${gradeTag}<div class="name">${def.name}</div><div class="meta">${meta}</div><div class="tag">${tag}</div>`;
+      if (full || locked) return `<div class="${cls}">${body}</div>`;
+      return `<a class="${cls}" href="${appHref(id)}">${body}</a>`;
+    }
+
+    function join(prev, row, lanes) {
+      if (prev.length > 1 && row.length === 1) {
+        return `<div class="g-join merge" aria-hidden="true"><svg viewBox="0 0 200 24" preserveAspectRatio="none"><path d="M50 0 V24"/><path d="M150 0 V12 H50"/></svg></div>`;
+      }
+      const stems = [];
+      for (let c = 0; c < lanes; c++) {
+        stems.push(`<div class="cell">${prev[c] && row[c] ? `<span class="stem"></span>` : ""}</div>`);
+      }
+      return `<div class="g-join" aria-hidden="true">${stems.join("")}</div>`;
     }
 
     function renderRoutes() {
-      const box = document.getElementById("routes");
-      const paths = indexTreePaths(data.tree);
-      const defs = data.nodes || {};
-      wireDownstream(defs, paths);
-      const credit = syncCredit(defs, paths);
-      const kids = laterOf(defs);
-      const tracks = data.routes.map(route => {
+      const credit = syncCredit();
+      const routes = data.routes.filter(r => String(r.grade) === grade);
+      const html = routes.map(route => {
         const ids = route.rows.flat();
-        const nextId = ids.find(id => {
-          if (!defs[id].app || !opened(id, defs, paths, credit) || cleared(id, paths, credit)) return false;
-          return !mastered(PracticeStats.get(paths[id]));
-        }) || null;
-        const done = ids.filter(id => cleared(id, paths, credit)).length;
-        return { route, nextId, done, total: ids.length, paths, defs, credit, kids };
-      });
-
-      box.innerHTML = `<div class="routes-inner">${tracks.map(t => {
-        const lanes = Math.max(1, ...t.route.rows.map(r => r.length));
-        const card = id => {
-          const def = t.defs[id];
-          const path = t.paths[id];
-          const s = PracticeStats.get(path);
-          const did = passed(s);
-          const known = !did && t.credit.has(id);
-          const open = opened(id, t.defs, t.paths, t.credit);
-          const next = id === t.nextId;
-          let cls = "card";
-          let tag = "";
-          if (!open) cls += " shut";
-          if (!def.app) {
-            return `<div class="${cls} idle">${cardBody(id, def.name, "练习稍后", "")}</div>`;
-          }
-          const full = mastered(s);
-          const locked = laterPassed(id, t.defs, t.paths, t.kids);
-          if (full || locked) {
-            cls += " full";
-            if (did) cls += " done";
-            tag = did ? "已过" : "已会";
-          }
-          else if (did) { cls += " done"; tag = "复习"; }
-          else if (known) { cls += " known"; tag = "已会"; }
-          else if (next) { cls += " next"; tag = "下一关"; }
-          else tag = s.total ? "进行中" : "可练";
-          const meta = s.total
-            ? `${s.total}题 · ${s.proficiency == null ? "—" : s.proficiency + "%"}`
-            : known || locked ? "后面的关已经过了" : full ? "已经会了" : "点进去练";
-          const body = cardBody(id, def.name, meta, tag);
-          if (full || locked) return `<div class="${cls}">${body}</div>`;
-          return `<a class="${cls}" href="${appHrefByPath(def.app, path)}">${body}</a>`;
-        };
-        const cells = row => {
-          const html = [];
+        const nextId = ids.find(id => opened(id, credit) && !cleared(id, credit) && !mastered(PracticeStats.get(id))) || null;
+        const done = ids.filter(id => cleared(id, credit)).length;
+        const lanes = Math.max(...route.rows.map(r => r.length));
+        const body = route.rows.map((row, i) => {
+          const cells = [];
           for (let c = 0; c < lanes; c++) {
-            html.push(`<div class="cell">${row[c] ? card(row[c]) : ""}</div>`);
+            cells.push(`<div class="cell">${row[c] ? card(row[c], nextId, credit) : ""}</div>`);
           }
-          return html.join("");
-        };
-        const join = (prev, row) => {
-          if (prev.length > 1 && row.length === 1) {
-            return `<div class="g-join merge" aria-hidden="true"><svg viewBox="0 0 200 24" preserveAspectRatio="none"><path d="M50 0 V24"/><path d="M150 0 V12 H50"/></svg></div>`;
-          }
-          const stems = [];
-          for (let c = 0; c < lanes; c++) {
-            stems.push(`<div class="cell">${prev[c] && row[c] ? `<span class="stem"></span>` : ""}</div>`);
-          }
-          return `<div class="g-join" aria-hidden="true">${stems.join("")}</div>`;
-        };
-        const body = t.route.rows.map((row, i) => {
-          const j = i ? join(t.route.rows[i - 1], row) : "";
-          return `${j}<div class="g-row">${cells(row)}</div>`;
+          return (i ? join(route.rows[i - 1], row, lanes) : "") + `<div class="g-row">${cells.join("")}</div>`;
         }).join("");
-        return `<section class="track${lanes > 1 ? " lanes-2" : ""}"><div class="track-head"><h2>${t.route.name}</h2><span class="prog">${t.done}/${t.total} 关</span></div><div class="graph">${body}</div></section>`;
-      }).join("")}</div>`;
-      box.querySelector(".routes-inner").classList.add("cols-" + tracks.length);
-      document.getElementById("stats").textContent = data.routes.length + " 条路线";
+        return `<section class="track${lanes > 1 ? " lanes-2" : ""}"><div class="track-head"><h2>${route.name}</h2><span class="prog">${done}/${ids.length} 关</span></div><div class="graph">${body}</div></section>`;
+      }).join("");
+      document.getElementById("routes").innerHTML = `<div class="routes-inner cols-${routes.length}">${html}</div>`;
+      document.getElementById("stats").textContent = routes.length + " 条路线";
     }
 
     function updateChrome() {
-      document.title = PAGE_TITLE;
-      document.getElementById("page-title").textContent = PAGE_TITLE;
-      document.getElementById("edition-label").textContent = isRouteMap()
-        ? data.edition + " · 从上往下打关"
-        : data.edition + " · 叶子在下 · 往上晋级";
+      document.getElementById("edition-label").textContent =
+        data.edition + " · 从上往下打关 · 右上角标了年级的是别的年级的先修";
       const w = window.PlayWallet ? PlayWallet.get() : 0;
       const cost = window.PlayWallet ? PlayWallet.COST : 40;
       document.getElementById("walletChip").textContent = "积分 " + w;
@@ -1024,152 +339,34 @@
     window.addEventListener("ps-wallet", updateChrome);
     window.addEventListener("ps-play", updateChrome);
 
-    function setGrade(grade) {
-      const g = String(grade);
-      if (!GRADE_DATA[g]) return;
-      data = GRADE_DATA[g];
-      wireDownstream(data.nodes || {}, indexTreePaths(data.tree));
-      document.getElementById("grade-select").value = g;
-      try { localStorage.setItem(GRADE_LS, g); } catch (_) {}
-      document.getElementById("search").value = "";
-      if (simulation) simulation.stop();
+    function setGrade(g) {
+      grade = data.grades[g] ? String(g) : "1";
+      document.getElementById("grade-select").value = grade;
+      try { localStorage.setItem(GRADE_LS, grade); } catch (_) {}
       updateChrome();
-      const map = isRouteMap();
-      document.body.classList.toggle("mode-routes", map);
-      document.body.classList.toggle("mode-tree", !map);
-      document.getElementById("routes").hidden = !map;
-      if (map) {
-        renderRoutes();
-        return;
-      }
-      buildGraph(data.tree);
-      relayout();
+      renderRoutes();
     }
 
     function savedGrade() {
       try {
         const g = localStorage.getItem(GRADE_LS);
-        if (g && GRADE_DATA[g]) return g;
+        if (g && data.grades[g]) return g;
       } catch (_) {}
       return "1";
     }
 
-    function syncGradeFromSelect() {
-      const g = document.getElementById("grade-select").value;
-      if (GRADE_DATA[g] && data !== GRADE_DATA[g]) setGrade(g);
-    }
-
-    document.getElementById("grade-select").addEventListener("change", e => setGrade(e.target.value));
-    document.getElementById("fit-view").onclick = fitView;
-    document.getElementById("reset-layout").onclick = relayout;
-    document.getElementById("search").addEventListener("input", updatePositions);
-    document.getElementById("zoom-in").onclick = () => {
-      const c = canvasCenter();
-      zoomAt(c.x, c.y, transform.scale * 1.25);
-    };
-    document.getElementById("zoom-out").onclick = () => {
-      const c = canvasCenter();
-      zoomAt(c.x, c.y, transform.scale / 1.25);
-    };
-
-    let panning = false, panLast = { x: 0, y: 0 };
-    let pinch = null;
-    svg.on("mousedown", event => {
-      if (event.target.closest(".node")) return;
-      panning = true;
-      panLast = { x: event.clientX, y: event.clientY };
-      svg.classed("panning", true);
-    });
-    window.addEventListener("mousemove", event => {
-      if (!panning) return;
-      transform.x += event.clientX - panLast.x;
-      transform.y += event.clientY - panLast.y;
-      panLast = { x: event.clientX, y: event.clientY };
-      applyTransform();
-    });
-    window.addEventListener("mouseup", () => { panning = false; svg.classed("panning", false); });
-    svg.on("wheel", event => {
-      event.preventDefault();
-      const rect = svg.node().getBoundingClientRect();
-      zoomAt(
-        event.clientX - rect.left,
-        event.clientY - rect.top,
-        transform.scale * (event.deltaY > 0 ? 0.9 : 1.1)
-      );
-    }, { passive: false });
-
-    function touchDist(a, b) {
-      return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-    }
-    function touchMid(a, b, rect) {
-      return {
-        x: (a.clientX + b.clientX) / 2 - rect.left,
-        y: (a.clientY + b.clientY) / 2 - rect.top
-      };
-    }
-    const svgEl = svg.node();
-    svgEl.addEventListener("touchstart", event => {
-      if (event.touches.length === 2) {
-        event.preventDefault();
-        panning = false;
-        const rect = svgEl.getBoundingClientRect();
-        const mid = touchMid(event.touches[0], event.touches[1], rect);
-        pinch = {
-          dist: touchDist(event.touches[0], event.touches[1]),
-          scale: transform.scale,
-          x: transform.x,
-          y: transform.y,
-          mx: mid.x,
-          my: mid.y
-        };
-        return;
-      }
-      pinch = null;
-      if (event.touches.length === 1 && !event.target.closest(".node")) {
-        panning = true;
-        panLast = { x: event.touches[0].clientX, y: event.touches[0].clientY };
-        svg.classed("panning", true);
-      }
-    }, { passive: false });
-    svgEl.addEventListener("touchmove", event => {
-      if (pinch && event.touches.length === 2) {
-        event.preventDefault();
-        const rect = svgEl.getBoundingClientRect();
-        const mid = touchMid(event.touches[0], event.touches[1], rect);
-        const d = touchDist(event.touches[0], event.touches[1]);
-        const ns = Math.min(3, Math.max(0.05, pinch.scale * (d / Math.max(pinch.dist, 1))));
-        const k = ns / pinch.scale;
-        transform.scale = ns;
-        transform.x = mid.x - (pinch.mx - pinch.x) * k;
-        transform.y = mid.y - (pinch.my - pinch.y) * k;
-        applyTransform();
-        return;
-      }
-      if (panning && event.touches.length === 1) {
-        event.preventDefault();
-        transform.x += event.touches[0].clientX - panLast.x;
-        transform.y += event.touches[0].clientY - panLast.y;
-        panLast = { x: event.touches[0].clientX, y: event.touches[0].clientY };
-        applyTransform();
-      }
-    }, { passive: false });
-    svgEl.addEventListener("touchend", event => {
-      if (event.touches.length < 2) pinch = null;
-      if (event.touches.length === 0) {
-        panning = false;
-        svg.classed("panning", false);
-      }
-    });
+    const gradeSelect = document.getElementById("grade-select");
+    gradeSelect.innerHTML = Object.entries(data.grades)
+      .map(([g, name]) => `<option value="${g}">${name}</option>`).join("");
+    gradeSelect.addEventListener("change", e => setGrade(e.target.value));
 
     window.addEventListener("focus", () => {
-      syncGradeFromSelect();
-      PracticeStats.refresh().then(updatePracticeLabels);
+      PracticeStats.refresh().then(renderRoutes);
     });
 
     window.addEventListener("pageshow", (e) => {
       if (!e.persisted) return;
-      syncGradeFromSelect();
-      PracticeStats.refresh().then(updatePracticeLabels);
+      PracticeStats.refresh().then(renderRoutes);
     });
 
     function pad2(n) { return (n < 10 ? "0" : "") + n; }

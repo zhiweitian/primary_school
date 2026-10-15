@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>口算求商</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee; padding: 1rem;
+    }
+    .container {
+      padding: 2rem 1.6rem; width: min(480px, 96vw);
+      background: rgba(255,255,255,0.06); border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 { text-align: center; font-size: 1.4rem; color: #ffd166; margin-bottom: 0.3rem; }
+    .hint { text-align: center; font-size: 0.78rem; color: #888; margin-bottom: 1rem; line-height: 1.5; }
+    .stats { display: flex; justify-content: center; gap: 1.6rem; margin-bottom: 1rem; }
+    .stat-label { font-size: 0.72rem; color: #888; text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #06d6a0; text-align: center; }
+    .stat-value.prof { color: #ffd166; }
+    .card {
+      padding: 1.4rem 1rem 1.2rem; background: rgba(0,0,0,0.25); border-radius: 14px;
+    }
+    .eq {
+      display: flex; justify-content: center; align-items: flex-start; gap: 0.45rem;
+    }
+    .part { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; min-width: 4.2rem; }
+    .num {
+      min-width: 4.2rem; height: 3.4rem; display: flex; align-items: center; justify-content: center;
+      font-family: "Courier New", monospace; font-size: 2.1rem; font-weight: 700; color: #a8dadc;
+    }
+    .part input {
+      width: 4.2rem; height: 3.4rem; padding: 0; border: 2px solid rgba(168,218,220,0.35);
+      border-radius: 10px; background: rgba(0,0,0,0.3); color: #ffd166;
+      font-family: "Courier New", monospace; font-size: 2.1rem; font-weight: 700; text-align: center;
+    }
+    .part input:focus { outline: none; border-color: #ffd166; }
+    .part input:disabled { opacity: 0.55; }
+    .role { font-size: 0.82rem; font-weight: 700; color: #ffd166; letter-spacing: 0.06em; }
+    .op {
+      height: 3.4rem; display: flex; align-items: center;
+      font-size: 1.7rem; font-weight: 700; color: #888;
+    }
+    .kou { text-align: center; margin-top: 0.85rem; font-size: 0.92rem; color: #a8dadc; min-height: 1.2rem; }
+    .actions { display: flex; justify-content: center; margin-top: 1rem; }
+    .btn {
+      min-width: 5.2rem; padding: 0.62rem 1rem; border: none; border-radius: 10px;
+      font-size: 1.02rem; font-weight: 700; cursor: pointer; background: #a8dadc; color: #1a1a2e;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .status { text-align: center; margin-top: 0.7rem; min-height: 1.3rem; font-size: 0.92rem; }
+    .status.ok { color: #06d6a0; }
+    .status.err { color: #ef476f; }
+    .btn-next {
+      display: none; margin: 0.65rem auto 0; padding: 0.45rem 1.3rem;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: transparent;
+      color: #a8dadc; cursor: pointer;
+    }
+    .btn-next.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>➗ 口算求商</h1>
+    <p class="hint">乘法表里的除法。被除数 ÷ 除数 = 商</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card">
+      <div class="eq" id="eq"></div>
+      <div class="kou" id="kou"></div>
+      <div class="actions"><button class="btn" id="okBtn" type="button">确定</button></div>
+    </div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script>
+    let prof, profUI, q = null, answered = false, timer = null, lastKey = "";
+    const AUTO_MS = 1400;
+    const CN = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+
+    function rand(a, b) {
+      return a + Math.floor(Math.random() * (b - a + 1));
+    }
+
+    function cnNum(n) {
+      if (n < 10) return CN[n];
+      if (n === 10) return "一十";
+      if (n < 20) return "十" + CN[n - 10];
+      if (n % 10 === 0) return CN[n / 10] + "十";
+      return CN[Math.floor(n / 10)] + "十" + CN[n % 10];
+    }
+
+    function koujue(a, b) {
+      const lo = Math.min(a, b);
+      const hi = Math.max(a, b);
+      const p = a * b;
+      const head = CN[lo] + CN[hi];
+      return p < 10 ? head + "得" + CN[p] : head + cnNum(p);
+    }
+
+    function makeQ() {
+      let a, b, key;
+      do {
+        a = rand(1, 9);
+        b = rand(1, 9);
+        key = a + "x" + b;
+      } while (key === lastKey);
+      lastKey = key;
+      const p = a * b;
+      return Math.random() < 0.5
+        ? { dividend: p, divisor: a, quotient: b }
+        : { dividend: p, divisor: b, quotient: a };
+    }
+
+    function needHint() {
+      const s = prof.stats();
+      if (!s.total || s.total < 8) return true;
+      return s.proficiency == null || s.proficiency < 80;
+    }
+
+    function render() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      answered = false;
+      q = makeQ();
+      document.getElementById("status").textContent = "";
+      document.getElementById("status").className = "status";
+      document.getElementById("nextBtn").classList.remove("show");
+      document.getElementById("okBtn").disabled = false;
+      document.getElementById("eq").innerHTML =
+        `<div class="part"><div class="num">${q.dividend}</div><div class="role">被除数</div></div>`
+        + `<div class="op">÷</div>`
+        + `<div class="part"><div class="num">${q.divisor}</div><div class="role">除数</div></div>`
+        + `<div class="op">=</div>`
+        + `<div class="part"><input id="ans" inputmode="numeric" maxlength="2" autocomplete="off"><div class="role">商</div></div>`;
+      document.getElementById("kou").textContent = needHint()
+        ? "想：" + koujue(q.divisor, q.quotient)
+        : "";
+      const inp = document.getElementById("ans");
+      inp.focus();
+      inp.onkeydown = e => { if (e.key === "Enter") check(); };
+    }
+
+    function check() {
+      if (answered) return;
+      const got = +document.getElementById("ans").value;
+      const ok = got === q.quotient;
+      answered = true;
+      document.getElementById("ans").disabled = true;
+      document.getElementById("okBtn").disabled = true;
+      document.getElementById("nextBtn").disabled = false;
+      prof.record(ok);
+      profUI.render();
+      const st = document.getElementById("status");
+      const tip = q.dividend + " 是被除数，" + q.divisor + " 是除数，" + q.quotient + " 是商";
+      if (ok) {
+        st.textContent = "答对了！" + tip;
+        st.className = "status ok";
+        timer = setTimeout(render, AUTO_MS);
+      } else {
+        st.textContent = tip;
+        st.className = "status err";
+        document.getElementById("nextBtn").classList.add("show");
+      }
+    }
+
+    document.getElementById("okBtn").onclick = check;
+    document.getElementById("nextBtn").onclick = render;
+    PracticeStats.init("../../data/practice-stats.json").then(() => {
+      prof = PracticeStats.create();
+      profUI = prof.bind(
+        document.getElementById("totalDone"),
+        document.getElementById("proficiency")
+      );
+      render();
+    });
+  </script>
+</body>
+</html>

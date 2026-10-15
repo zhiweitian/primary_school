@@ -40,8 +40,10 @@
       width: 0.72rem; height: 0.72rem; border-radius: 50%; background: #ffd166;
     }
     .fill {
-      display: flex; justify-content: center; align-items: center; gap: 0.35rem; flex-wrap: wrap;
+      display: flex; justify-content: center; align-items: flex-start; gap: 0.35rem; flex-wrap: wrap;
     }
+    .part { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+    .part span { font-size: 0.78rem; font-weight: 700; color: #ffd166; }
     .fill input {
       width: 3.4rem; padding: 0.4rem 0.2rem; border: 2px solid rgba(168,218,220,0.35);
       border-radius: 10px; background: rgba(0,0,0,0.3); color: #ffd166;
@@ -49,8 +51,8 @@
     }
     .fill input:focus { outline: none; border-color: #ffd166; }
     .fill input:disabled { opacity: 0.55; }
-    .op { font-size: 1.4rem; color: #888; font-weight: 700; }
-    .choices { display: flex; justify-content: center; gap: 0.6rem; }
+    .op { font-size: 1.4rem; color: #888; font-weight: 700; height: 2.6rem; display: flex; align-items: center; }
+    .choices { display: flex; justify-content: center; gap: 0.6rem; flex-wrap: wrap; }
     .btn {
       min-width: 5.4rem; padding: 0.62rem 1rem; border: none; border-radius: 10px;
       font-size: 1.05rem; font-weight: 700; cursor: pointer; background: #a8dadc; color: #1a1a2e;
@@ -75,7 +77,7 @@
 <body>
   <div class="container">
     <h1>✖️ 乘法的认识</h1>
-    <p class="hint">几个相同的数相加可以写成乘法；乘号两边是因数，得数是积</p>
+    <p class="hint">几个相同的数相加可以写成乘法。被乘数 × 乘数 = 积</p>
     <div class="stats">
       <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
       <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
@@ -115,7 +117,8 @@
         const p = n * k;
         const pick = rand(0, 2);
         const num = pick === 0 ? p : pick === 1 ? n : k;
-        return { kind, n, k, p, num, role: pick === 0 ? "积" : "因数" };
+        const roles = ["积", "被乘数", "乘数"];
+        return { kind, n, k, p, num, role: roles[pick] };
       }
       return { kind, n, k, p: n * k };
     }
@@ -130,11 +133,11 @@
 
     function fillRow() {
       return `<div class="fill">
-        <input id="a" inputmode="numeric" maxlength="2" autocomplete="off">
+        <label class="part"><input id="a" inputmode="numeric" maxlength="2" autocomplete="off"><span>被乘数</span></label>
         <span class="op">×</span>
-        <input id="b" inputmode="numeric" maxlength="2" autocomplete="off">
+        <label class="part"><input id="b" inputmode="numeric" maxlength="2" autocomplete="off"><span>乘数</span></label>
         <span class="op">=</span>
-        <input id="p" inputmode="numeric" maxlength="3" autocomplete="off">
+        <label class="part"><input id="p" inputmode="numeric" maxlength="3" autocomplete="off"><span>积</span></label>
       </div>
       <div class="actions"><button class="btn" id="okBtn" type="button">确定</button></div>`;
     }
@@ -160,7 +163,8 @@
       } else {
         ask.innerHTML = `<span class="eq">${q.n} × ${q.k} = ${q.p}</span><br>「${q.num}」叫做什么？`;
         body.innerHTML = `<div class="choices">
-          <button class="btn" data-role="因数">因数</button>
+          <button class="btn" data-role="被乘数">被乘数</button>
+          <button class="btn" data-role="乘数">乘数</button>
           <button class="btn" data-role="积">积</button>
         </div>`;
         body.querySelectorAll("[data-role]").forEach(b => {

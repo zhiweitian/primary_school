@@ -1,4 +1,4 @@
-const CACHE = "ps-v42";
+const CACHE = "ps-v45";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -10,10 +10,8 @@ const PRECACHE = [
   "./practice-stats-config.js",
   "./practice-stats-store.js",
   "./play-wallet.js",
-  "./vendor/d3.min.js",
   "./knowledge-tree/index.html",
-  "./knowledge-tree/grade1-math-priority-tree.js",
-  "./knowledge-tree/grade2-math-priority-tree.js",
+  "./knowledge-tree/math-tree.js",
   "./apps/grade1/g1.css",
   "./apps/grade1/g1.js",
   "./apps/grade1/num10.html",
@@ -49,6 +47,7 @@ const PRECACHE = [
   "./apps/grade2/length-word.html",
   "./apps/grade2/classify-stats.html",
   "./apps/grade2/vertical-division.html",
+  "./apps/grade2/table-division.html",
   "./apps/grade2/read-write-within-yi.html",
   "./apps/grade2/vertical-multiplication.html",
   "./apps/grade2/length-units.html",

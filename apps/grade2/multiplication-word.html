@@ -29,8 +29,10 @@
     .ask { text-align: center; font-size: 1.08rem; line-height: 1.7; color: #ddd; margin-bottom: 1rem; }
     .ask .n { color: #ffd166; font-weight: 700; }
     .fill {
-      display: flex; justify-content: center; align-items: center; gap: 0.35rem; flex-wrap: wrap;
+      display: flex; justify-content: center; align-items: flex-start; gap: 0.35rem; flex-wrap: wrap;
     }
+    .part { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+    .part span { font-size: 0.78rem; font-weight: 700; color: #ffd166; }
     .fill input {
       width: 3.4rem; padding: 0.4rem 0.2rem; border: 2px solid rgba(168,218,220,0.35);
       border-radius: 10px; background: rgba(0,0,0,0.3); color: #ffd166;
@@ -38,7 +40,7 @@
     }
     .fill input:focus { outline: none; border-color: #ffd166; }
     .fill input:disabled { opacity: 0.55; }
-    .op { font-size: 1.4rem; color: #888; font-weight: 700; }
+    .op { font-size: 1.4rem; color: #888; font-weight: 700; height: 2.6rem; display: flex; align-items: center; }
     .actions { display: flex; justify-content: center; margin-top: 0.9rem; }
     .btn {
       min-width: 5.4rem; padding: 0.62rem 1rem; border: none; border-radius: 10px;
@@ -60,7 +62,7 @@
 <body>
   <div class="container">
     <h1>✖️ 简单乘法实际问题</h1>
-    <p class="hint">先想「几个几」，再列乘法算式</p>
+    <p class="hint">先想「几个几」，再列乘法算式。被乘数 × 乘数 = 积</p>
     <div class="stats">
       <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
       <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
@@ -68,11 +70,11 @@
     <div class="card">
       <div class="ask" id="ask"></div>
       <div class="fill">
-        <input id="a" inputmode="numeric" maxlength="2" autocomplete="off">
+        <label class="part"><input id="a" inputmode="numeric" maxlength="2" autocomplete="off"><span>被乘数</span></label>
         <span class="op">×</span>
-        <input id="b" inputmode="numeric" maxlength="2" autocomplete="off">
+        <label class="part"><input id="b" inputmode="numeric" maxlength="2" autocomplete="off"><span>乘数</span></label>
         <span class="op">=</span>
-        <input id="p" inputmode="numeric" maxlength="3" autocomplete="off">
+        <label class="part"><input id="p" inputmode="numeric" maxlength="3" autocomplete="off"><span>积</span></label>
       </div>
       <div class="actions"><button class="btn" id="okBtn" type="button">确定</button></div>
     </div>
