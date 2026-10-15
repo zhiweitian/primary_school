@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>认识小数</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>认识小数</h1>
+    <p class="hint">把 1 平均分成 10 份，1 份是 1/10，写成 0.1</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    let q;
+    const dec = (a, b) => (b ? `${a}.${b}` : String(a));
+
+    function make() {
+      const kind = G1.pick(["bar", "money", "money2", "len", "frac", "frac2"]);
+      const a = G1.rand(0, 5), b = G1.rand(1, 9);
+      if (kind === "bar") return { kind, a: G1.rand(0, 2), b };
+      if (kind === "money") return { kind, a, b };
+      if (kind === "money2") return { kind, a: G1.rand(1, 9), b };
+      if (kind === "len") return { kind, a: G1.rand(0, 3), b };
+      return { kind, a: 0, b };
+    }
+
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        const x = make();
+        x.ans = x.kind === "money2" ? [String(x.a), String(x.b)] : x.kind === "frac2" ? [String(x.b), "10"] : dec(x.a, x.b);
+        x.key = x.kind + x.a + "." + x.b;
+        return x;
+      });
+      const hint = G1.needHint();
+      const { a, b } = q;
+      let ask, pic = "", input = `${G1.box("l")}`, unit = "", tip = "", why;
+      if (q.kind === "bar") {
+        ask = "每个长条表示 1，涂色部分用小数表示是多少？";
+        pic = `<div class="pic" style="flex-direction:column;align-items:center;gap:0.3rem">${(G1.bar(10, 10, 240)).repeat(a)}${G1.bar(10, b, 240)}</div>`;
+        tip = "满的一条是 1，零散的每格是 0.1";
+        why = `${a ? `${a} 个整条是 ${a}，` : ""}${b} 格是 0.${b}，合起来 ${dec(a, b)}`;
+      } else if (q.kind === "money") {
+        ask = `${a ? `${a} 元 ` : ""}${b} 角 = ？元`;
+        unit = "元";
+        tip = "1 角是 1/10 元，也就是 0.1 元";
+        why = `${b} 角是 0.${b} 元，${a ? `${a} 元 ${b} 角` : `${b} 角`}就是 ${dec(a, b)} 元`;
+      } else if (q.kind === "money2") {
+        ask = `${dec(a, b)} 元是几元几角？`;
+        input = `${G1.box("s")}<span class="u">元</span>${G1.box("s")}<span class="u">角</span>`;
+        tip = "小数点左边是元，右边一位是角";
+        why = `${dec(a, b)} 元 = ${a} 元 ${b} 角`;
+      } else if (q.kind === "len") {
+        ask = `${a ? `${a} 米 ` : ""}${b} 分米 = ？米`;
+        unit = "米";
+        tip = "1 米 = 10 分米，1 分米是 1/10 米，也就是 0.1 米";
+        why = `${b} 分米是 0.${b} 米，所以是 ${dec(a, b)} 米`;
+      } else if (q.kind === "frac") {
+        ask = `${G1.frac(b, 10)} 写成小数是多少？`;
+        tip = "十分之几就是零点几";
+        why = `${b}/10 = 0.${b}`;
+      } else {
+        ask = `0.${b} 写成分数是多少？`;
+        input = `${G1.fracIn()}`;
+        tip = "零点几就是十分之几";
+        why = `0.${b} = ${b}/10`;
+      }
+      G1.$("card").innerHTML = `
+        <div class="ask">${ask}</div>
+        ${pic}
+        ${hint ? `<div class="tip">${tip}</div>` : ""}
+        <div class="fill">${input}${unit ? `<span class="u">${unit}</span>` : ""}</div>
+        ${G1.okBtn()}`;
+      G1.bindOk(v => {
+        const ok = q.kind === "money2" ? +v[0] === a && +v[1] === b
+          : q.kind === "frac2" ? G1.sameFrac(v[0], v[1], b, 10)
+          : G1.same(v[0], q.ans);
+        G1.finish(ok, why, render);
+      });
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

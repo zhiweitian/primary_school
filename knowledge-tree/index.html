@@ -66,11 +66,12 @@
     }
     .routes-inner.cols-3 { grid-template-columns: 1.15fr 1.15fr 0.85fr; }
     .routes-inner.cols-2 { grid-template-columns: 1fr 1fr; width: min(820px, 100%); }
+    .routes-inner.cols-many { grid-template-columns: repeat(4, 1fr); }
     @media (max-width: 1000px) {
-      .routes-inner, .routes-inner.cols-3 { grid-template-columns: 1fr 1fr; }
+      .routes-inner, .routes-inner.cols-3, .routes-inner.cols-many { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 640px) {
-      .routes-inner, .routes-inner.cols-3, .routes-inner.cols-2 { grid-template-columns: 1fr; }
+      .routes-inner, .routes-inner.cols-3, .routes-inner.cols-2, .routes-inner.cols-many { grid-template-columns: 1fr; }
     }
     .track-head {
       display: flex; align-items: baseline; justify-content: space-between;
@@ -116,6 +117,8 @@
     .card.known .tag { background: #fff3e0; color: #a67c3a; }
     .card.shut { filter: grayscale(0.78) saturate(0.2); }
     .card.full { cursor: default; }
+    .card.idle { background: #faf8f5; border-style: dashed; opacity: 0.72; }
+    .card.idle .face { filter: grayscale(1); }
     @keyframes hop {
       0%, 100% { transform: translateX(-50%) translateY(0); }
       50% { transform: translateX(-50%) translateY(-4px); }
@@ -165,7 +168,7 @@
   <script src="../practice-stats-config.js"></script>
   <script src="../practice-stats-store.js"></script>
   <script src="../play-wallet.js"></script>
-  <script src="math-tree.js?v=1"></script>
+  <script src="math-tree.js?v=2"></script>
   <script>
     const data = window.MATH_TREE;
     const defs = data.nodes;
@@ -232,7 +235,7 @@
     }
 
     function cleared(id, credit) {
-      return passed(PracticeStats.get(id)) || credit.has(id);
+      return !defs[id].app || passed(PracticeStats.get(id)) || credit.has(id);
     }
 
     function opened(id, credit) {
@@ -263,6 +266,10 @@
 
     function card(id, nextId, credit) {
       const def = defs[id];
+      const gradeTag = String(def.grade) === grade ? "" : `<span class="grade">${data.grades[def.grade]}</span>`;
+      if (!def.app) {
+        return `<div class="card idle"><span class="face" aria-hidden="true">${faceOf(id)}</span>${gradeTag}<div class="name">${def.name}</div><div class="meta">${def.unit}</div><div class="tag">练习稍后</div></div>`;
+      }
       const s = PracticeStats.get(id);
       const did = passed(s);
       const known = !did && credit.has(id);
@@ -283,7 +290,6 @@
       const meta = s.total
         ? `${s.total}题 · ${s.proficiency == null ? "—" : s.proficiency + "%"}`
         : known || locked ? "后面的关已经过了" : full ? "已经会了" : "点进去练";
-      const gradeTag = String(def.grade) === grade ? "" : `<span class="grade">${data.grades[def.grade]}</span>`;
       const body = `<span class="face" aria-hidden="true">${faceOf(id)}</span>${gradeTag}<div class="name">${def.name}</div><div class="meta">${meta}</div><div class="tag">${tag}</div>`;
       if (full || locked) return `<div class="${cls}">${body}</div>`;
       return `<a class="${cls}" href="${appHref(id)}">${body}</a>`;
@@ -306,7 +312,9 @@
       const html = routes.map(route => {
         const ids = route.rows.flat();
         const nextId = ids.find(id => opened(id, credit) && !cleared(id, credit) && !mastered(PracticeStats.get(id))) || null;
-        const done = ids.filter(id => cleared(id, credit)).length;
+        const live = ids.filter(id => defs[id].app && String(defs[id].grade) === grade);
+        const done = live.filter(id => cleared(id, credit)).length;
+        const prog = live.length ? `${done}/${live.length} 关` : "练习稍后";
         const lanes = Math.max(...route.rows.map(r => r.length));
         const body = route.rows.map((row, i) => {
           const cells = [];
@@ -315,9 +323,10 @@
           }
           return (i ? join(route.rows[i - 1], row, lanes) : "") + `<div class="g-row">${cells.join("")}</div>`;
         }).join("");
-        return `<section class="track${lanes > 1 ? " lanes-2" : ""}"><div class="track-head"><h2>${route.name}</h2><span class="prog">${done}/${ids.length} 关</span></div><div class="graph">${body}</div></section>`;
+        return `<section class="track${lanes > 1 ? " lanes-2" : ""}"><div class="track-head"><h2>${route.name}</h2><span class="prog">${prog}</span></div><div class="graph">${body}</div></section>`;
       }).join("");
-      document.getElementById("routes").innerHTML = `<div class="routes-inner cols-${routes.length}">${html}</div>`;
+      const cols = routes.length > 4 ? "many" : routes.length;
+      document.getElementById("routes").innerHTML = `<div class="routes-inner cols-${cols}">${html}</div>`;
       document.getElementById("stats").textContent = routes.length + " 条路线";
     }
 

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>认识分数</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>认识分数</h1>
+    <p class="hint">把一个东西平均分成几份，分母就是几；取了几份，分子就是几</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    let q;
+    const r1 = v => Math.round(v * 10) / 10;
+
+    function pie(d, n) {
+      let s = `<svg viewBox="0 0 132 132" width="140" height="140">`;
+      for (let i = 0; i < d; i++) {
+        const a0 = i / d * 2 * Math.PI - Math.PI / 2, a1 = (i + 1) / d * 2 * Math.PI - Math.PI / 2;
+        s += `<path d="M66 66 L${r1(66 + 60 * Math.cos(a0))} ${r1(66 + 60 * Math.sin(a0))} A60 60 0 0 1 ${r1(66 + 60 * Math.cos(a1))} ${r1(66 + 60 * Math.sin(a1))} Z" fill="${i < n ? "#ffd166" : "rgba(255,255,255,0.08)"}" stroke="#a8dadc" stroke-width="2"/>`;
+      }
+      return s + "</svg>";
+    }
+
+    function unequal(parts) {
+      const w = 240, sum = parts.reduce((a, b) => a + b, 0);
+      let s = `<svg viewBox="0 0 244 38" width="244" height="38">`, x = 2;
+      parts.forEach((p, i) => {
+        const cw = p / sum * w;
+        s += `<rect x="${r1(x)}" y="2" width="${r1(cw)}" height="34" fill="${i === 0 ? "#ffd166" : "rgba(255,255,255,0.08)"}" stroke="#a8dadc" stroke-width="2"/>`;
+        x += cw;
+      });
+      return s + "</svg>";
+    }
+
+    function make() {
+      const kind = G1.pick(["read", "read", "pick", "equal"]);
+      if (kind === "equal") {
+        const d = G1.rand(3, 5), fair = Math.random() < 0.5;
+        const parts = fair ? Array(d).fill(1) : G1.shuffle([3, ...Array(d - 1).fill(0).map(() => G1.rand(1, 2))]);
+        return { kind, d, parts, ans: fair ? "yes" : "no", key: "eq" + parts.join(",") };
+      }
+      const d = G1.rand(2, kind === "read" ? 10 : 8), n = G1.rand(1, d - 1);
+      if (kind === "read") {
+        const shape = d <= 8 && Math.random() < 0.5 ? "pie" : "bar";
+        return { kind, d, n, shape, ans: [String(n), String(d)], key: shape + n + "/" + d };
+      }
+      const list = [[d, n]];
+      for (const [a, b] of G1.shuffle([[d, d - n], [d + 1, n], [d - 1, n], [d + 2, n], [d, n === 1 ? 2 : n - 1]])) {
+        if (list.length === 3) break;
+        if (b < 1 || b >= a || b * d === n * a || list.some(([x, y]) => x === a && y === b)) continue;
+        list.push([a, b]);
+      }
+      const shown = G1.shuffle(list);
+      return { kind, d, n, shown, ans: String(shown.findIndex(([a, b]) => a === d && b === n)), key: "pk" + n + "/" + d };
+    }
+
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(make);
+      const hint = G1.needHint();
+      const card = G1.$("card");
+      if (q.kind === "read") {
+        card.innerHTML = `
+          <div class="ask">涂色部分占整个图形的几分之几？</div>
+          <div class="pic">${q.shape === "pie" ? pie(q.d, q.n) : G1.bar(q.d, q.n)}</div>
+          ${hint ? `<div class="tip">数一数：一共平均分成几份写在下面，涂色的有几份写在上面</div>` : ""}
+          <div class="fill">${G1.fracIn()}<span class="fl"><small>← 分子</small><small>← 分母</small></span></div>
+          ${G1.okBtn()}`;
+        G1.bindOk(([a, b]) => G1.finish(+a === q.n && +b === q.d,
+          `平均分成 ${q.d} 份，涂了 ${q.n} 份，是 ${q.n}/${q.d}`, render));
+        return;
+      }
+      if (q.kind === "pick") {
+        card.innerHTML = `
+          <div class="ask">哪个图的涂色部分是 ${G1.frac(q.n, q.d)} ？</div>
+          ${hint ? `<div class="tip">分母 ${q.d}：平均分成 ${q.d} 份；分子 ${q.n}：涂 ${q.n} 份</div>` : ""}
+          ${G1.choices(q.shown.map(([a, b], i) => ({ v: i, t: G1.bar(a, b, 120), c: "pic-btn" })))}`;
+        G1.bindChoices(v => G1.finish(v === q.ans, `${q.n}/${q.d} 是平均分成 ${q.d} 份，涂 ${q.n} 份`, render));
+        return;
+      }
+      card.innerHTML = `
+        <div class="ask">涂色部分能用 ${G1.frac(1, q.d)} 表示吗？</div>
+        <div class="pic">${unequal(q.parts)}</div>
+        ${hint ? `<div class="tip">先看是不是<b>平均分</b>：每一份一样大才行</div>` : ""}
+        ${G1.choices([{ v: "yes", t: "能" }, { v: "no", t: "不能" }])}`;
+      G1.bindChoices(v => G1.finish(v === q.ans,
+        q.ans === "yes" ? `分成了 ${q.d} 份，每份一样大，是平均分，能用 1/${q.d} 表示` : `虽然分成了 ${q.d} 份，但每份不一样大，不是平均分，不能用 1/${q.d} 表示`, render));
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

@@ -112,3 +112,41 @@ h1 { text-align: center; font-size: 1.35rem; color: #ffd166; margin-bottom: 0.25
 .shape-btn:disabled { opacity: 0.5; cursor: default; }
 .shape-btn .nm { display: block; margin-top: 0.25rem; font-size: 0.78rem; font-weight: 700; }
 .big-shape { display: flex; justify-content: center; margin: 0.2rem 0 0.8rem; }
+.frac {
+  display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle;
+  font-family: "Courier New", monospace; font-weight: 700; line-height: 1.05; margin: 0 0.15rem;
+}
+.frac > span:first-child, .frac.in > input:first-child { border-bottom: 2px solid currentColor; padding: 0 0.2rem 0.08rem; }
+.frac > span:last-child { padding-top: 0.08rem; }
+.frac.in > input {
+  width: 3.2rem; padding: 0.2rem; margin: 0.12rem 0; border: 2px solid rgba(168,218,220,0.35);
+  border-radius: 8px; background: rgba(0,0,0,0.3); color: #ffd166;
+  font-family: "Courier New", monospace; font-size: 1.4rem; font-weight: 700; text-align: center;
+}
+.frac.in > input:first-child { border-bottom: 2px solid rgba(168,218,220,0.35); }
+.frac.in > input:focus { outline: none; border-color: #ffd166; }
+.frac.in > input:disabled { opacity: 0.55; }
+.fill .u { font-size: 1.05rem; color: #ccc; }
+.fill .op, .fill .t { font-family: "Courier New", monospace; font-size: 1.6rem; font-weight: 700; color: #a8dadc; }
+.fill input.s { width: 3.2rem; }
+.fill input.l { width: 6rem; }
+.part { display: inline-flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+.part > small { font-size: 0.7rem; font-weight: 700; color: #ffd166; }
+.pic { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.6rem; margin: 0.2rem 0 0.8rem; }
+.pic svg { display: block; max-width: 100%; height: auto; }
+.tip { text-align: center; font-size: 0.86rem; color: #a8dadc; margin: -0.2rem 0 0.7rem; line-height: 1.6; }
+.dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.45rem; margin: 0.2rem 0 0.8rem; }
+.dots .grp {
+  display: inline-flex; flex-wrap: wrap; gap: 0.2rem; max-width: 5.4rem; padding: 0.3rem;
+  border: 2px dashed rgba(168,218,220,0.35); border-radius: 8px;
+}
+.dots .grp.hl { border-color: #ffd166; background: rgba(255,209,102,0.1); }
+.dots .grp.plain { border-color: transparent; max-width: 15rem; }
+.dots i { display: block; width: 0.8rem; height: 0.8rem; border-radius: 50%; background: #a8dadc; }
+.dots i.on { background: #ffd166; }
+.dots i.off { background: #ef476f; }
+.choices button svg { display: block; margin: 0 auto; }
+.choices button.pic-btn { background: rgba(255,255,255,0.08); padding: 0.5rem; border: 2px solid rgba(168,218,220,0.3); }
+.fl { display: inline-flex; flex-direction: column; gap: 1.7rem; font-size: 0.72rem; font-weight: 700; color: #ffd166; }
+.cmp { display: flex; justify-content: center; align-items: center; gap: 1rem; font-size: 2rem; color: #a8dadc; margin: 0.2rem 0 0.8rem; }
+.cmp .q { color: #ffd166; }

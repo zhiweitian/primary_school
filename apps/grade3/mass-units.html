@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>克、千克和吨</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>克、千克和吨</h1>
+    <p class="hint">1 千克 = 1000 克　1 吨 = 1000 千克</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const PAIRS = [["千克", "克"], ["吨", "千克"]];
+    const GUESS = [
+      ["一个鸡蛋约重 50", "克"], ["一枚 1 元硬币约重 6", "克"], ["一个苹果约重 200", "克"],
+      ["一袋大米约重 10", "千克"], ["一个三年级同学约重 30", "千克"], ["一个西瓜约重 5", "千克"],
+      ["一头大象约重 5", "吨"], ["一辆卡车能装 8", "吨"]
+    ];
+    const UNITS = ["克", "千克", "吨"];
+    let q;
+
+    function make() {
+      const r = Math.random();
+      const [big, small] = G1.pick(PAIRS);
+      if (r < 0.28) {
+        const a = G1.rand(2, 9);
+        return { ask: `${a} ${big} = ？${small}`, ans: String(a * 1000), unit: small, why: `1 ${big} = 1000 ${small}，${a} ${big} = ${a * 1000} ${small}` };
+      }
+      if (r < 0.5) {
+        const a = G1.rand(2, 9);
+        return { ask: `${a * 1000} ${small} = ？${big}`, ans: String(a), unit: big, why: `1000 ${small} = 1 ${big}，${a * 1000} ${small} = ${a} ${big}` };
+      }
+      if (r < 0.7) {
+        const a = G1.rand(1, 9), b = G1.pick([G1.rand(1, 9) * 100, G1.rand(1, 99), G1.rand(101, 999)]);
+        return { ask: `${a} ${big} ${b} ${small} = ？${small}`, ans: String(a * 1000 + b), unit: small, why: `${a} ${big} = ${a * 1000} ${small}，再加 ${b}，是 ${a * 1000 + b} ${small}` };
+      }
+      if (r < 0.8) {
+        const [x, y] = G1.pick([["棉花", "铁"], ["羽毛", "石头"], ["纸", "铁"]]);
+        return { ask: `1 千克${x}和 1 千克${y}，哪个重？`, ans: "same", opts: [x, y, "一样重"], why: `都是 1 千克，一样重` };
+      }
+      const [t, u] = G1.pick(GUESS);
+      return { ask: `${t} <span class="n">（　）</span>`, ans: u, opts: UNITS, why: `${t} ${u}` };
+    }
+
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => { const x = make(); x.key = x.ask; return x; });
+      const hint = G1.needHint();
+      const help = q.opts ? "1 克大约是一枚回形针，1 千克大约是两袋盐，1 吨是 1000 千克" : "大单位变小单位乘 1000，小单位变大单位除以 1000";
+      G1.$("card").innerHTML = `
+        <div class="ask">${q.ask}</div>
+        ${hint ? `<div class="tip">${help}</div>` : ""}
+        ${q.opts
+          ? G1.choices(q.opts.map(u => ({ v: u === "一样重" ? "same" : u, t: u })))
+          : `<div class="fill">${G1.box("l")}<span class="u">${q.unit}</span></div>${G1.okBtn()}`}`;
+      if (q.opts) G1.bindChoices(v => G1.finish(v === q.ans, q.why, render));
+      else G1.bindOk(([v]) => G1.finish(+v === +q.ans, q.why, render));
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

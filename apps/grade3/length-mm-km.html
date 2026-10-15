@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>毫米、分米和千米</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>毫米、分米和千米</h1>
+    <p class="hint">1 千米 = 1000 米　1 米 = 10 分米　1 分米 = 10 厘米　1 厘米 = 10 毫米</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const PAIRS = [["米", "分米", 10], ["分米", "厘米", 10], ["厘米", "毫米", 10], ["米", "厘米", 100], ["米", "毫米", 1000], ["千米", "米", 1000]];
+    const GUESS = [
+      ["一枚 1 元硬币厚约 2", "毫米"], ["一张银行卡厚约 1", "毫米"], ["一支铅笔长约 18", "厘米"], ["数学书宽约 19", "厘米"],
+      ["课桌高约 7", "分米"], ["一拃长约 1", "分米"], ["教室门高约 2", "米"], ["一张床长约 2", "米"],
+      ["北京到天津约 120", "千米"], ["汽车 1 小时约行 80", "千米"]
+    ];
+    const UNITS = ["毫米", "厘米", "分米", "米", "千米"];
+    let q;
+
+    function make() {
+      const r = Math.random();
+      const [big, small, k] = G1.pick(PAIRS);
+      if (r < 0.3) {
+        const a = G1.rand(2, 9);
+        return { ask: `${a} ${big} = ？${small}`, ans: String(a * k), unit: small, why: `1 ${big} = ${k} ${small}，${a} ${big}就是 ${a} 个 ${k}，是 ${a * k} ${small}` };
+      }
+      if (r < 0.55) {
+        const a = G1.rand(2, 9);
+        return { ask: `${a * k} ${small} = ？${big}`, ans: String(a), unit: big, why: `${k} ${small}是 1 ${big}，${a * k} 里有 ${a} 个 ${k}，是 ${a} ${big}` };
+      }
+      if (r < 0.75) {
+        const a = G1.rand(1, 9), b = G1.rand(1, k - 1);
+        return { ask: `${a} ${big} ${b} ${small} = ？${small}`, ans: String(a * k + b), unit: small, why: `${a} ${big} = ${a * k} ${small}，再加 ${b} ${small}，是 ${a * k + b} ${small}` };
+      }
+      const [t, u] = G1.pick(GUESS);
+      return { ask: `${t} <span class="n">（　）</span>`, ans: u, pick: true, why: `${t} ${u}` };
+    }
+
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => { const x = make(); x.key = x.ask; return x; });
+      const hint = G1.needHint();
+      const help = q.pick ? "1 毫米约是硬币的厚度，1 厘米约是指甲宽，1 分米约是一拃，1 米约是一大步多" : "大单位变小单位用乘，小单位变大单位用除";
+      G1.$("card").innerHTML = `
+        <div class="ask">${q.ask}</div>
+        ${hint ? `<div class="tip">${help}</div>` : ""}
+        ${q.pick
+          ? G1.choices(UNITS.map(u => ({ v: u, t: u })))
+          : `<div class="fill">${G1.box("l")}<span class="u">${q.unit}</span></div>${G1.okBtn()}`}`;
+      if (q.pick) G1.bindChoices(v => G1.finish(v === q.ans, q.why, render));
+      else G1.bindOk(([v]) => G1.finish(+v === +q.ans, q.why, render));
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

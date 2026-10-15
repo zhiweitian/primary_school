@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>面积单位</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>面积单位</h1>
+    <p class="hint">1 平方米 = 100 平方分米　1 平方分米 = 100 平方厘米</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const PAIRS = [["平方米", "平方分米", "米", "分米"], ["平方分米", "平方厘米", "分米", "厘米"]];
+    const GUESS = [
+      ["一枚邮票的面积约 6", "平方厘米"], ["大拇指指甲面约 1", "平方厘米"], ["数学书封面约 4", "平方分米"],
+      ["课桌面约 24", "平方分米"], ["教室地面约 60", "平方米"], ["黑板面积约 4", "平方米"]
+    ];
+    const UNITS = ["平方厘米", "平方分米", "平方米"];
+    let q;
+
+    function grid10() {
+      const S = 14;
+      let s = `<svg viewBox="0 0 ${10 * S + 4} ${10 * S + 4}" width="${10 * S + 4}" height="${10 * S + 4}"><rect x="2" y="2" width="${10 * S}" height="${10 * S}" fill="rgba(255,209,102,0.2)" stroke="#ffd166" stroke-width="2"/>`;
+      for (let i = 1; i < 10; i++) {
+        s += `<line x1="${2 + i * S}" y1="2" x2="${2 + i * S}" y2="${2 + 10 * S}" stroke="rgba(255,255,255,0.3)"/>`;
+        s += `<line x1="2" y1="${2 + i * S}" x2="${2 + 10 * S}" y2="${2 + i * S}" stroke="rgba(255,255,255,0.3)"/>`;
+      }
+      return s + "</svg>";
+    }
+
+    function make() {
+      const r = Math.random();
+      const [big, small, bl, sl] = G1.pick(PAIRS);
+      if (r < 0.15) {
+        return { kind: "why", big, small, bl, sl, ans: "100", unit: small,
+          why: `边长 1 ${bl} = 10 ${sl}，每行 10 个、有 10 行：10 × 10 = 100，所以 1 ${big} = 100 ${small}` };
+      }
+      if (r < 0.45) {
+        const a = G1.rand(2, 9);
+        return { kind: "num", ask: `${a} ${big} = ？${small}`, ans: String(a * 100), unit: small, why: `1 ${big} = 100 ${small}，${a} ${big} = ${a * 100} ${small}` };
+      }
+      if (r < 0.7) {
+        const a = G1.rand(2, 9);
+        return { kind: "num", ask: `${a * 100} ${small} = ？${big}`, ans: String(a), unit: big, why: `100 ${small} = 1 ${big}，${a * 100} ${small} = ${a} ${big}` };
+      }
+      const [t, u] = G1.pick(GUESS);
+      return { kind: "pick", ask: `${t} <span class="n">（　）</span>`, ans: u, why: `${t} ${u}` };
+    }
+
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => { const x = make(); x.key = x.ask || x.big; return x; });
+      const hint = G1.needHint();
+      const card = G1.$("card");
+      if (q.kind === "pick") {
+        card.innerHTML = `
+          <div class="ask">${q.ask}</div>
+          ${hint ? `<div class="tip">1 平方厘米约是指甲盖大，1 平方分米约是手掌大，1 平方米约是一张大方桌面</div>` : ""}
+          ${G1.choices(UNITS.map(u => ({ v: u, t: u })))}`;
+        G1.bindChoices(v => G1.finish(v === q.ans, q.why, render));
+        return;
+      }
+      const ask = q.kind === "why"
+        ? `边长 1 ${q.bl} 的正方形，面积是 1 ${q.big}。用边长 1 ${q.sl} 的小方格铺满，要几个？也就是多少${q.small}？`
+        : q.ask;
+      card.innerHTML = `
+        <div class="ask">${ask}</div>
+        ${q.kind === "why" ? `<div class="pic">${grid10()}</div>` : ""}
+        ${hint ? `<div class="tip">${q.kind === "why" ? `1 ${q.bl} = 10 ${q.sl}，每行能铺几个？有几行？` : "相邻两个面积单位之间差 100"}</div>` : ""}
+        <div class="fill">${G1.box("l")}<span class="u">${q.unit}</span></div>
+        ${G1.okBtn()}`;
+      G1.bindOk(([v]) => G1.finish(+v === +q.ans, q.why, render));
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

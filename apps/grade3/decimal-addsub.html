@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>简单小数加减</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>简单小数加减</h1>
+    <p class="hint">小数点对齐，相同数位相加减；十分位满 10 向个位进 1</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    let q;
+    const txt = t => (t % 10 ? `${Math.floor(t / 10)}.${t % 10}` : String(t / 10));
+
+    function sheet() {
+      const cells = t => {
+        const w = Math.floor(t / 10);
+        return `<span class="c">${w >= 10 ? Math.floor(w / 10) : ""}</span><span class="c">${w % 10}</span><span class="c">.</span><span class="c ones">${t % 10}</span>`;
+      };
+      return `<div class="sheet" style="width:auto">
+        <div class="r"><span class="op"></span>${cells(q.x)}</div>
+        <div class="r"><span class="op">${q.op === "+" ? "+" : "−"}</span>${cells(q.y)}</div>
+        <hr></div>`;
+    }
+
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        const op = Math.random() < 0.5 ? "+" : "-";
+        let x = G1.rand(1, 9) * 10 + G1.rand(1, 9), y = G1.rand(0, 9) * 10 + G1.rand(1, 9);
+        if (op === "-" && y > x) [x, y] = [y, x];
+        if (op === "-" && x === y) x += 10;
+        const r = op === "+" ? x + y : x - y;
+        return { x, y, op, r, ans: txt(r), key: x + op + y };
+      });
+      const hint = G1.needHint();
+      const sym = q.op === "+" ? "+" : "−";
+      G1.$("card").innerHTML = `
+        <div class="fill">
+          <span class="t">${txt(q.x)}</span><span class="op">${sym}</span><span class="t">${txt(q.y)}</span><span class="op">=</span>${G1.box("l")}
+        </div>
+        ${hint ? `<div style="margin-top:0.8rem">${sheet()}</div><div class="tip">把 ${txt(q.x)} 看成 ${q.x} 个 0.1，${txt(q.y)} 看成 ${q.y} 个 0.1</div>` : ""}
+        ${G1.okBtn()}`;
+      G1.bindOk(([v]) => G1.finish(G1.same(v, q.r / 10),
+        `${q.x} 个 0.1 ${sym} ${q.y} 个 0.1 = ${q.r} 个 0.1，就是 ${txt(q.r)}`, render));
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

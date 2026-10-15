@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小数比大小</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+  <style>
+    .places { display: grid; grid-template-columns: repeat(4, 2.4rem); justify-content: center; gap: 0.15rem 0; margin: 0 0 0.8rem; font-family: "Courier New", monospace; }
+    .places span { text-align: center; font-size: 1.5rem; font-weight: 700; color: #a8dadc; }
+    .places small { text-align: center; font-size: 0.68rem; color: #888; }
+    .places .hi { color: #ffd166; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>小数比大小</h1>
+    <p class="hint">先比整数部分；整数部分一样，再比十分位</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    let q;
+    const txt = t => (t % 10 ? `${Math.floor(t / 10)}.${t % 10}` : String(t / 10));
+
+    function make() {
+      const r = Math.random();
+      let x, y;
+      if (r < 0.4) {
+        const w = G1.rand(0, 9);
+        x = w * 10 + G1.rand(1, 9);
+        do y = w * 10 + G1.rand(1, 9); while (y === x);
+      } else if (r < 0.75) {
+        x = G1.rand(0, 9) * 10 + G1.rand(0, 9);
+        do y = G1.rand(0, 9) * 10 + G1.rand(0, 9); while (Math.floor(y / 10) === Math.floor(x / 10));
+        if (x % 10 === 0) x += G1.rand(1, 9);
+        if (y % 10 === 0) y += G1.rand(1, 9);
+      } else {
+        const w = G1.rand(1, 9);
+        x = w * 10;
+        y = (w - 1) * 10 + G1.rand(5, 9);
+      }
+      return Math.random() < 0.5 ? [x, y] : [y, x];
+    }
+
+    function row(t, hiWhole) {
+      return `<span class="${hiWhole ? "hi" : ""}">${Math.floor(t / 10)}</span><span>.</span><span class="${hiWhole ? "" : "hi"}">${t % 10}</span><span></span>`;
+    }
+
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        const [x, y] = make();
+        return { x, y, ans: x > y ? ">" : x < y ? "<" : "=", key: x + "?" + y };
+      });
+      const hint = G1.needHint();
+      const diffWhole = Math.floor(q.x / 10) !== Math.floor(q.y / 10);
+      G1.$("card").innerHTML = `
+        <div class="cmp"><span>${txt(q.x)}</span><span class="q">○</span><span>${txt(q.y)}</span></div>
+        ${hint ? `<div class="places"><small>个位</small><small></small><small>十分位</small><small></small>${row(q.x, diffWhole)}${row(q.y, diffWhole)}</div>` : ""}
+        ${G1.choices([">", "<", "="].map(s => ({ v: s, t: s === "<" ? "&lt;" : s })))}`;
+      const big = txt(Math.max(q.x, q.y)), small = txt(Math.min(q.x, q.y));
+      G1.bindChoices(v => G1.finish(v === q.ans, diffWhole
+        ? `整数部分 ${Math.floor(Math.max(q.x, q.y) / 10)} 比 ${Math.floor(Math.min(q.x, q.y) / 10)} 大，所以 ${big} > ${small}`
+        : `整数部分一样，十分位 ${Math.max(q.x, q.y) % 10} 比 ${Math.min(q.x, q.y) % 10} 大，所以 ${big} > ${small}`, render));
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

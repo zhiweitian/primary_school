@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>有余数的除法</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>有余数的除法</h1>
+    <p class="hint">分完还剩下的叫余数，余数一定比除数小</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const ITEMS = [
+      ["桃", "个", "每盘放", "放", "盘"], ["铅笔", "支", "每个笔筒放", "放", "个笔筒"],
+      ["花", "朵", "每个花瓶插", "插", "个花瓶"], ["糖", "颗", "每人分", "分给", "人"]
+    ];
+    let q;
+
+    function groups() {
+      let html = "";
+      for (let i = 0; i < q.quo; i++) html += `<span class="grp hl">${"<i class='on'></i>".repeat(q.div)}</span>`;
+      if (q.rem) html += `<span class="grp">${"<i class='off'></i>".repeat(q.rem)}</span>`;
+      return `<div class="dots">${html}</div>`;
+    }
+
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        const div = G1.rand(2, 9), quo = G1.rand(1, 9);
+        const rem = Math.random() < 0.85 ? G1.rand(1, div - 1) : 0;
+        const total = div * quo + rem;
+        return { div, quo, rem, total, item: G1.pick(ITEMS), ans: [String(quo), String(rem)], key: total + "/" + div };
+      });
+      const [thing, m, per, verb, unit] = q.item;
+      const hint = G1.needHint();
+      G1.$("card").innerHTML = `
+        <div class="ask"><span class="n">${q.total}</span> ${m}${thing}，${per} <span class="n">${q.div}</span> ${m}，可以${verb}几${unit}？还剩几${m}？</div>
+        ${hint ? groups() + `<div class="tip">每 ${q.div} 个圈一圈，圈不满的就是剩下的</div>` : ""}
+        <div class="fill">
+          <span class="part"><span class="t">${q.total}</span><small>被除数</small></span>
+          <span class="op">÷</span>
+          <span class="part"><span class="t">${q.div}</span><small>除数</small></span>
+          <span class="op">=</span>
+          <span class="part">${G1.box("s")}<small>商</small></span>
+          <span class="op">……</span>
+          <span class="part">${G1.box("s")}<small>余数</small></span>
+        </div>
+        ${G1.okBtn()}`;
+      G1.bindOk(([a, b]) => {
+        const right = `${q.total} ÷ ${q.div} = ${q.quo} …… ${q.rem}`;
+        if (+b >= q.div) return G1.finish(false, `余数 ${b} 不比除数 ${q.div} 小，还能再分。${right}`, render);
+        G1.finish(+a === q.quo && +b === q.rem, right, render);
+      });
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

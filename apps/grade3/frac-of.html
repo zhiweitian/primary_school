@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>一些东西的几分之几</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>一些东西的几分之几</h1>
+    <p class="hint">先平均分成几份（看分母），再取几份（看分子）</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const ITEMS = [["个", "苹果"], ["颗", "草莓"], ["个", "气球"], ["支", "铅笔"], ["本", "书"]];
+    let q;
+
+    function dots(hint) {
+      if (!hint) return `<div class="dots"><span class="grp plain">${"<i></i>".repeat(q.d * q.k)}</span></div>`;
+      let html = "";
+      for (let i = 0; i < q.d; i++) html += `<span class="grp${i < q.n ? " hl" : ""}">${`<i class="${i < q.n ? "on" : ""}"></i>`.repeat(q.k)}</span>`;
+      return `<div class="dots">${html}</div>`;
+    }
+
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        const d = G1.rand(2, 6), k = G1.rand(2, 6), n = G1.rand(1, d - 1);
+        return { d, k, n, item: G1.pick(ITEMS), ans: String(n * k), key: `${n}/${d}of${d * k}` };
+      });
+      const [m, thing] = q.item;
+      const hint = G1.needHint();
+      G1.$("card").innerHTML = `
+        <div class="ask"><span class="n">${q.d * q.k}</span> ${m}${thing}的 ${G1.frac(q.n, q.d)} 是多少${m}？</div>
+        ${dots(hint)}
+        ${hint ? `<div class="tip">平均分成 ${q.d} 份，每份 ${q.k} ${m}，取其中 ${q.n} 份</div>` : ""}
+        <div class="fill">${G1.box()}<span class="u">${m}</span></div>
+        ${G1.okBtn()}`;
+      G1.bindOk(([v]) => G1.finish(+v === q.n * q.k,
+        `${q.d * q.k} ÷ ${q.d} = ${q.k}，每份 ${q.k} ${m}，${q.n} 份就是 ${q.n * q.k} ${m}`, render));
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

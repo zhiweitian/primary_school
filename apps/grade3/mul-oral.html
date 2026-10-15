@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>口算乘一位数</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>口算乘一位数</h1>
+    <p class="hint">30 × 4 想成 3 个十乘 4，得 12 个十，就是 120</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const UNIT = { 10: "十", 100: "百", 1000: "千" };
+    let q;
+
+    function make() {
+      let b = G1.rand(2, 9);
+      if (Math.random() < 0.3) {
+        b = G1.rand(2, 4);
+        const t = G1.rand(1, Math.floor(9 / b)), o = G1.rand(1, Math.floor(9 / b));
+        const a = t * 10 + o;
+        return { a, b, ans: String(a * b), how: `${t * 10} × ${b} = ${t * 10 * b}，${o} × ${b} = ${o * b}，合起来 ${a * b}` };
+      }
+      const u = G1.pick([10, 10, 100, 100, 1000]);
+      const zero = b % 2 === 0 ? 5 : b === 5 ? G1.pick([2, 4, 6, 8]) : 0;
+      const k = zero && Math.random() < 0.4 ? zero : G1.rand(2, 9);
+      const a = k * u;
+      return { a, b, ans: String(a * b), how: `想 ${k} × ${b} = ${k * b}，${k} 个${UNIT[u]}乘 ${b} 是 ${k * b} 个${UNIT[u]}，就是 ${a * b}` };
+    }
+
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => { const x = make(); x.key = x.a + "x" + x.b; return x; });
+      const hint = G1.needHint();
+      G1.$("card").innerHTML = `
+        <div class="fill">
+          <span class="part"><span class="t">${q.a}</span><small>被乘数</small></span>
+          <span class="op">×</span>
+          <span class="part"><span class="t">${q.b}</span><small>乘数</small></span>
+          <span class="op">=</span>
+          <span class="part">${G1.box("l")}<small>积</small></span>
+        </div>
+        ${hint ? `<div class="tip" style="margin-top:0.7rem">${q.how.replace(/，合起来.*|，就是.*/, "，……")}</div>` : ""}
+        ${G1.okBtn()}`;
+      G1.bindOk(([v]) => G1.finish(+v === +q.ans, q.how, render));
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

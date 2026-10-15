@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>同分母分数加减</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>同分母分数加减</h1>
+    <p class="hint">每份一样大，只数份数：分母不变，分子相加减</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    let q;
+
+    function make() {
+      const d = G1.rand(3, 10), r = Math.random();
+      if (r < 0.45) {
+        const a = G1.rand(1, d - 2), b = G1.rand(1, d - 1 - a);
+        return { d, a, b, op: "+", n: a + b, how: `${a} 份加 ${b} 份是 ${a + b} 份` };
+      }
+      if (r < 0.8) {
+        const a = G1.rand(2, d - 1), b = G1.rand(1, a - 1);
+        return { d, a, b, op: "−", n: a - b, how: `${a} 份去掉 ${b} 份还剩 ${a - b} 份` };
+      }
+      const b = G1.rand(1, d - 1);
+      return { d, a: d, b, op: "−", one: true, n: d - b, how: `1 就是 ${d}/${d}，${d} 份去掉 ${b} 份还剩 ${d - b} 份` };
+    }
+
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => { const x = make(); x.ans = [String(x.n), String(x.d)]; x.key = `${x.a}${x.op}${x.b}/${x.d}`; return x; });
+      const hint = G1.needHint();
+      const left = q.one ? `<span class="t">1</span>` : G1.frac(q.a, q.d);
+      const pic = q.op === "+" ? G1.bar(q.d, q.a, 260, q.b) : G1.bar(q.d, q.n, 260);
+      G1.$("card").innerHTML = `
+        <div class="fill" style="font-size:1.6rem;color:#a8dadc">
+          ${left}<span class="op">${q.op}</span>${G1.frac(q.b, q.d)}<span class="op">=</span>${G1.fracIn()}
+        </div>
+        ${hint ? `<div class="pic" style="margin-top:0.7rem">${pic}</div>
+          <div class="tip">${q.op === "+" ? `黄色 ${q.a} 份，绿色 ${q.b} 份，合起来几份？` : `从 ${q.a} 份里去掉 ${q.b} 份，还亮着几份？`}</div>` : ""}
+        ${G1.okBtn()}`;
+      G1.bindOk(([n, d]) => G1.finish(G1.sameFrac(n, d, q.n, q.d),
+        `每份都是 1/${q.d}，${q.how}，所以是 ${q.n}/${q.d}`, render));
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

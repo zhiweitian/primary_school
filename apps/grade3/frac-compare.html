@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分数比大小</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>分数比大小</h1>
+    <p class="hint">分母相同看分子；分子相同，分母越大每份越小</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    let q;
+
+    function make() {
+      const r = Math.random();
+      if (r < 0.1) {
+        const d = G1.rand(2, 9);
+        return { a: [d, d], b: [1, 1], why: `${d}/${d} 就是全部，等于 1` };
+      }
+      if (r < 0.55) {
+        const d = G1.rand(3, 10);
+        let x = G1.rand(1, d - 1), y = G1.rand(1, d - 1);
+        while (y === x) y = G1.rand(1, d - 1);
+        return { a: [x, d], b: [y, d], why: `分母都是 ${d}，每份一样大，${Math.max(x, y)} 份比 ${Math.min(x, y)} 份多` };
+      }
+      const n = G1.rand(1, 3);
+      let x = G1.rand(n + 1, 10), y = G1.rand(n + 1, 10);
+      while (y === x) y = G1.rand(n + 1, 10);
+      return { a: [n, x], b: [n, y], why: `分子都是 ${n}，分母越大，每份越小，所以 ${n}/${Math.min(x, y)} 更大` };
+    }
+
+    const show = ([n, d]) => (d === 1 && n === 1 ? `<span class="t">1</span>` : G1.frac(n, d));
+
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(() => {
+        const x = make();
+        const va = x.a[0] / x.a[1], vb = x.b[0] / x.b[1];
+        x.ans = va > vb ? ">" : va < vb ? "<" : "=";
+        x.key = x.a.join("/") + "?" + x.b.join("/");
+        return x;
+      });
+      const hint = G1.needHint();
+      const bars = hint
+        ? `<div class="pic" style="flex-direction:column;align-items:center;gap:0.3rem">${G1.bar(q.a[1], q.a[0], 240)}${G1.bar(q.b[1], q.b[0], 240)}</div>`
+        : "";
+      G1.$("card").innerHTML = `
+        <div class="cmp">${show(q.a)}<span class="q">○</span>${show(q.b)}</div>
+        ${bars}
+        ${G1.choices([">", "<", "="].map(s => ({ v: s, t: s === "<" ? "&lt;" : s })))}`;
+      G1.bindChoices(v => G1.finish(v === q.ans, q.why, render));
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

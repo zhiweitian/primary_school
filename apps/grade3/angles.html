@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>认识角</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>认识角</h1>
+    <p class="hint">角的大小看两条边张开得多大，和边画多长没关系</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const NAMES = { acute: "锐角", right: "直角", obtuse: "钝角" };
+    const r1 = v => Math.round(v * 10) / 10;
+    let q;
+
+    function angle(deg, len, rot) {
+      const wide = deg + rot > 90;
+      const W = wide ? 240 : 150, H = 125, ox = wide ? 120 : 20, oy = 118;
+      const a0 = -rot * Math.PI / 180, a1 = -(rot + deg) * Math.PI / 180;
+      const p = a => `${r1(ox + len * Math.cos(a))} ${r1(oy + len * Math.sin(a))}`;
+      const arc = `M${r1(ox + 16 * Math.cos(a0))} ${r1(oy + 16 * Math.sin(a0))} A16 16 0 0 0 ${r1(ox + 16 * Math.cos(a1))} ${r1(oy + 16 * Math.sin(a1))}`;
+      return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+        <path d="M${p(a1)} L${ox} ${oy} L${p(a0)}" fill="none" stroke="#ffd166" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="${arc}" fill="none" stroke="#a8dadc" stroke-width="2"/>
+        <circle cx="${ox}" cy="${oy}" r="3.5" fill="#ffd166"/>
+      </svg>`;
+    }
+
+    function make() {
+      if (Math.random() < 0.65) {
+        const type = G1.pick(["acute", "right", "obtuse"]);
+        const deg = type === "acute" ? G1.rand(20, 70) : type === "right" ? 90 : G1.rand(110, 160);
+        const rot = deg > 90 ? 0 : G1.rand(0, 20);
+        return { kind: "type", deg, rot, len: G1.rand(70, 110), ans: type, key: "t" + deg };
+      }
+      const same = Math.random() < 0.5;
+      const d1 = G1.rand(30, 80), d2 = same ? d1 : d1 + G1.pick([-1, 1]) * G1.rand(15, 25);
+      const lens = [G1.rand(45, 60), G1.rand(95, 115)];
+      if (!same && Math.random() < 0.7) {
+        if ((d2 > d1) !== (lens[0] > lens[1])) lens.reverse();
+      }
+      return { kind: "big", d: [d1, d2], lens, ans: d1 === d2 ? "same" : d1 > d2 ? "left" : "right", key: `b${d1},${d2}` };
+    }
+
+    function render() {
+      G1.resetShell();
+      q = G1.fresh(make);
+      const hint = G1.needHint();
+      const card = G1.$("card");
+      if (q.kind === "type") {
+        card.innerHTML = `
+          <div class="ask">这是什么角？</div>
+          <div class="pic">${angle(q.deg, q.len, q.rot)}</div>
+          ${hint ? `<div class="tip">比一比三角尺上的直角：比直角小是锐角，比直角大是钝角</div>` : ""}
+          ${G1.choices(["acute", "right", "obtuse"].map(v => ({ v, t: NAMES[v] })))}`;
+        G1.bindChoices(v => G1.finish(v === q.ans,
+          q.ans === "right" ? "两条边正好像三角尺的直角一样，是直角" : `这个角比直角${q.ans === "acute" ? "小，是锐角" : "大，是钝角"}`, render));
+        return;
+      }
+      card.innerHTML = `
+        <div class="ask">哪个角大？</div>
+        <div class="pic" style="gap:1.5rem">${angle(q.d[0], q.lens[0], 0)}${angle(q.d[1], q.lens[1], 0)}</div>
+        ${hint ? `<div class="tip">只看两条边张开的大小，边长长短不算</div>` : ""}
+        ${G1.choices([{ v: "left", t: "左边大" }, { v: "right", t: "右边大" }, { v: "same", t: "一样大" }])}`;
+      G1.bindChoices(v => G1.finish(v === q.ans,
+        q.ans === "same" ? "两个角张开得一样大，边长不同也是一样大" : `${q.ans === "left" ? "左边" : "右边"}的角张开得更大；边画得长不代表角大`, render));
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

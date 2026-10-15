@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>认识时间</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <div class="container">
+    <h1>认识时间</h1>
+    <p class="hint">短针是时针，长针是分针；分针走一个数字是 5 分</p>
+    <div class="stats">
+      <div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn">下一题 →</button>
+  </div>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    let q;
+    const r1 = v => Math.round(v * 10) / 10;
+
+    function hand(deg, len, w, color) {
+      const a = deg * Math.PI / 180;
+      return `<line x1="90" y1="90" x2="${r1(90 + len * Math.sin(a))}" y2="${r1(90 - len * Math.cos(a))}" stroke="${color}" stroke-width="${w}" stroke-linecap="round"/>`;
+    }
+
+    function clock(h, m) {
+      let s = `<svg viewBox="0 0 180 180" width="190" height="190"><circle cx="90" cy="90" r="84" fill="#fdf6e3" stroke="#a8dadc" stroke-width="4"/>`;
+      for (let i = 0; i < 60; i++) {
+        const a = i * 6 * Math.PI / 180, r = i % 5 ? 76 : 71;
+        s += `<line x1="${r1(90 + r * Math.sin(a))}" y1="${r1(90 - r * Math.cos(a))}" x2="${r1(90 + 80 * Math.sin(a))}" y2="${r1(90 - 80 * Math.cos(a))}" stroke="#334" stroke-width="${i % 5 ? 1 : 2.5}"/>`;
+      }
+      for (let i = 1; i <= 12; i++) {
+        const a = i * 30 * Math.PI / 180;
+        s += `<text x="${r1(90 + 59 * Math.sin(a))}" y="${r1(96 - 59 * Math.cos(a))}" text-anchor="middle" font-size="17" font-weight="700" fill="#1a1a2e">${i}</text>`;
+      }
+      s += hand(((h % 12) + m / 60) * 30, 40, 7, "#1a1a2e") + hand(m * 6, 66, 3.5, "#e76f51");
+      return s + `<circle cx="90" cy="90" r="5" fill="#1a1a2e"/></svg>`;
+    }
+
+    function render() {
+      G1.resetShell();
+      const hint = G1.needHint();
+      q = G1.fresh(() => {
+        const h = G1.rand(1, 12);
+        const m = hint || Math.random() < 0.5 ? G1.rand(0, 11) * 5 : G1.rand(0, 59);
+        return { h, m, ans: [String(h), String(m)], key: h + ":" + m };
+      });
+      G1.$("card").innerHTML = `
+        <div class="ask">钟面上是几时几分？</div>
+        <div class="pic">${clock(q.h, q.m)}</div>
+        ${hint ? `<div class="tip">先看时针刚走过几，再看分针指到哪个数：指着几就是几个 5 分</div>` : ""}
+        <div class="fill">${G1.box("s")}<span class="u">时</span>${G1.box("s")}<span class="u">分</span></div>
+        ${G1.okBtn()}`;
+      G1.bindOk(([a, b]) => {
+        const next = q.h % 12 + 1;
+        const tip = q.m === 0 ? `是 ${q.h} 时整：分针指着 12，填 ${q.h} 时 0 分`
+          : q.m >= 40 ? `是 ${q.h} 时 ${q.m} 分：时针快到 ${next} 了，但还没到，所以还是 ${q.h} 时`
+          : `是 ${q.h} 时 ${q.m} 分：分针从 12 走了 ${q.m} 小格，一小格是 1 分`;
+        G1.finish(+a === q.h && +b === q.m, tip, render);
+      });
+    }
+
+    G1.boot(render);
+  </script>
+</body>
+</html>

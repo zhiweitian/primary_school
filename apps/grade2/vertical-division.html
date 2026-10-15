@@ -271,11 +271,17 @@
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
+    const ONE = new URLSearchParams(location.search).get("d") === "1";
+    if (ONE) {
+      document.title = "竖式除以一位数";
+      document.querySelector("h1").textContent = "➗ 竖式除以一位数";
+    }
+
     function randomProblem() {
-      const divDigits = Math.floor(Math.random() * 2) + 1;
+      const divDigits = ONE ? 1 : Math.floor(Math.random() * 2) + 1;
       const qDigits = Math.floor(Math.random() * 3) + 1;
       divisor = randomNumber(divDigits);
-      quotient = randomNumber(qDigits);
+      quotient = ONE ? 10 + Math.floor(Math.random() * 990) : randomNumber(qDigits);
       remainder = 0;
       if (allowRemainderEl.checked) {
         remainder = Math.floor(Math.random() * divisor);
@@ -299,7 +305,9 @@
       let dIdx = 0;
 
       for (const qd of qDigits) {
-        while (rem < divisor && dIdx < dStr.length) {
+        if (dIdx === 0) {
+          while (rem < divisor && dIdx < dStr.length) rem = rem * 10 + +dStr[dIdx++];
+        } else {
           rem = rem * 10 + +dStr[dIdx++];
         }
         const product = qd * divisor;
