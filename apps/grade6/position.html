@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数对和方向</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, shuffle } = G1;
+    const S = 30, C = 7, R = 6, O = 26;
+    const DIRS = { "0,-1": "北", "0,1": "南", "1,0": "东", "-1,0": "西", "1,-1": "东北", "-1,-1": "西北", "1,1": "东南", "-1,1": "西南" };
+    const px = (c, r) => [O + c * S, O + (R - r) * S];
+    function grid(points, axes) {
+      let s = `<svg viewBox="0 0 ${O + C * S + 30} ${O + R * S + 26}" width="${O + C * S + 30}" height="${O + R * S + 26}">`;
+      for (let c = 0; c <= C; c++) s += `<line x1="${O + c * S}" y1="${O}" x2="${O + c * S}" y2="${O + R * S}" stroke="rgba(255,255,255,0.18)"/>`;
+      for (let r = 0; r <= R; r++) s += `<line x1="${O}" y1="${O + r * S}" x2="${O + C * S}" y2="${O + r * S}" stroke="rgba(255,255,255,0.18)"/>`;
+      if (axes) {
+        for (let c = 0; c <= C; c++) s += `<text x="${O + c * S}" y="${O + R * S + 18}" text-anchor="middle" fill="#aaa" font-size="12">${c}</text>`;
+        for (let r = 1; r <= R; r++) s += `<text x="${O - 12}" y="${O + (R - r) * S + 4}" text-anchor="middle" fill="#aaa" font-size="12">${r}</text>`;
+      } else {
+        s += `<text x="${O + C * S + 16}" y="${O + 6}" text-anchor="middle" fill="#ef476f" font-size="13">北</text>
+          <line x1="${O + C * S + 16}" y1="${O + 30}" x2="${O + C * S + 16}" y2="${O + 12}" stroke="#ef476f" stroke-width="2"/>`;
+      }
+      points.forEach(([c, r, name, color]) => {
+        const [x, y] = px(c, r);
+        s += `<circle cx="${x}" cy="${y}" r="6" fill="${color || "#ffd166"}"/><text x="${x + 8}" y="${y - 7}" fill="#fff" font-size="13" font-weight="700">${name}</text>`;
+      });
+      return s + "</svg>";
+    }
+    G1.quiz({ title: "数对和方向", hint: "数对 (列, 行)：先说第几列，再说第几行；地图通常上北下南、左西右东" }, () => {
+      const r = Math.random();
+      if (r < 0.4) {
+        const c = rand(1, C), rr = rand(1, R);
+        return { ask: "用数对表示 A 点的位置", pic: grid([[c, rr, "A"]], true),
+          fill: `<span class="t">(</span>${G1.box("s")}<span class="t">,</span>${G1.box("s")}<span class="t">)</span>`, ans: [String(c), String(rr)],
+          tip: "先往下看是第几列，再往左看是第几行", why: `A 在第 ${c} 列、第 ${rr} 行，记作 (${c}, ${rr})` };
+      }
+      if (r < 0.7) {
+        const pts = [];
+        while (pts.length < 3) {
+          const p = [rand(1, C), rand(1, R)];
+          if (!pts.some(q => q[0] === p[0] && q[1] === p[1])) pts.push(p);
+        }
+        if (Math.random() < 0.5 && pts[0][0] !== pts[0][1] && pts[0][1] <= C && pts[0][0] <= R) pts[1] = [pts[0][1], pts[0][0]];
+        const names = ["A", "B", "C"], k = rand(0, 2), [c, rr] = pts[k];
+        return { ask: `数对 (${c}, ${rr}) 表示哪个点？`, pic: grid(pts.map((p, i) => [...p, names[i]]), true), ans: names[k],
+          choices: names.map(v => ({ v, t: v })), tip: "第一个数是列（横着数），第二个数是行（竖着数），别弄反",
+          why: `(${c}, ${rr}) 是第 ${c} 列、第 ${rr} 行，是 ${names[k]} 点` };
+      }
+      const key = pick(Object.keys(DIRS)), [dx, dy] = key.split(",").map(Number), k = rand(1, 2);
+      const hc = 3 + rand(0, 1), hr = 3;
+      return { ask: "学校在家的什么方向？", pic: grid([[hc, hr, "家", "#06d6a0"], [hc + dx * k, hr - dy * k, "学校"]], false), ans: DIRS[key],
+        choices: ["北", "东北", "东", "东南", "南", "西南", "西", "西北"].map(v => ({ v, t: v })),
+        tip: "站在家的位置看学校：上北下南，左西右东", why: `从家往${DIRS[key]}走能到学校，学校在家的${DIRS[key]}方向` };
+    });
+  </script>
+</body>
+</html>

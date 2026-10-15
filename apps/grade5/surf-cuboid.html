@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>长方体的表面积</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand } = G1;
+    const r1 = v => Math.round(v * 10) / 10;
+
+    function cuboid(l, w, h, labels) {
+      const k = Math.min(160 / (l + w * 0.5), 110 / (h + w * 0.5), 30), dx = w * k * 0.5, dy = -w * k * 0.5;
+      const X = 20, Y = r1(10 - dy), L = l * k, Hh = h * k;
+      const poly = (pts, fill) => `<polygon points="${pts.map(p => p.map(r1).join(",")).join(" ")}" fill="${fill}" stroke="#ffd166" stroke-width="2"/>`;
+      const W = r1(X + L + dx + 70), H = r1(Y + Hh + 26);
+      return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+        ${poly([[X, Y], [X + dx, Y + dy], [X + L + dx, Y + dy], [X + L, Y]], "rgba(6,214,160,0.35)")}
+        ${poly([[X + L, Y], [X + L + dx, Y + dy], [X + L + dx, Y + dy + Hh], [X + L, Y + Hh]], "rgba(239,71,111,0.3)")}
+        ${poly([[X, Y], [X + L, Y], [X + L, Y + Hh], [X, Y + Hh]], "rgba(255,209,102,0.3)")}
+        <text x="${r1(X + L / 2)}" y="${H - 6}" text-anchor="middle" fill="#ddd" font-size="13">${labels[0]}</text>
+        <text x="${r1(X + L + dx + 6)}" y="${r1(Y + dy + Hh / 2 + 5)}" fill="#ddd" font-size="13">${labels[2]}</text>
+        <text x="${r1(X + L + dx / 2 + 6)}" y="${r1(Y + dy / 2 + 2)}" fill="#ddd" font-size="13">${labels[1]}</text></svg>`;
+    }
+
+    G1.quiz({ title: "长方体的表面积", hint: "六个面的面积总和：上下、前后、左右三组，每组两个面完全一样" }, () => {
+      const r = Math.random(), l = rand(3, 12), w = rand(2, 8), h = rand(2, 10);
+      const top = l * w, front = l * h, side = w * h;
+      if (r < 0.5) return { ask: "这个长方体的表面积是多少？", pic: cuboid(l, w, h, [`长 ${l} 厘米`, `宽 ${w}`, `高 ${h}`]), ans: String(2 * (top + front + side)), unit: "平方厘米",
+        tip: "颜色一样的面成对出现：上下 = 长 × 宽，前后 = 长 × 高，左右 = 宽 × 高",
+        why: `(${l} × ${w} + ${l} × ${h} + ${w} × ${h}) × 2 = (${top} + ${front} + ${side}) × 2 = ${2 * (top + front + side)}（平方厘米）` };
+      if (r < 0.75) {
+        const a = rand(2, 12);
+        return { ask: "这个正方体的表面积是多少？", pic: cuboid(a, a, a, [`棱长 ${a} 厘米`, "", ""]), ans: String(6 * a * a), unit: "平方厘米",
+          tip: "正方体 6 个面都一样大", why: `${a} × ${a} × 6 = ${6 * a * a}（平方厘米）` };
+      }
+      return { ask: `做一个没有盖的鱼缸，长 ${l} 分米、宽 ${w} 分米、高 ${h} 分米，至少要多少平方分米玻璃？`, pic: cuboid(l, w, h, [`长 ${l}`, `宽 ${w}`, `高 ${h}`]),
+        ans: String(top + 2 * (front + side)), unit: "平方分米", tip: "没有盖：上面那个面不要，只有 5 个面",
+        why: `底面 ${top} + 前后 ${front} × 2 + 左右 ${side} × 2 = ${top + 2 * (front + side)}（平方分米）` };
+    });
+  </script>
+</body>
+</html>

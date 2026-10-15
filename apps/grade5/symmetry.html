@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>轴对称、平移和旋转</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick } = G1;
+    const YES = ["A", "H", "M", "T", "U", "V", "W", "X", "Y", "O", "日", "田", "中", "王", "工", "土"];
+    const NO = ["F", "G", "J", "L", "N", "P", "R", "S", "Z", "4", "7"];
+    const AXES = [["正方形", "4"], ["长方形", "2"], ["等边三角形", "3"], ["等腰三角形", "1"], ["等腰梯形", "1"], ["圆", "many"]];
+    const S = 24, CELLS = [[0, 0], [0, 1], [1, 1]];
+
+    function grid(x1, y1, x2, y2) {
+      const W = 11, H = 7;
+      let s = `<svg viewBox="0 0 ${W * S} ${H * S}" width="${W * S}" height="${H * S}">`;
+      for (let i = 0; i <= W; i++) s += `<line x1="${i * S}" y1="0" x2="${i * S}" y2="${H * S}" stroke="rgba(255,255,255,0.15)"/>`;
+      for (let j = 0; j <= H; j++) s += `<line x1="0" y1="${j * S}" x2="${W * S}" y2="${j * S}" stroke="rgba(255,255,255,0.15)"/>`;
+      CELLS.forEach(([cx, cy]) => {
+        s += `<rect x="${(x1 + cx) * S}" y="${(y1 + cy) * S}" width="${S}" height="${S}" fill="rgba(255,209,102,0.7)"/>`;
+        s += `<rect x="${(x2 + cx) * S}" y="${(y2 + cy) * S}" width="${S}" height="${S}" fill="rgba(6,214,160,0.7)"/>`;
+      });
+      return s + "</svg>";
+    }
+
+    G1.quiz({ title: "轴对称、平移和旋转", hint: "沿一条直线对折能完全重合的是轴对称图形；平移只改变位置，旋转绕一个点转" }, () => {
+      const r = Math.random();
+      if (r < 0.3) {
+        const yes = Math.random() < 0.5, c = pick(yes ? YES : NO);
+        return { ask: `<span style="font-size:4rem;font-weight:700;color:#ffd166;font-family:Arial,sans-serif">${c}</span><br>这个字是轴对称图形吗？`, ans: yes ? "yes" : "no",
+          choices: [{ v: "yes", t: "是" }, { v: "no", t: "不是" }], tip: "想象找一条线对折，两边能不能完全重合",
+          why: yes ? `${c} 能找到一条对称轴，对折后两边完全重合` : `${c} 找不到能让两边完全重合的折痕` };
+      }
+      if (r < 0.5) {
+        const [name, n] = pick(AXES);
+        return { ask: `${name}有几条对称轴？`, ans: n, choices: ["1", "2", "3", "4", "many"].map(v => ({ v, t: v === "many" ? "无数条" : `${v} 条` })),
+          tip: "试着在脑子里折一折：横着、竖着、斜着", why: `${name}有${n === "many" ? "无数" : ` ${n} `}条对称轴` };
+      }
+      if (r < 0.75) {
+        const horiz = Math.random() < 0.6, d = rand(2, 6);
+        const x1 = horiz ? rand(0, 8 - d) : rand(0, 8), y1 = horiz ? rand(0, 5) : rand(0, 5 - Math.min(d, 4));
+        const dd = horiz ? d : Math.min(d, 5 - y1);
+        const up = !horiz && Math.random() < 0.5;
+        const [x2, y2] = horiz ? [x1 + dd, y1] : up ? [x1, y1] : [x1, y1 + dd];
+        const [sx, sy] = up ? [x1, y1 + dd] : [x1, y1];
+        const dir = horiz ? "右" : up ? "上" : "下";
+        return { ask: `黄色图形向${dir}平移几格，到了绿色的位置？`, pic: grid(sx, sy, x2, y2), ans: String(dd), unit: "格",
+          tip: "找一个对应点（比如左上角），数这个点移动了几格，不是数两个图形中间空了几格",
+          why: `左上角从第 ${horiz ? sx + 1 : sy + 1} ${horiz ? "列" : "行"}移到第 ${horiz ? x2 + 1 : y2 + 1} ${horiz ? "列" : "行"}，平移了 ${dd} 格` };
+      }
+      const s = rand(1, 12), k = pick([1, 2, 3, 4, 6, 9]), e = (s - 1 + k) % 12 + 1;
+      if (Math.random() < 0.5) return { ask: `钟面上的指针从 ${s} 绕中心顺时针旋转 ${k * 30}°，指向几？`, ans: String(e),
+        tip: "钟面上相邻两个数之间是 30°", why: `${k * 30}° ÷ 30° = ${k}，走 ${k} 个数，指向 ${e}` };
+      return { ask: `钟面上的指针从 ${s} 绕中心顺时针旋转到 ${e}，旋转了多少度？`, ans: String(k * 30), unit: "°",
+        tip: "钟面上相邻两个数之间是 30°", why: `走了 ${k} 个数，${k} × 30° = ${k * 30}°` };
+    });
+  </script>
+</body>
+</html>

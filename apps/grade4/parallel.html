@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>平行与垂直</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick } = G1;
+    const r1 = v => Math.round(v * 10) / 10;
+    const REL = { par: "互相平行", perp: "互相垂直", cross: "相交但不垂直" };
+    const SHAPE = { para: "平行四边形", trap: "梯形", none: "都不是" };
+    const CONCEPT = [
+      ["在同一平面内，过直线外一点，能画几条直线和已知直线平行？", "1 条", ["1 条", "2 条", "无数条"]],
+      ["在同一平面内，过一点能画几条直线和已知直线垂直？", "1 条", ["1 条", "2 条", "无数条"]],
+      ["两条平行线之间的垂线段，长度怎么样？", "都相等", ["都相等", "越来越长", "不一定"]],
+      ["从直线外一点到这条直线的所有线段中，哪条最短？", "垂线段", ["垂线段", "斜着的线段", "一样长"]],
+      ["长方形是平行四边形吗？", "是", ["是", "不是"]]
+    ];
+
+    function seg(cx, cy, deg, len) {
+      const a = deg * Math.PI / 180, dx = Math.cos(a) * len / 2, dy = Math.sin(a) * len / 2;
+      return `<line x1="${r1(cx - dx)}" y1="${r1(cy - dy)}" x2="${r1(cx + dx)}" y2="${r1(cy + dy)}" stroke="#ffd166" stroke-width="3" stroke-linecap="round"/>`;
+    }
+
+    function lines(kind) {
+      const t = rand(-35, 35);
+      let s = `<svg viewBox="0 0 260 170" width="260" height="170">`;
+      if (kind === "par") {
+        const off = rand(45, 65), a = (t + 90) * Math.PI / 180;
+        s += seg(130 - Math.cos(a) * off / 2, 85 - Math.sin(a) * off / 2, t, 200) + seg(130 + Math.cos(a) * off / 2, 85 + Math.sin(a) * off / 2, t, rand(130, 200));
+      } else if (kind === "perp") {
+        s += seg(130, 85, t, 200) + seg(130 + rand(-40, 40), 85, t + 90, 130);
+      } else {
+        s += seg(130, 60, t, 200) + seg(130, 115, t + pick([-1, 1]) * rand(20, 50), 160);
+      }
+      return s + "</svg>";
+    }
+
+    function slope([x1, y1], [x2, y2]) {
+      return Math.atan2(y2 - y1, x2 - x1);
+    }
+    function parallelSides(p) {
+      const near = (a, b) => Math.abs(Math.sin(a - b)) < 0.12;
+      return [near(slope(p[0], p[1]), slope(p[3], p[2])), near(slope(p[1], p[2]), slope(p[0], p[3]))];
+    }
+
+    function quad(kind) {
+      const w = rand(130, 190), h = rand(70, 110), y = 20;
+      let p;
+      if (kind === "para") {
+        const s = rand(0, 50);
+        p = [[20 + s, y], [20 + s + w, y], [20 + w, y + h], [20, y + h]];
+      } else if (kind === "trap") {
+        const a = rand(10, 50), top = rand(50, w - a - 20);
+        p = [[20 + a, y], [20 + a + top, y], [20 + w, y + h], [20, y + h]];
+      } else {
+        do p = [[rand(20, 80), rand(10, 40)], [rand(150, 230), rand(10, 50)], [rand(170, 240), rand(100, 140)], [rand(10, 70), rand(90, 140)]];
+        while (parallelSides(p).some(Boolean));
+      }
+      return `<svg viewBox="0 0 260 150" width="260" height="150"><polygon points="${p.map(q => q.join(",")).join(" ")}" fill="rgba(255,209,102,0.2)" stroke="#ffd166" stroke-width="3"/></svg>`;
+    }
+
+    G1.quiz({ title: "平行与垂直", hint: "不相交的两条直线互相平行；相交成直角的两条直线互相垂直" }, () => {
+      const r = Math.random();
+      if (r < 0.45) {
+        const k = pick(Object.keys(REL));
+        return { ask: "这两条直线是什么关系？（直线可以无限延长）", pic: lines(k), ans: k, key: k + Math.random(),
+          choices: Object.keys(REL).map(v => ({ v, t: REL[v] })),
+          tip: "把线想象着延长：永远碰不到是平行；碰到了再看是不是直角",
+          why: { par: "两条直线方向完全一样，延长也不会相交，互相平行", perp: "两条直线相交成直角，互相垂直", cross: "延长后会相交，但不是直角，所以只是相交" }[k] };
+      }
+      if (r < 0.8) {
+        const k = pick(Object.keys(SHAPE));
+        return { ask: "这是什么图形？", pic: quad(k), ans: k, key: k + Math.random(),
+          choices: Object.keys(SHAPE).map(v => ({ v, t: SHAPE[v] })),
+          tip: "两组对边分别平行是平行四边形；只有一组对边平行是梯形",
+          why: { para: "两组对边分别平行，是平行四边形", trap: "只有上下一组对边平行，是梯形", none: "没有互相平行的对边，都不是" }[k] };
+      }
+      const [ask, ans, opts] = pick(CONCEPT);
+      return { ask, ans, choices: opts.map(v => ({ v, t: v })), why: `答案：${ans}` };
+    });
+  </script>
+</body>
+</html>

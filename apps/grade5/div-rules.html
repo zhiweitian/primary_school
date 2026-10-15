@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2、3、5的倍数特征</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick } = G1;
+    const TIP = { 2: "个位是 0、2、4、6、8", 3: "各位上数字的和是 3 的倍数", 5: "个位是 0 或 5", 235: "个位是 0，并且各位数字和是 3 的倍数" };
+    G1.quiz({ title: "2、3、5的倍数特征", hint: "2 的倍数看个位双数；5 的倍数个位是 0 或 5；3 的倍数看各位数字的和" }, () => {
+      const k = pick([2, 3, 5, 235]), m = k === 235 ? 30 : k;
+      let n = rand(10, 9999);
+      if (Math.random() < 0.5) n = Math.max(m, Math.round(n / m) * m);
+      const yes = n % m === 0, digits = String(n).split("").map(Number), sum = digits.reduce((a, b) => a + b, 0);
+      const name = k === 235 ? "同时是 2、3、5 的倍数" : `是 ${k} 的倍数`;
+      const detail = k === 2 || k === 5 ? `个位是 ${n % 10}` : k === 3 ? `${digits.join(" + ")} = ${sum}` : `个位是 ${n % 10}，${digits.join(" + ")} = ${sum}`;
+      return { ask: `<span style="font-size:2rem;color:#ffd166">${n}</span><br>${name}吗？`, ans: yes ? "yes" : "no",
+        choices: [{ v: "yes", t: "是" }, { v: "no", t: "不是" }], tip: TIP[k], why: `${detail}，所以${yes ? "" : "不"}${name}` };
+    });
+  </script>
+</body>
+</html>

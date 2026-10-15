@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>三角形面积</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick } = G1;
+    const r1 = v => Math.round(v * 10) / 10;
+    function pic(b, h, s, p, right) {
+      const k = Math.min(220 / b, 110 / h, 20), X = 30, Y = 10, B = Y + h * k;
+      const ax = right ? X : r1(X + p * k);
+      const W = r1(X + b * k + 50), H = r1(B + 30);
+      return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+        <polygon points="${ax},${Y} ${X},${r1(B)} ${r1(X + b * k)},${r1(B)}" fill="rgba(255,209,102,0.2)" stroke="#ffd166" stroke-width="3"/>
+        ${right ? `<text x="${X - 26}" y="${r1(Y + h * k / 2)}" fill="#ddd" font-size="13">${h}</text>
+          <text x="${r1(X + b * k / 2 + 12)}" y="${r1(Y + h * k / 2 - 4)}" fill="#aaa" font-size="13">${s}</text>`
+        : `<line x1="${ax}" y1="${Y}" x2="${ax}" y2="${r1(B)}" stroke="#06d6a0" stroke-width="2" stroke-dasharray="5 4"/>
+          <text x="${ax + 5}" y="${r1(Y + h * k / 2 + 14)}" fill="#06d6a0" font-size="13">高 ${h}</text>
+          <text x="${r1(X + p * k / 2 - 24)}" y="${r1(Y + h * k / 2)}" fill="#aaa" font-size="13">${s}</text>`}
+        <text x="${r1(X + b * k / 2)}" y="${H - 6}" text-anchor="middle" fill="#ddd" font-size="13">${right ? b : `底 ${b}`} 厘米</text></svg>`;
+    }
+    G1.quiz({ title: "三角形面积", hint: "两个完全一样的三角形能拼成平行四边形：三角形面积 = 底 × 高 ÷ 2" }, () => {
+      const r = Math.random();
+      if (r < 0.45) {
+        let b, h;
+        do { b = rand(4, 16); h = rand(3, 10); } while (b * h % 2);
+        return { ask: "这个三角形的面积是多少？", pic: pic(b, h, h + rand(1, 3), rand(1, b - 1)), ans: String(b * h / 2), unit: "平方厘米",
+          tip: "别忘了除以 2；斜边不是高", why: `${b} × ${h} ÷ 2 = ${b * h / 2}（平方厘米）` };
+      }
+      if (r < 0.75) {
+        const m = rand(1, 2), [a, c, hyp] = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17]]).map(v => v * m);
+        return { ask: "这个直角三角形的面积是多少？", pic: pic(c, a, hyp, 0, true), ans: String(a * c / 2), unit: "平方厘米",
+          tip: "直角三角形的两条直角边，一条是底，另一条就是高", why: `两条直角边：${c} × ${a} ÷ 2 = ${a * c / 2}（平方厘米），斜边 ${hyp} 用不上` };
+      }
+      let b, h;
+      do { b = rand(4, 16); h = rand(3, 12); } while (b * h % 2);
+      return { ask: `三角形的面积是 ${b * h / 2} 平方厘米，底是 ${b} 厘米，高是多少厘米？`, ans: String(h), unit: "厘米",
+        tip: "面积 × 2 是同底同高的平行四边形面积", why: `${b * h / 2} × 2 ÷ ${b} = ${h}（厘米）` };
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>质数和合数</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, shuffle } = G1;
+    const isPrime = n => n > 1 && Array.from({ length: n - 2 }, (_, i) => i + 2).every(i => n % i);
+    const PRIMES = Array.from({ length: 99 }, (_, i) => i + 2).filter(isPrime);
+    function factorize(n) {
+      const out = [];
+      for (let p = 2; n > 1; p++) while (n % p === 0) { out.push(p); n /= p; }
+      return out;
+    }
+    G1.quiz({ title: "质数和合数", hint: "只有 1 和它本身两个因数的是质数；还有别的因数的是合数；1 既不是质数也不是合数" }, () => {
+      if (Math.random() < 0.7) {
+        const r = Math.random(), n = r < 0.08 ? 1 : r < 0.5 ? pick(PRIMES) : pick([4, 6, 8, 9, 15, 21, 27, 33, 39, 49, 51, 57, 63, 69, 77, 81, 87, 91, 93, 95, rand(4, 100)].filter(x => !isPrime(x)));
+        const ans = n === 1 ? "none" : isPrime(n) ? "prime" : "comp";
+        const f = Array.from({ length: n }, (_, i) => i + 1).filter(i => n % i === 0);
+        return { ask: `<span style="font-size:2rem;color:#ffd166">${n}</span><br>是质数还是合数？`, ans,
+          choices: [{ v: "prime", t: "质数" }, { v: "comp", t: "合数" }, { v: "none", t: "都不是" }],
+          tip: "找一找除了 1 和它自己，还有没有别的数能整除它（比如试试 3、7）",
+          why: n === 1 ? "1 只有一个因数，既不是质数也不是合数" : `${n} 的因数有 ${f.join("、")}，${ans === "prime" ? "只有两个，是质数" : "不止两个，是合数"}` };
+      }
+      const n = pick([12, 18, 20, 24, 28, 30, 36, 40, 42, 45, 48, 50, 54, 60, 63, 72, 84, 90]), fs = factorize(n);
+      const right = fs.join(" × ");
+      const wrong = new Set();
+      const comp = [4, 6, 8, 9, 10, 12, 14, 15].find(c => n % c === 0 && n / c > 1);
+      wrong.add(`${comp} × ${n / comp}`);
+      wrong.add([...fs.slice(0, -2), fs[fs.length - 2] * fs[fs.length - 1]].join(" × "));
+      wrong.add(`1 × ${right}`);
+      wrong.delete(right);
+      return { ask: `把 ${n} 分解质因数，正确的是？`, ans: right, choices: shuffle([right, ...[...wrong].slice(0, 3)]).map(v => ({ v, t: `<span style="font-size:0.95rem">${n} = ${v}</span>` })),
+        tip: "分解质因数要把它写成几个<b>质数</b>相乘，1 不写", why: `${n} = ${right}，每个因数都是质数` };
+    });
+  </script>
+</body>
+</html>

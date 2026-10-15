@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>单价·数量·总价</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick } = G1;
+    G1.quiz({ title: "单价·数量·总价", hint: "总价 = 单价 × 数量　路程 = 速度 × 时间" }, () => {
+      const kind = pick(["c", "a", "b", "s", "v", "t"]);
+      if ("cab".includes(kind)) {
+        const [thing, m] = pick([["书包", "个"], ["足球", "个"], ["台灯", "盏"], ["故事书", "本"]]);
+        const p = rand(12, 95), n = rand(2, 9);
+        const tip = "总价 = 单价 × 数量，单价 = 总价 ÷ 数量，数量 = 总价 ÷ 单价";
+        if (kind === "c") return { ask: `每${m}${thing} ${p} 元，买 ${n} ${m}，一共多少元？`, ans: String(p * n), unit: "元", tip, why: `总价 = 单价 × 数量：${p} × ${n} = ${p * n}（元）` };
+        if (kind === "a") return { ask: `买 ${n} ${m}${thing}一共花了 ${p * n} 元，每${m}多少元？`, ans: String(p), unit: "元", tip, why: `单价 = 总价 ÷ 数量：${p * n} ÷ ${n} = ${p}（元）` };
+        return { ask: `每${m}${thing} ${p} 元，${p * n} 元能买几${m}？`, ans: String(n), unit: m, tip, why: `数量 = 总价 ÷ 单价：${p * n} ÷ ${p} = ${n}（${m}）` };
+      }
+      const v = rand(8, 18) * 5, t = rand(2, 6);
+      const tip = "路程 = 速度 × 时间，速度 = 路程 ÷ 时间，时间 = 路程 ÷ 速度";
+      if (kind === "s") return { ask: `汽车每小时行 ${v} 千米，${t} 小时行多少千米？`, ans: String(v * t), unit: "千米", tip, why: `路程 = 速度 × 时间：${v} × ${t} = ${v * t}（千米）` };
+      if (kind === "v") return { ask: `汽车 ${t} 小时行了 ${v * t} 千米，平均每小时行多少千米？`, ans: String(v), unit: "千米", tip, why: `速度 = 路程 ÷ 时间：${v * t} ÷ ${t} = ${v}（千米/时）` };
+      return { ask: `两地相距 ${v * t} 千米，汽车每小时行 ${v} 千米，要几小时？`, ans: String(t), unit: "小时", tip, why: `时间 = 路程 ÷ 速度：${v * t} ÷ ${v} = ${t}（小时）` };
+    });
+  </script>
+</body>
+</html>

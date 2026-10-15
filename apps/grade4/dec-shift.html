@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小数点移动</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, num } = G1;
+    const STEP = { 10: "一", 100: "两", 1000: "三" };
+    const TIP = "× 10、100、1000：小数点向右移一、两、三位；÷ 则向左移；位数不够用 0 补";
+    G1.quiz({ title: "小数点移动", hint: "乘 10 小数点向右移一位，除以 10 小数点向左移一位" }, () => {
+      const x = num(rand(1, 9999) / 10 ** rand(1, 3)), k = pick([10, 100, 1000]);
+      const r = Math.random();
+      if (r < 0.35) return { ask: `${x} × ${k} = ?`, ans: num(x * k), tip: TIP, why: `× ${k}，小数点向右移${STEP[k]}位：${num(x * k)}` };
+      if (r < 0.7) return { ask: `${x} ÷ ${k} = ?`, ans: num(x / k), tip: TIP, why: `÷ ${k}，小数点向左移${STEP[k]}位：${num(x / k)}` };
+      if (r < 0.85) {
+        const big = Math.random() < 0.5;
+        return big
+          ? { ask: `${x} 扩大到它的几倍是 ${num(x * k)}？`, ans: String(k), unit: "倍", tip: "数一数小数点向右移了几位", why: `小数点向右移了${STEP[k]}位，是 ${k} 倍` }
+          : { ask: `${x} 缩小到它的几分之一是 ${num(x / k)}？请填分母`, fill: `<span class="t">1 /</span>${G1.box("s")}`, ans: String(k), tip: "数一数小数点向左移了几位", why: `小数点向左移了${STEP[k]}位，是它的 1/${k}` };
+      }
+      const [from, to, m] = pick([["千克", "克", 1000], ["米", "厘米", 100], ["元", "角", 10], ["克", "千克", 0.001], ["厘米", "米", 0.01], ["米", "千米", 0.001]]);
+      return { ask: `${x} ${from} = ？${to}`, ans: num(x * m), unit: to, tip: "大单位变小单位乘进率，小单位变大单位除以进率",
+        why: m > 1 ? `1 ${from} = ${m} ${to}，${x} × ${m} = ${num(x * m)}` : `1 ${to} = ${num(1 / m)} ${from}，${x} ÷ ${num(1 / m)} = ${num(x * m)}` };
+    });
+  </script>
+</body>
+</html>

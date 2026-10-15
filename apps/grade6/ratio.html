@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>比</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, frac, gcd, num } = G1;
+    const pair = () => { let p, q; do { p = rand(1, 9); q = rand(1, 9); } while (p === q || gcd(p, q) > 1); return [p, q]; };
+    const fill = `${G1.box("s")}<span class="t">:</span>${G1.box("s")}`;
+    G1.quiz({ title: "比", hint: "比的前项和后项同时乘或除以相同的数（0 除外），比值不变；最简比的前后项只有公因数 1" }, () => {
+      const [p, q] = pair(), r = Math.random();
+      const S = (ask, tip, why) => ({ ask, fill, ans: [String(p), String(q)], check: v => +v[0] === p && +v[1] === q, tip, why });
+      if (r < 0.3) {
+        const k = rand(2, 12);
+        return S(`把 ${p * k} : ${q * k} 化成最简整数比`, "前项后项同时除以它们的最大公因数", `都除以 ${k}：${p * k} : ${q * k} = ${p} : ${q}`);
+      }
+      if (r < 0.45) {
+        const k = rand(1, 9);
+        return S(`把 ${num(p * k / 10)} : ${num(q * k / 10)} 化成最简整数比`, "先同时乘 10 变成整数比，再化简", `都乘 10 得 ${p * k} : ${q * k}，再化简得 ${p} : ${q}`);
+      }
+      if (r < 0.6) {
+        return S(`把 ${frac(1, q)} : ${frac(1, p)} 化成最简整数比`, `同时乘两个分母的最小公倍数`, `都乘 ${p * q}：${p * q}/${q} : ${p * q}/${p} = ${p} : ${q}`);
+      }
+      if (r < 0.8) {
+        const k = rand(2, 6);
+        return S(`男生有 ${p * k} 人，女生有 ${q * k} 人，男生和女生人数的最简比是多少？`, "先写成 男生 : 女生，再化简", `${p * k} : ${q * k} = ${p} : ${q}`);
+      }
+      const k = rand(2, 9), [a, b] = [1, 2, 4, 5, 8].includes(q) ? [p * k, q * k] : [p * q * k, q * k];
+      return { ask: `${a} : ${b} 的比值是多少？（写成整数或小数）`, ans: num(a / b), tip: "比值 = 前项 ÷ 后项", why: `${a} ÷ ${b} = ${num(a / b)}` };
+    });
+  </script>
+</body>
+</html>

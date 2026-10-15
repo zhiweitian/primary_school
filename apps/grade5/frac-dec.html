@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分数和小数互化</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, frac, fracIn, simp, num } = G1;
+    const nice = () => { const d = pick([2, 4, 5, 8, 10, 20, 25, 50]); return simp(rand(1, d - 1), d); };
+    G1.quiz({ title: "分数和小数互化", hint: "分数化小数：分子 ÷ 分母；小数化分数：几位小数就写成分母是 10、100、1000 的分数，再约分" }, () => {
+      const r = Math.random(), [n, d] = nice(), s = num(n / d);
+      if (r < 0.4) return { ask: `${frac(n, d)} 化成小数是多少？`, ans: s, tip: `${n} ÷ ${d}`, why: `${n} ÷ ${d} = ${s}` };
+      if (r < 0.75) {
+        const p = (s.split(".")[1] || "").length, D = 10 ** p, N = Math.round(n / d * D);
+        return { ask: `${s} 化成最简分数是多少？`, fill: fracIn(), ans: [String(n), String(d)], check: v => +v[0] === n && +v[1] === d,
+          tip: `先写成 ${N}/${D}，再约分`, why: `${s} = ${N}/${D} = ${n}/${d}` };
+      }
+      const y = num(Math.max(0.05, n / d + pick([-0.15, -0.05, 0.05, 0.1, 0])));
+      const ans = n / d > +y ? ">" : n / d < +y ? "<" : "=";
+      return { ask: `<span style="font-size:1.6rem;color:#a8dadc">${frac(n, d)} ○ ${y}</span>`, ans, key: `${n}/${d}?${y}`,
+        choices: [">", "<", "="].map(v => ({ v, t: v === "<" ? "&lt;" : v })), tip: "把分数化成小数再比",
+        why: `${n}/${d} = ${s}，${s} ${ans === "<" ? "<" : ans} ${y}` };
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>解简易方程</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick } = G1;
+    const F = [
+      (x, a, b) => [`x + ${b} = ${x + b}`, `两边同时减 ${b}：x = ${x + b} − ${b} = ${x}`],
+      (x, a, b) => [`x − ${b} = ${x}`, `两边同时加 ${b}：x = ${x} + ${b} = ${x + b}`, x + b],
+      (x, a, b) => [`${a}x = ${a * x}`, `两边同时除以 ${a}：x = ${a * x} ÷ ${a} = ${x}`],
+      (x, a, b) => [`x ÷ ${a} = ${x}`, `两边同时乘 ${a}：x = ${x} × ${a} = ${x * a}`, x * a],
+      (x, a, b) => [`${a}x + ${b} = ${a * x + b}`, `两边先减 ${b}：${a}x = ${a * x}，再除以 ${a}：x = ${x}`],
+      (x, a, b) => { b = Math.min(b, a * x - 1); return [`${a}x − ${b} = ${a * x - b}`, `两边先加 ${b}：${a}x = ${a * x}，再除以 ${a}：x = ${x}`]; },
+      (x, a, b) => [`${a}(x + ${b}) = ${a * (x + b)}`, `两边先除以 ${a}：x + ${b} = ${x + b}，再减 ${b}：x = ${x}`]
+    ];
+    G1.quiz({ title: "解简易方程", hint: "等式两边同时加、减、乘同一个数，或同时除以同一个不是 0 的数，等式仍然成立" }, () => {
+      const x = rand(2, 40), [e, how, X] = pick(F)(x, rand(2, 9), rand(1, 30));
+      return { ask: `解方程：<span class="t">${e}</span>`, fill: `<span class="t">x =</span>${G1.box("l")}`, ans: String(X || x),
+        tip: "让 x 单独留在等号一边：加了就减，减了就加，乘了就除，除了就乘", why: how };
+    });
+  </script>
+</body>
+</html>

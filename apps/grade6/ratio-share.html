@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>按比分配</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, gcd, bar } = G1;
+    G1.quiz({ title: "按比分配", hint: "按 a : b 分配，就是把总数平均分成 a + b 份，一个占 a 份，另一个占 b 份" }, hint => {
+      let p, q;
+      do { p = rand(1, 7); q = rand(1, 7); } while (p === q || gcd(p, q) > 1);
+      const k = rand(2, 15), T = (p + q) * k;
+      if (Math.random() < 0.65) return { ask: `${T} 本书按 ${p} : ${q} 分给甲、乙两个班，各分到多少本？`, pic: hint ? bar(p + q, p, 260, q) : "",
+        fill: `<span class="u">甲</span>${G1.box("s")}<span class="u">本　乙</span>${G1.box("s")}<span class="u">本</span>`, ans: [String(p * k), String(q * k)],
+        tip: `一共 ${p} + ${q} = ${p + q} 份，先算一份是多少`, why: `一份：${T} ÷ ${p + q} = ${k}，甲 ${p} × ${k} = ${p * k}，乙 ${q} × ${k} = ${q * k}` };
+      return { ask: `甲、乙两人的钱数比是 ${p} : ${q}，甲有 ${p * k} 元，乙有多少元？`, ans: String(q * k), unit: "元",
+        tip: `甲的 ${p} 份是 ${p * k} 元，先算一份`, why: `一份：${p * k} ÷ ${p} = ${k}，乙：${q} × ${k} = ${q * k}（元）` };
+    });
+  </script>
+</body>
+</html>

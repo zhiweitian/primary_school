@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>正比例和反比例</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+  <style>
+    table.xy { border-collapse: collapse; margin: 0 auto; font-family: "Courier New", monospace; font-size: 1.1rem; }
+    table.xy td { border: 1px solid rgba(168,218,220,0.4); padding: 0.35rem 0.6rem; text-align: center; color: #ddd; }
+    table.xy td:first-child { color: #ffd166; }
+  </style>
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, shuffle } = G1;
+    const NAME = { dir: "成正比例", inv: "成反比例", none: "不成比例" };
+    const SCENES = [
+      ["单价一定，总价和数量", "dir", "总价 ÷ 数量 = 单价（一定），商一定"],
+      ["速度一定，路程和时间", "dir", "路程 ÷ 时间 = 速度（一定），商一定"],
+      ["每袋重量一定，大米总重和袋数", "dir", "总重 ÷ 袋数 = 每袋重量（一定），商一定"],
+      ["路程一定，速度和时间", "inv", "速度 × 时间 = 路程（一定），积一定"],
+      ["总价一定，单价和数量", "inv", "单价 × 数量 = 总价（一定），积一定"],
+      ["长方形面积一定，长和宽", "inv", "长 × 宽 = 面积（一定），积一定"],
+      ["人的身高和年龄", "none", "身高 ÷ 年龄、身高 × 年龄都不一定，不成比例"],
+      ["正方形的边长和面积", "none", "面积 ÷ 边长 = 边长，不一定，不成比例"],
+      ["一个人的年龄和体重", "none", "商和积都不一定，不成比例"]
+    ];
+    G1.quiz({ title: "正比例和反比例", hint: "两种量的比值（商）一定是正比例；乘积一定是反比例" }, () => {
+      const choices = Object.keys(NAME).map(v => ({ v, t: NAME[v] }));
+      if (Math.random() < 0.5) {
+        const [t, ans, why] = pick(SCENES);
+        return { ask: `${t}：`, ans, choices, tip: "看看两种量相除的商一定，还是相乘的积一定", why };
+      }
+      const kind = pick(["dir", "inv", "none"]);
+      let xs, ys;
+      if (kind === "inv") {
+        const P = pick([24, 36, 48, 60, 72]);
+        xs = shuffle([1, 2, 3, 4, 6, 8, 12].filter(x => P % x === 0)).slice(0, 4).sort((a, b) => a - b);
+        ys = xs.map(x => P / x);
+      } else {
+        xs = [1, 2, 3, 4].map(i => i * rand(1, 2));
+        xs = [...new Set(xs)].sort((a, b) => a - b);
+        const k = rand(2, 9), c = rand(1, 6);
+        ys = xs.map(x => (kind === "dir" ? k * x : k * x + c));
+      }
+      const table = `<table class="xy"><tr><td>x</td>${xs.map(v => `<td>${v}</td>`).join("")}</tr><tr><td>y</td>${ys.map(v => `<td>${v}</td>`).join("")}</tr></table>`;
+      const why = kind === "dir" ? `y ÷ x 都等于 ${ys[0] / xs[0]}，商一定，成正比例`
+        : kind === "inv" ? `x × y 都等于 ${xs[0] * ys[0]}，积一定，成反比例` : `y ÷ x 和 x × y 都不固定，不成比例`;
+      return { ask: "表中的 x 和 y：", pic: table, ans: kind, choices, key: kind + xs.join() + ys.join(),
+        tip: "每一组算一算 y ÷ x，再算一算 x × y", why };
+    });
+  </script>
+</body>
+</html>

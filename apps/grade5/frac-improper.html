@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>假分数和带分数</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, frac, fracIn, sameFrac, mixed } = G1;
+    G1.quiz({ title: "假分数和带分数", hint: "分子比分母小是真分数（小于 1）；分子等于或大于分母是假分数（≥ 1）" }, hint => {
+      const d = rand(2, 9), r = Math.random();
+      if (r < 0.3) {
+        const n = Math.random() < 0.5 ? rand(1, d - 1) : rand(d, 3 * d);
+        const ans = n < d ? "proper" : "improper";
+        return { ask: `${frac(n, d)} 是真分数还是假分数？`, ans, choices: [{ v: "proper", t: "真分数" }, { v: "improper", t: "假分数" }],
+          tip: "比一比分子和分母", why: n < d ? `分子 ${n} 比分母 ${d} 小，是真分数` : `分子 ${n} 不比分母 ${d} 小，是假分数` };
+      }
+      const w = rand(1, 5), m = rand(1, d - 1), n = w * d + m;
+      if (r < 0.6) return { ask: `把 ${frac(n, d)} 化成带分数`, fill: `${G1.box("s")}${fracIn()}`, ans: [String(w), String(m), String(d)],
+        check: v => +v[0] === w && sameFrac(v[1], v[2], m, d), tip: "分子 ÷ 分母，商是整数部分，余数是新分子，分母不变",
+        why: `${n} ÷ ${d} = ${w} …… ${m}，所以 ${n}/${d} = ${w} 又 ${m}/${d}`, pic: hint ? G1.bar(d, d, 150).repeat(w) + G1.bar(d, m, 150) : "" };
+      if (r < 0.85) return { ask: `把 ${mixed(w, m, d)} 化成假分数`, fill: fracIn(), ans: [String(n), String(d)],
+        check: v => sameFrac(v[0], v[1], n, d), tip: "整数 × 分母 + 分子 作新分子，分母不变", why: `${w} × ${d} + ${m} = ${n}，所以是 ${n}/${d}` };
+      return { ask: `把 ${w} 化成分母是 ${d} 的假分数，分子是几？`, ans: String(w * d), tip: `1 = ${d}/${d}`, why: `${w} = ${w * d}/${d}` };
+    });
+  </script>
+</body>
+</html>

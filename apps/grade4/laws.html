@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>运算定律</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick } = G1;
+    const LAWS = ["加法交换律", "加法结合律", "乘法交换律", "乘法结合律", "乘法分配律"];
+    const TIP = "交换律：换位置；结合律：换先算哪两个；分配律：一个数乘两个数的和，可以分别乘再相加";
+    const mono = s => `<span class="t" style="font-size:1.2rem">${s}</span>`;
+    G1.quiz({ title: "运算定律", hint: "a + b = b + a　(a + b) + c = a + (b + c)　(a + b) × c = a × c + b × c" }, () => {
+      const a = rand(2, 99), b = rand(2, 99), c = rand(2, 30), i = rand(0, 4);
+      if (Math.random() < 0.5) {
+        const e = [`${a} + ${b} = ${b} + ${a}`, `(${a} + ${b}) + ${c} = ${a} + (${b} + ${c})`, `${a} × ${b} = ${b} × ${a}`,
+          `(${a} × ${b}) × ${c} = ${a} × (${b} × ${c})`, `(${a} + ${b}) × ${c} = ${a} × ${c} + ${b} × ${c}`][i];
+        return { ask: `<span style="font-family:'Courier New',monospace;color:#a8dadc">${e}</span><br>用的是什么运算定律？`, ans: LAWS[i],
+          choices: LAWS.map(v => ({ v, t: `<span style="font-size:0.95rem">${v}</span>` })), tip: TIP, why: `${e}，这是${LAWS[i]}` };
+      }
+      const [l, r, ans, law] = [
+        [`${a} + ${b} = `, ` + ${a}`, b, "加法交换律"],
+        [`${a} + ${b} + ${c} = ${a} + (`, ` + ${c})`, b, "加法结合律"],
+        [`${a} × ${b} × ${c} = ${a} × (${b} × `, `)`, c, "乘法结合律"],
+        [`${a} × (${b} + ${c}) = ${a} × ${b} + ${a} × `, ``, c, "乘法分配律"],
+        [`${a} × ${c} + ${b} × ${c} = (${a} + `, `) × ${c}`, b, "乘法分配律"]
+      ][i];
+      return { ask: "在方框里填数", fill: mono(l) + G1.box("s") + (r ? mono(r) : ""), ans: String(ans), tip: TIP, why: `${law}：这里填 ${ans}` };
+    });
+  </script>
+</body>
+</html>

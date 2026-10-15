@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小数除法</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, num } = G1;
+    const big = s => `<span style="font-family:'Courier New',monospace;font-size:1.5rem;color:#a8dadc">${s}</span>`;
+    G1.quiz({ title: "小数除法", hint: "除数是小数：被除数和除数的小数点同时向右移，把除数变成整数再除" }, () => {
+      const r = Math.random();
+      if (r < 0.35) {
+        const d = pick([rand(2, 9), rand(12, 25)]), q = num(rand(11, 999) / 10 ** rand(1, 2));
+        const a = num(+q * d);
+        return { ask: big(`${a} ÷ ${d} = ?`), ans: q, tip: "按整数除法除，商的小数点和被除数的小数点对齐",
+          why: `${a} ÷ ${d} = ${q}（商的小数点对齐被除数的小数点）` };
+      }
+      if (r < 0.8) {
+        let d;
+        do d = num(rand(2, 99) / 10 ** rand(1, 2)); while (!d.includes("."));
+        const p = d.split(".")[1].length, q = num(rand(2, 99) / 10 ** rand(0, 1));
+        const a = num(+q * +d), k = 10 ** p;
+        return { ask: big(`${a} ÷ ${d} = ?`), ans: q, tip: `除数 ${d} 有 ${p} 位小数，两个数的小数点都向右移 ${p} 位`,
+          why: `都扩大到 ${k} 倍：${num(+a * k)} ÷ ${num(+d * k)} = ${q}` };
+      }
+      const a = rand(1, 20), b = pick([3, 7, 9, 11]);
+      const q = (Math.round(a / b * 100) / 100).toFixed(2);
+      return { ask: `${big(`${a} ÷ ${b}`)} 的商保留两位小数约是多少？`, ans: q, tip: "算到第三位小数，再四舍五入",
+        why: `${a} ÷ ${b} = ${(Math.floor(a / b * 1000) / 1000).toFixed(3)}…，看第三位四舍五入，约是 ${q}` };
+    });
+  </script>
+</body>
+</html>

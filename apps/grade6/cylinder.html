@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>圆柱</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, num } = G1;
+    const cyl = (rl, hl) => `<svg viewBox="0 0 190 170" width="190" height="170">
+      <path d="M20 30 V140 A60 18 0 0 0 140 140 V30" fill="rgba(255,209,102,0.2)" stroke="#ffd166" stroke-width="2.5"/>
+      <ellipse cx="80" cy="30" rx="60" ry="18" fill="rgba(255,209,102,0.35)" stroke="#ffd166" stroke-width="2.5"/>
+      <path d="M20 140 A60 18 0 0 1 140 140" fill="none" stroke="#ffd166" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <line x1="80" y1="30" x2="140" y2="30" stroke="#06d6a0" stroke-width="2"/><text x="110" y="24" text-anchor="middle" fill="#06d6a0" font-size="13">${rl}</text>
+      <text x="148" y="90" fill="#ddd" font-size="13">${hl}</text></svg>`;
+    G1.quiz({ title: "圆柱", hint: "侧面展开是长方形：长 = 底面周长，宽 = 高。侧面积 = Ch，体积 = 底面积 × 高" }, () => {
+      const r = rand(1, 6), h = rand(2, 10), useD = Math.random() < 0.3, lab = useD ? `d=${2 * r}` : `r=${r}`;
+      const base = 3.14 * r * r, side = 6.28 * r * h;
+      const kind = pick(["side", "surf", "vol", "vol"]);
+      const pic = cyl(lab, `h=${h}`);
+      const pre = useD ? `r = ${2 * r} ÷ 2 = ${r}，` : "";
+      if (kind === "side") return { ask: "这个圆柱的侧面积是多少平方厘米？（单位：厘米，π 取 3.14）", pic, ans: num(side), unit: "平方厘米",
+        tip: "侧面积 = 底面周长 × 高", why: `${pre}2 × 3.14 × ${r} × ${h} = ${num(side)}（平方厘米）` };
+      if (kind === "surf") return { ask: "这个圆柱的表面积是多少平方厘米？（单位：厘米，π 取 3.14）", pic, ans: num(side + 2 * base), unit: "平方厘米",
+        tip: "表面积 = 侧面积 + 两个底面积", why: `${pre}侧面 ${num(side)} + 底面 ${num(base)} × 2 = ${num(side + 2 * base)}（平方厘米）` };
+      return { ask: "这个圆柱的体积是多少立方厘米？（单位：厘米，π 取 3.14）", pic, ans: num(base * h), unit: "立方厘米",
+        tip: "体积 = 底面积 × 高 = 3.14 × r × r × h", why: `${pre}3.14 × ${r} × ${r} × ${h} = ${num(base * h)}（立方厘米）` };
+    });
+  </script>
+</body>
+</html>

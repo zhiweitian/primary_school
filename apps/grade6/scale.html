@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>比例尺</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, num } = G1;
+    G1.quiz({ title: "比例尺", hint: "比例尺 = 图上距离 : 实际距离；1 千米 = 100000 厘米" }, () => {
+      const n = pick([100000, 200000, 500000, 1000000, 2000000, 5000000]), km = n / 100000;
+      const r = Math.random();
+      if (r < 0.4) {
+        const d = num(rand(2, 30) / pick([1, 2]));
+        return { ask: `在比例尺是 1 : ${n} 的地图上，量得两地相距 ${d} 厘米，实际距离是多少千米？`, ans: num(+d * km), unit: "千米",
+          tip: `图上 1 厘米表示实际 ${n} 厘米，也就是 ${km} 千米`, why: `${d} × ${n} = ${num(+d * n)}（厘米）= ${num(+d * km)}（千米）` };
+      }
+      if (r < 0.75) {
+        const d = rand(2, 20), D = d * km;
+        return { ask: `两地实际相距 ${D} 千米，画在比例尺是 1 : ${n} 的地图上，应画多少厘米？`, ans: String(d), unit: "厘米",
+          tip: `先把 ${D} 千米化成厘米，再除以 ${n}`, why: `${D} 千米 = ${D * 100000} 厘米，${D * 100000} ÷ ${n} = ${d}（厘米）` };
+      }
+      const d = rand(2, 10), D = d * km;
+      return { ask: `图上 ${d} 厘米表示实际 ${D} 千米，这幅图的比例尺是多少？`, fill: `<span class="t">1 :</span>${G1.box("l")}`, ans: String(n),
+        tip: "先统一单位：千米化成厘米，再化简成 1 : ?", why: `${D} 千米 = ${D * 100000} 厘米，${d} : ${D * 100000} = 1 : ${n}` };
+    });
+  </script>
+</body>
+</html>

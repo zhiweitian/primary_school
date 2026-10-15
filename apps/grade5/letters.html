@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用字母表示数</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, shuffle } = G1;
+    const SCENES = [
+      n => [`小明 a 岁，爸爸比他大 ${n} 岁，爸爸几岁？`, `a + ${n}`, [`${n}a`, `a − ${n}`, `${n} − a`]],
+      n => [`每支笔 a 元，买 ${n} 支要多少元？`, `${n}a`, [`a + ${n}`, `a ÷ ${n}`, `${n} − a`]],
+      n => [`a 个苹果平均分给 ${n} 个人，每人几个？`, `a ÷ ${n}`, [`${n}a`, `${n} ÷ a`, `a − ${n}`]],
+      n => [`一根绳子长 a 米，剪去 ${n} 米，还剩多少米？`, `a − ${n}`, [`${n} − a`, `a + ${n}`, `${n}a`]],
+      () => ["正方形的边长是 a，周长是多少？", "4a", ["a²", "2a", "a + 4"]],
+      () => ["正方形的边长是 a，面积是多少？", "a²", ["4a", "2a", "a + a"]],
+      () => ["x × x 可以写成？", "x²", ["2x", "x + 2", "x + x"]],
+      n => [`a × ${n} 可以写成？`, `${n}a`, [`a${n}`, `a + ${n}`, `${n} + a`]]
+    ];
+    G1.quiz({ title: "用字母表示数", hint: "数和字母相乘，乘号可以省略，数写在前面：a × 5 写成 5a；a × a 写成 a²" }, () => {
+      if (Math.random() < 0.5) {
+        const [ask, ans, wrong] = pick(SCENES)(rand(3, 30));
+        return { ask, ans, choices: shuffle([ans, ...wrong]).map(v => ({ v, t: v })), tip: "把字母当成一个数，想想用这个数该怎么列式", why: `应该是 ${ans}` };
+      }
+      const a = rand(2, 12), k = rand(2, 9), c = rand(1, 20);
+      const [e, v, how] = pick([
+        [`${k}a + ${c}`, k * a + c, `${k} × ${a} + ${c}`],
+        [`${k}a − ${Math.min(c, k * a)}`, k * a - Math.min(c, k * a), `${k} × ${a} − ${Math.min(c, k * a)}`],
+        [`${k}(a + ${c})`, k * (a + c), `${k} × (${a} + ${c})`],
+        [`a² + ${c}`, a * a + c, `${a} × ${a} + ${c}`]
+      ]);
+      return { ask: `当 a = ${a} 时，${e} 等于多少？`, ans: String(v), tip: `把 a 换成 ${a}；${k}a 就是 ${k} × a，a² 就是 a × a`, why: `${how} = ${v}` };
+    });
+  </script>
+</body>
+</html>

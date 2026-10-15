@@ -146,6 +146,41 @@
     }
     return s + "</svg>";
   }
+  function num(x) {
+    return String(+(+x).toFixed(6));
+  }
+  function simp(n, d) {
+    const k = gcd(n, d);
+    return [n / k, d / k];
+  }
+  function mixed(w, n, d) {
+    return `<span class="t">${w}</span>${frac(n, d)}`;
+  }
+  function quiz(meta, make) {
+    document.body.insertAdjacentHTML("afterbegin", `<div class="container"><h1>${meta.title}</h1><p class="hint">${meta.hint}</p>
+      <div class="stats"><div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div></div>
+      <div class="card" id="card"></div><div class="status" id="status"></div>
+      <button class="btn-next" id="nextBtn">下一题 →</button></div>`);
+    function render() {
+      resetShell();
+      const hint = needHint();
+      const q = fresh(() => {
+        const x = make(hint);
+        if (x.key == null) x.key = x.ask + JSON.stringify(x.ans);
+        return x;
+      });
+      g.q = q;
+      $("card").innerHTML = `<div class="ask">${q.ask}</div>
+        ${q.pic ? `<div class="pic">${q.pic}</div>` : ""}
+        ${hint && q.tip ? `<div class="tip">${q.tip}</div>` : ""}
+        ${q.choices ? choices(q.choices) : `<div class="fill">${q.fill || box("l") + (q.unit ? `<span class="u">${q.unit}</span>` : "")}</div>${okBtn()}`}`;
+      if (q.choices) bindChoices(v => finish(v === String(q.ans), q.why, render));
+      else bindOk(v => finish(q.check ? q.check(v) : [].concat(q.ans).every((a, i) => same(v[i], a)), q.why, render));
+    }
+    g.render = render;
+    boot(render);
+  }
   function boot(start) {
     $("nextBtn").onclick = start;
     PracticeStats.init("../../data/practice-stats.json").then(() => {
@@ -158,6 +193,6 @@
   g.G1 = {
     rand, pick, fresh, $, fruits, frame, sticks, needHint,
     resetShell, finish, choices, bindChoices, pad, boot,
-    gcd, frac, fracIn, box, vals, same, sameFrac, bindOk, okBtn, shuffle, bar
+    gcd, frac, fracIn, box, vals, same, sameFrac, bindOk, okBtn, shuffle, bar, num, simp, mixed, quiz
   };
 })(window);

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分数的意义</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, fracIn, sameFrac, simp } = G1;
+    G1.quiz({ title: "分数的意义", hint: "把单位「1」平均分成若干份，表示这样一份或几份的数叫分数；a ÷ b = a/b" }, () => {
+      const r = Math.random();
+      const F = (n, d, ask, tip, why) => ({ ask, fill: fracIn(), ans: [String(n), String(d)], check: v => sameFrac(v[0], v[1], n, d), tip, why });
+      if (r < 0.25) {
+        const a = rand(1, 9), b = rand(2, 9);
+        return F(a, b, `把 ${a} 块饼平均分给 ${b} 个人，每人分到几分之几块？`, "分几块就是被除数，分给几人就是除数：a ÷ b = a/b", `${a} ÷ ${b} = ${a}/${b}（块）`);
+      }
+      if (r < 0.45) {
+        const m = rand(2, 5), n = rand(3, 8);
+        return Math.random() < 0.5
+          ? F(1, n, `把一根 ${m} 米长的绳子平均剪成 ${n} 段，每段是全长的几分之几？`, "问「全长的几分之几」，单位「1」是整根绳子，和它多长没关系", `平均分成 ${n} 段，每段是全长的 1/${n}`)
+          : F(m, n, `把一根 ${m} 米长的绳子平均剪成 ${n} 段，每段长几分之几米？`, "问「每段长多少米」，要用总长度去除", `${m} ÷ ${n} = ${m}/${n}（米）`);
+      }
+      if (r < 0.7) {
+        const t = rand(20, 50), b = rand(1, t - 1);
+        const [p, q] = simp(b, t);
+        return F(b, t, `一个班有 ${t} 人，其中男生 ${b} 人，男生占全班人数的几分之几？`, "全班人数是单位「1」，作分母", `${b} ÷ ${t} = ${b}/${t}${p !== b ? ` = ${p}/${q}` : ""}`);
+      }
+      if (r < 0.85) {
+        const a = rand(1, 15), b = rand(2, 15);
+        return F(a, b, `${a} ÷ ${b} 用分数表示是多少？`, "被除数作分子，除数作分母", `${a} ÷ ${b} = ${a}/${b}`);
+      }
+      const [n, from, to, k] = pick([[rand(1, 9), "分米", "米", 10], [rand(1, 59), "分", "时", 60], [rand(1, 999), "克", "千克", 1000], [rand(1, 99), "厘米", "米", 100]]);
+      return F(n, k, `${n} ${from} = 几分之几${to}？`, `1 ${to} = ${k} ${from}`, `${n} ${from}是 ${n}/${k} ${to}`);
+    });
+  </script>
+</body>
+</html>

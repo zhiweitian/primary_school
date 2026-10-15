@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>异分母分数加减</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, frac, fracIn, simp, gcd } = G1;
+    const proper = () => { let n, d; do { d = rand(2, 12); n = rand(1, d - 1); } while (gcd(n, d) > 1); return [n, d]; };
+    G1.quiz({ title: "异分母分数加减", hint: "分母不同，每份大小不同，不能直接加减：先通分，再加减，最后约成最简分数" }, () => {
+      let a, b, c, d, op, N, L;
+      do {
+        [a, b] = proper(); [c, d] = proper();
+        op = Math.random() < 0.5 ? "+" : "−";
+        L = b * d / gcd(b, d);
+        N = op === "+" ? a * L / b + c * L / d : a * L / b - c * L / d;
+      } while (b === d || N <= 0 || N >= L);
+      const [p, q] = simp(N, L);
+      return { ask: `<span style="font-size:1.6rem;color:#a8dadc">${frac(a, b)} ${op} ${frac(c, d)} =</span>`, fill: fracIn(), ans: [String(p), String(q)],
+        check: v => +v[0] === p && +v[1] === q, tip: `先通分：分母用 ${b} 和 ${d} 的最小公倍数`,
+        why: `${a * L / b}/${L} ${op} ${c * L / d}/${L} = ${N}/${L}${p !== N ? ` = ${p}/${q}（要约成最简分数）` : ""}` };
+    });
+  </script>
+</body>
+</html>

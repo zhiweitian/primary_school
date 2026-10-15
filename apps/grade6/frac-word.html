@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分数乘除应用题</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, frac, gcd, bar } = G1;
+    G1.quiz({ title: "分数乘除应用题", hint: "先找单位「1」：单位「1」知道了用乘法，单位「1」不知道用除法（或列方程）" }, hint => {
+      let n, d;
+      do { d = rand(2, 9); n = rand(1, d - 1); } while (gcd(n, d) > 1);
+      const k = rand(2, 12), T = d * k, r = Math.random();
+      const pic = hint ? bar(d, n, 240) : "";
+      if (r < 0.3) return { ask: `一桶油 ${T} 千克，用去了 ${frac(n, d)}，用去多少千克？`, pic, ans: String(n * k), unit: "千克",
+        tip: "单位「1」是一桶油的重量，已经知道，用乘法", why: `${T} × ${n}/${d} = ${n * k}（千克）` };
+      if (r < 0.5) return { ask: `一桶油 ${T} 千克，用去了 ${frac(n, d)}，还剩多少千克？`, pic, ans: String((d - n) * k), unit: "千克",
+        tip: `还剩的是全部的 1 − ${n}/${d}`, why: `${T} × (1 − ${n}/${d}) = ${T} × ${d - n}/${d} = ${(d - n) * k}（千克）` };
+      if (r < 0.8) {
+        const x = n * k;
+        return { ask: `小明有 ${x} 本书，正好是小红的 ${frac(n, d)}，小红有几本书？`, pic, ans: String(T), unit: "本",
+          tip: "「是小红的几分之几」，小红是单位「1」，不知道，用除法", why: `${x} ÷ ${n}/${d} = ${x} × ${d}/${n} = ${T}（本）` };
+      }
+      const m = rand(3, 8), base = m * rand(5, 15), more = Math.random() < 0.5;
+      return { ask: `一班有 ${base} 人，二班比一班${more ? "多" : "少"} ${frac(1, m)}，二班有多少人？`, ans: String(more ? base + base / m : base - base / m), unit: "人",
+        tip: `一班是单位「1」，二班是一班的 1 ${more ? "+" : "−"} 1/${m}`, why: `${base} × (1 ${more ? "+" : "−"} 1/${m}) = ${more ? base + base / m : base - base / m}（人）` };
+    });
+  </script>
+</body>
+</html>

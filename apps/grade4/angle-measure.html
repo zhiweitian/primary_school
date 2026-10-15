@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>量角</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick } = G1;
+    const r1 = v => Math.round(v * 10) / 10;
+    const CX = 160, CY = 155, R = 135;
+    const pt = (deg, r) => [r1(CX + r * Math.cos(deg * Math.PI / 180)), r1(CY - r * Math.sin(deg * Math.PI / 180))];
+
+    function protractor(base, deg) {
+      let s = `<svg viewBox="0 0 320 170" width="320" height="170">
+        <path d="M${CX - R} ${CY} A${R} ${R} 0 0 1 ${CX + R} ${CY} Z" fill="rgba(168,218,220,0.12)" stroke="#a8dadc" stroke-width="1.5"/>`;
+      for (let t = 0; t <= 180; t += 5) {
+        const [x1, y1] = pt(t, R), [x2, y2] = pt(t, R - (t % 10 ? 6 : 11));
+        s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#a8dadc" stroke-width="1"/>`;
+        if (t % 10 === 0) {
+          const [ox, oy] = pt(t, R - 19), [ix, iy] = pt(t, R - 34);
+          s += `<text x="${ox}" y="${oy + 3}" text-anchor="middle" font-size="8.5" fill="#ddd">${180 - t}</text>
+            <text x="${ix}" y="${iy + 3}" text-anchor="middle" font-size="8.5" fill="#ffd166">${t}</text>`;
+        }
+      }
+      const a0 = base === "r" ? 0 : 180, a1 = base === "r" ? deg : 180 - deg;
+      const [bx, by] = pt(a0, R + 12), [ex, ey] = pt(a1, R + 12);
+      return s + `<line x1="${CX}" y1="${CY}" x2="${bx}" y2="${by}" stroke="#ef476f" stroke-width="3"/>
+        <line x1="${CX}" y1="${CY}" x2="${ex}" y2="${ey}" stroke="#ef476f" stroke-width="3"/>
+        <circle cx="${CX}" cy="${CY}" r="3" fill="#ef476f"/></svg>`;
+    }
+
+    const KINDS = { acute: "锐角", right: "直角", obtuse: "钝角", straight: "平角", round: "周角" };
+    G1.quiz({ title: "量角", hint: "量角器中心对准顶点，0° 刻度线对准一条边，看另一条边指着几" }, () => {
+      const r = Math.random();
+      if (r < 0.55) {
+        const deg = rand(2, 34) * 5, base = pick(["r", "l"]);
+        return { ask: "这个角是多少度？", pic: protractor(base, deg), ans: String(deg), unit: "°",
+          tip: base === "r" ? "一条边在右边的 0°，看内圈（黄色）的数" : "一条边在左边的 0°，看外圈（白色）的数",
+          why: `边对着${base === "r" ? "右边" : "左边"}的 0°，要看${base === "r" ? "内圈" : "外圈"}，是 ${deg}°` };
+      }
+      if (r < 0.8) {
+        const k = pick(Object.keys(KINDS));
+        const deg = { acute: rand(1, 89), right: 90, obtuse: rand(91, 179), straight: 180, round: 360 }[k];
+        return { ask: `${deg}° 的角是什么角？`, ans: k, choices: Object.keys(KINDS).map(v => ({ v, t: KINDS[v] })),
+          tip: "直角 90°，平角 180°，周角 360°；比直角小是锐角，在直角和平角之间是钝角", why: `${deg}° 是${KINDS[k]}` };
+      }
+      const whole = pick([90, 180]), a = rand(10, whole - 10);
+      return { ask: `一个${whole === 90 ? "直角" : "平角"}被分成两个角，∠1 = ${a}°，∠2 是多少度？`, ans: String(whole - a), unit: "°",
+        tip: whole === 90 ? "直角是 90°" : "平角是 180°", why: `${whole} − ${a} = ${whole - a}（°）` };
+    });
+  </script>
+</body>
+</html>

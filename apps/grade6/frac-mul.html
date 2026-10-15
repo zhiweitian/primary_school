@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分数乘法</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, frac, fracIn, simp, gcd } = G1;
+    const proper = () => { let n, d; do { d = rand(2, 12); n = rand(1, d - 1); } while (gcd(n, d) > 1); return [n, d]; };
+    G1.quiz({ title: "分数乘法", hint: "分子乘分子，分母乘分母；能约分的先约分，结果要是最简分数" }, () => {
+      let ask, N, D, how;
+      do {
+        if (Math.random() < 0.4) {
+          const k = rand(2, 15), [n, d] = proper();
+          ask = `<span class="t">${k}</span> × ${frac(n, d)} =`;
+          [N, D] = [k * n, d];
+          how = `${k} × ${n}/${d} = ${k * n}/${d}`;
+        } else {
+          const [a, b] = proper(), [c, d] = proper();
+          ask = `${frac(a, b)} × ${frac(c, d)} =`;
+          [N, D] = [a * c, b * d];
+          how = `${a} × ${c} / (${b} × ${d}) = ${a * c}/${b * d}`;
+        }
+      } while (N % D === 0);
+      const [p, q] = simp(N, D);
+      return { ask: `<span style="font-size:1.6rem;color:#a8dadc">${ask}</span>`, fill: fracIn(), ans: [String(p), String(q)],
+        check: v => +v[0] === p && +v[1] === q, tip: "整数和分数相乘，整数只和分子相乘；先约分再乘更简单",
+        why: `${how}${p !== N ? ` = ${p}/${q}（约成最简）` : ""}` };
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分数除法</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, frac, fracIn, simp, gcd } = G1;
+    const proper = () => { let n, d; do { d = rand(2, 12); n = rand(1, d - 1); } while (gcd(n, d) > 1); return [n, d]; };
+    G1.quiz({ title: "分数除法", hint: "除以一个数（0 除外），等于乘这个数的倒数" }, () => {
+      let ask, N, D, how;
+      do {
+        const r = Math.random();
+        if (r < 0.3) {
+          const [n, d] = proper(), k = rand(2, 9);
+          ask = `${frac(n, d)} ÷ <span class="t">${k}</span> =`;
+          [N, D] = [n, d * k];
+          how = `${n}/${d} × 1/${k}`;
+        } else if (r < 0.55) {
+          const [n, d] = proper(), k = rand(2, 12);
+          ask = `<span class="t">${k}</span> ÷ ${frac(n, d)} =`;
+          [N, D] = [k * d, n];
+          how = `${k} × ${d}/${n}`;
+        } else {
+          const [a, b] = proper(), [c, d] = proper();
+          ask = `${frac(a, b)} ÷ ${frac(c, d)} =`;
+          [N, D] = [a * d, b * c];
+          how = `${a}/${b} × ${d}/${c}`;
+        }
+      } while (N % D === 0);
+      const [p, q] = simp(N, D);
+      return { ask: `<span style="font-size:1.6rem;color:#a8dadc">${ask}</span>`, fill: fracIn(), ans: [String(p), String(q)],
+        check: v => +v[0] === p && +v[1] === q, tip: "把 ÷ 改成 ×，后面的数换成它的倒数；结果约成最简分数（可以是假分数）",
+        why: `= ${how} = ${p}/${q}` };
+    });
+  </script>
+</body>
+</html>

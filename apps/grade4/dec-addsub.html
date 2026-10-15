@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小数加减法</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, num } = G1;
+    const pad = (s, n) => (s.includes(".") ? s : s + ".") .padEnd(s.split(".")[0].length + 1 + n, "0");
+    G1.quiz({ title: "小数加减法", hint: "小数点对齐，也就是相同数位对齐；末尾不够的位可以看成 0" }, () => {
+      const pa = rand(0, 2), pb = rand(1, 3);
+      let a = rand(10, 9999) / 10 ** pa, b;
+      do b = rand(1, 9999) / 10 ** pb; while (Number.isInteger(b));
+      const op = Math.random() < 0.5 ? "+" : "−";
+      if (op === "−" && b > a) [a, b] = [b, a];
+      if (op === "−" && a === b) a += 1;
+      const r = op === "+" ? a + b : a - b;
+      const sa = num(a), sb = num(b), n = Math.max(...[sa, sb].map(s => (s.split(".")[1] || "").length));
+      return { ask: `<span style="font-family:'Courier New',monospace;font-size:1.5rem;color:#a8dadc">${sa} ${op} ${sb} = ?</span>`,
+        ans: num(r), tip: `小数点对齐，把它们都看成 ${n} 位小数：${pad(sa, n)} ${op} ${pad(sb, n)}`,
+        why: `小数点对齐：${pad(sa, n)} ${op} ${pad(sb, n)} = ${num(r)}` };
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>圆的面积</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, num } = G1;
+    const circle = (lab, dia, inner) => `<svg viewBox="0 0 160 140" width="160" height="140">
+      <circle cx="70" cy="70" r="60" fill="rgba(255,209,102,0.3)" stroke="#ffd166" stroke-width="3"/>
+      ${inner ? `<circle cx="70" cy="70" r="30" fill="#1b2238" stroke="#ffd166" stroke-width="2"/>` : ""}
+      <line x1="${dia ? 10 : 70}" y1="70" x2="130" y2="70" stroke="#06d6a0" stroke-width="2"/><circle cx="70" cy="70" r="3" fill="#06d6a0"/>
+      <text x="${dia ? 70 : 104}" y="64" text-anchor="middle" fill="#06d6a0" font-size="14">${lab}</text></svg>`;
+    G1.quiz({ title: "圆的面积", hint: "把圆剪拼成近似的长方形：长是周长的一半 πr，宽是 r，所以 S = πr²" }, () => {
+      const r = Math.random(), x = rand(1, 10);
+      if (r < 0.4) return { ask: "这个圆的面积是多少平方厘米？（π 取 3.14）", pic: circle(`r = ${x} 厘米`), ans: num(3.14 * x * x), unit: "平方厘米",
+        tip: "S = 3.14 × r × r（别算成 r × 2）", why: `3.14 × ${x} × ${x} = ${num(3.14 * x * x)}（平方厘米）` };
+      if (r < 0.7) return { ask: "这个圆的面积是多少平方厘米？（π 取 3.14）", pic: circle(`d = ${2 * x} 厘米`, true), ans: num(3.14 * x * x), unit: "平方厘米",
+        tip: "先求半径：r = d ÷ 2", why: `r = ${2 * x} ÷ 2 = ${x}，3.14 × ${x} × ${x} = ${num(3.14 * x * x)}（平方厘米）` };
+      if (r < 0.85) return { ask: `一个圆的周长是 ${num(6.28 * x)} 厘米，它的面积是多少平方厘米？（π 取 3.14）`, ans: num(3.14 * x * x), unit: "平方厘米",
+        tip: "先用周长求半径：r = C ÷ 3.14 ÷ 2", why: `r = ${num(6.28 * x)} ÷ 3.14 ÷ 2 = ${x}，S = 3.14 × ${x} × ${x} = ${num(3.14 * x * x)}（平方厘米）` };
+      const R = rand(3, 10), s = rand(1, R - 1);
+      return { ask: `一个圆环，外圆半径 ${R} 厘米，内圆半径 ${s} 厘米，圆环的面积是多少平方厘米？（π 取 3.14）`, pic: circle(`R = ${R}`, false, true),
+        ans: num(3.14 * (R * R - s * s)), unit: "平方厘米", tip: "大圆面积 − 小圆面积", why: `3.14 × (${R}² − ${s}²) = 3.14 × ${R * R - s * s} = ${num(3.14 * (R * R - s * s))}（平方厘米）` };
+    });
+  </script>
+</body>
+</html>

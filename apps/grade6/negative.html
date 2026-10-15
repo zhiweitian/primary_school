@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>负数</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, shuffle } = G1;
+    const show = n => (n < 0 ? `−${-n}` : n > 0 ? `+${n}` : "0");
+    const plain = n => (n < 0 ? `−${-n}` : String(n));
+    function line(x) {
+      const S = 22, W = 13 * S + 20;
+      let s = `<svg viewBox="0 0 ${W} 60" width="${W}" height="60"><line x1="6" y1="25" x2="${W - 6}" y2="25" stroke="#a8dadc" stroke-width="2"/>
+        <polygon points="${W - 6},25 ${W - 14},20 ${W - 14},30" fill="#a8dadc"/>`;
+      for (let i = -6; i <= 6; i++) {
+        const X = 10 + (i + 6.5) * S;
+        s += `<line x1="${X}" y1="19" x2="${X}" y2="31" stroke="#a8dadc" stroke-width="${i === 0 ? 2.5 : 1.2}"/>`;
+        if (i === 0 || i === -5 || i === 5) s += `<text x="${X}" y="50" text-anchor="middle" fill="#ddd" font-size="13">${plain(i)}</text>`;
+      }
+      return s + `<circle cx="${10 + (x + 6.5) * S}" cy="25" r="6" fill="#ef476f"/></svg>`;
+    }
+    G1.quiz({ title: "负数", hint: "比 0 小的数是负数，写作 −3；在数轴上，0 左边是负数，越往左越小" }, () => {
+      const r = Math.random();
+      if (r < 0.25) {
+        let x;
+        do x = rand(-6, 6); while (x === 0 || Math.abs(x) === 5);
+        const opts = [...new Set([x, -x, x + 1, x - 1])].slice(0, 4);
+        return { ask: "红点表示的数是多少？", pic: line(x), ans: String(x), choices: shuffle(opts).map(v => ({ v, t: plain(v) })),
+          tip: "从 0 开始数格子：往右是正数，往左是负数", why: `红点在 0 的${x < 0 ? "左" : "右"}边第 ${Math.abs(x)} 格，是 ${plain(x)}` };
+      }
+      if (r < 0.5) {
+        let a, b;
+        do { a = rand(-12, 8); b = rand(-12, 8); } while (a === b || (a >= 0 && b >= 0));
+        const ans = a > b ? ">" : "<";
+        return { ask: `<span style="font-size:1.6rem;color:#a8dadc">${plain(a)} ○ ${plain(b)}</span>`, ans,
+          choices: [">", "<", "="].map(v => ({ v, t: v === "<" ? "&lt;" : v })), tip: "想象数轴：越往右越大；负数前面的数越大，这个负数反而越小",
+          why: `在数轴上 ${plain(Math.max(a, b))} 在 ${plain(Math.min(a, b))} 的右边，所以 ${plain(a)} ${ans === "<" ? "<" : ">"} ${plain(b)}` };
+      }
+      if (r < 0.75) {
+        const n = rand(2, 20);
+        const [ask, v, why] = pick([
+          [`零下 ${n} 摄氏度记作？`, -n, `零下用负数，记作 −${n}℃`],
+          [`零上 ${n} 摄氏度记作？`, n, `零上用正数，记作 +${n}℃（也可以写 ${n}℃）`],
+          [`向东走 10 米记作 +10 米，向西走 ${n} 米记作？`, -n, `和向东相反，记作 −${n} 米`],
+          [`存入 100 元记作 +100 元，取出 ${n * 10} 元记作？`, -n * 10, `和存入相反，记作 −${n * 10} 元`]
+        ]);
+        const unit = ask.includes("摄氏度") ? "℃" : ask.includes("米") ? " 米" : " 元";
+        return { ask, ans: String(v), choices: [v, -v].map(x => ({ v: x, t: show(x) + unit })), tip: "意义相反的量：一个用正数，另一个用负数", why };
+      }
+      const t = rand(-10, -1), up = rand(2, 15), e = t + up;
+      const opts = [...new Set([e, t - up, -e === e ? e + 1 : -e, up - t])];
+      return { ask: `早上气温是 ${plain(t)}℃，中午上升了 ${up}℃，中午是多少摄氏度？`, ans: String(e), choices: shuffle(opts).map(v => ({ v, t: plain(v) + "℃" })),
+        tip: "在数轴上从起点往右走几格", why: `从 ${plain(t)} 往右走 ${up} 格，到 ${plain(e)}，是 ${plain(e)}℃` };
+    });
+  </script>
+</body>
+</html>

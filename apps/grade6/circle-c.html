@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>圆的周长</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, num } = G1;
+    const circle = (lab, dia) => `<svg viewBox="0 0 160 140" width="160" height="140"><circle cx="70" cy="70" r="60" fill="rgba(255,209,102,0.15)" stroke="#ffd166" stroke-width="3"/>
+      <line x1="${dia ? 10 : 70}" y1="70" x2="130" y2="70" stroke="#06d6a0" stroke-width="2"/><circle cx="70" cy="70" r="3" fill="#06d6a0"/>
+      <text x="${dia ? 70 : 100}" y="64" text-anchor="middle" fill="#06d6a0" font-size="14">${lab}</text></svg>`;
+    G1.quiz({ title: "圆的周长", hint: "圆的周长总是直径的 π 倍（π ≈ 3.14）：C = πd = 2πr" }, () => {
+      const r = Math.random(), x = rand(1, 15);
+      if (r < 0.35) return { ask: "这个圆的周长是多少厘米？（π 取 3.14）", pic: circle(`d = ${x + 1} 厘米`, true), ans: num(3.14 * (x + 1)), unit: "厘米",
+        tip: "知道直径：C = 3.14 × d", why: `3.14 × ${x + 1} = ${num(3.14 * (x + 1))}（厘米）` };
+      if (r < 0.7) return { ask: "这个圆的周长是多少厘米？（π 取 3.14）", pic: circle(`r = ${x} 厘米`, false), ans: num(6.28 * x), unit: "厘米",
+        tip: "知道半径：C = 2 × 3.14 × r（直径是半径的 2 倍）", why: `2 × 3.14 × ${x} = ${num(6.28 * x)}（厘米）` };
+      if (r < 0.85) return { ask: `一个圆的周长是 ${num(3.14 * x)} 厘米，它的直径是多少厘米？（π 取 3.14）`, ans: String(x), unit: "厘米",
+        tip: "d = C ÷ 3.14", why: `${num(3.14 * x)} ÷ 3.14 = ${x}（厘米）` };
+      return Math.random() < 0.5
+        ? { ask: `圆的半径是 ${x} 厘米，直径是多少厘米？`, ans: String(2 * x), unit: "厘米", tip: "同一个圆里，直径是半径的 2 倍", why: `${x} × 2 = ${2 * x}（厘米）` }
+        : { ask: `圆的直径是 ${2 * x} 厘米，半径是多少厘米？`, ans: String(x), unit: "厘米", tip: "同一个圆里，半径是直径的一半", why: `${2 * x} ÷ 2 = ${x}（厘米）` };
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>倒数</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, frac, fracIn, gcd, shuffle } = G1;
+    G1.quiz({ title: "倒数", hint: "乘积是 1 的两个数互为倒数：把分子和分母调换位置" }, () => {
+      const r = Math.random();
+      if (r < 0.5) {
+        let n, d;
+        do { d = rand(2, 12); n = rand(2, 15); } while (gcd(n, d) > 1 || n === d);
+        return { ask: `${frac(n, d)} 的倒数是多少？`, fill: fracIn(), ans: [String(d), String(n)], check: v => +v[0] === d && +v[1] === n,
+          tip: "分子分母调换位置", why: `${n}/${d} × ${d}/${n} = 1，倒数是 ${d}/${n}` };
+      }
+      if (r < 0.9) {
+        const k = rand(2, 12), unit = Math.random() < 0.5;
+        const ask = unit ? `${frac(1, k)} 的倒数是多少？` : `${k} 的倒数是多少？`;
+        const ans = unit ? String(k) : `1/${k}`;
+        return { ask, ans, choices: shuffle([String(k), `1/${k}`, "1", `${k}/${k + 1}`]).map(v => ({ v, t: v.includes("/") ? frac(...v.split("/")) : v })),
+          tip: `整数 ${k} 可以看成 ${k}/1`, why: unit ? `1/${k} × ${k} = 1，倒数是 ${k}` : `${k} × 1/${k} = 1，倒数是 1/${k}` };
+      }
+      const z = Math.random() < 0.5;
+      return z
+        ? { ask: "0 有倒数吗？", ans: "no", choices: [{ v: "yes", t: "有" }, { v: "no", t: "没有" }], tip: "什么数乘 0 能得 1？", why: "0 乘任何数都得 0，得不到 1，所以 0 没有倒数" }
+        : { ask: "1 的倒数是多少？", ans: "1", choices: ["0", "1", "没有"].map(v => ({ v, t: v })), tip: "1 × ? = 1", why: "1 × 1 = 1，1 的倒数是 1" };
+    });
+  </script>
+</body>
+</html>

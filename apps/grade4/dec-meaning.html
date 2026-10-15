@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小数的意义</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, frac, num } = G1;
+    const PLACES = ["十分位", "百分位", "千分位"];
+    const TIP = "小数点右边：第一位十分位（0.1），第二位百分位（0.01），第三位千分位（0.001）";
+    G1.quiz({ title: "小数的意义", hint: "两位小数表示百分之几，三位小数表示千分之几" }, () => {
+      const kind = pick(["toFrac", "toDec", "place", "make", "unit", "cmp"]);
+      if (kind === "toFrac" || kind === "toDec") {
+        const d = pick([100, 1000]), n = d === 100 ? rand(1, 99) : rand(1, 999);
+        const s = num(n / d);
+        if (kind === "toDec") return { ask: `${frac(n, d)} 写成小数是多少？`, ans: s, tip: TIP, why: `${n}/${d} = ${s}` };
+        const nd = 10 ** (s.split(".")[1] || "").length;
+        return { ask: `${s} 写成分数是多少？`, fill: G1.fracIn(), ans: [String(n), String(d)], tip: "几位小数，分母就是 1 后面跟几个 0",
+          check: v => G1.sameFrac(v[0], v[1], n, d), why: `${s} = ${n * nd / d}/${nd}` };
+      }
+      if (kind === "place") {
+        const w = rand(1, 9), ds = [rand(1, 9), rand(0, 9), rand(1, 9)], k = rand(0, 2);
+        const s = `${w}.${ds.join("")}`;
+        return { ask: `${s} 的<b>${PLACES[k]}</b>上是几？`, ans: String(ds[k]), tip: TIP, why: `${s}：十分位 ${ds[0]}，百分位 ${ds[1]}，千分位 ${ds[2]}` };
+      }
+      if (kind === "make") {
+        const a = rand(1, 9), b = rand(0, 9), c = rand(0, 9), e = rand(1, 9);
+        const s = num(a + b / 10 + c / 100 + e / 1000);
+        const parts = [`${a} 个一`, b && `${b} 个 0.1`, c && `${c} 个 0.01`, `${e} 个 0.001`].filter(Boolean).join("、");
+        return { ask: `由 ${parts} 组成的数是多少？`, ans: s, tip: "没有的数位写 0 占位", why: `是 ${s}` };
+      }
+      if (kind === "unit") {
+        const [n, from, to, k] = pick([[rand(1, 99), "厘米", "米", 100], [rand(1, 99), "分", "元", 100], [rand(1, 999), "克", "千克", 1000], [rand(1, 999), "米", "千米", 1000]]);
+        return { ask: `${n} ${from} = ？${to}`, ans: num(n / k), unit: to, tip: `1 ${to} = ${k} ${from}，1 ${from}是 1/${k} ${to}`, why: `${n} ${from}是 ${n}/${k} ${to}，就是 ${num(n / k)} ${to}` };
+      }
+      let x = rand(1, 9999) / 1000, y = rand(1, 9999) / 1000;
+      if (Math.random() < 0.25) y = x;
+      if (Math.random() < 0.3) y = Math.floor(x * 10) / 10 + rand(1, 9) / 100;
+      x = +num(x); y = +num(y);
+      const sx = num(x), sy = x === y && Math.random() < 0.7 ? num(y) + (num(y).includes(".") ? "0" : ".0") : num(y);
+      const ans = x > y ? ">" : x < y ? "<" : "=";
+      return { ask: `<span style="font-size:1.6rem;color:#a8dadc">${sx} ○ ${sy}</span>`, ans, key: sx + sy,
+        choices: [">", "<", "="].map(s => ({ v: s, t: s === "<" ? "&lt;" : s })),
+        tip: "先比整数部分，再依次比十分位、百分位、千分位；小数末尾添上或去掉 0，大小不变",
+        why: ans === "=" ? `小数末尾的 0 去掉大小不变，${sx} = ${sy}` : `${num(Math.max(x, y))} 更大` };
+    });
+  </script>
+</body>
+</html>

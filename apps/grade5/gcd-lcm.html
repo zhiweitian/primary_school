@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>公因数和公倍数</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, gcd } = G1;
+    const factorsOf = n => Array.from({ length: n }, (_, i) => i + 1).filter(i => n % i === 0);
+    G1.quiz({ title: "公因数和公倍数", hint: "两个数共有的因数里最大的叫最大公因数；共有的倍数里最小的叫最小公倍数" }, () => {
+      let a, b;
+      do {
+        const g = rand(1, 8), m = rand(1, 7), n = rand(2, 8);
+        [a, b] = [g * m, g * n];
+      } while (a === b || a > 60 || b > 60 || a < 2);
+      const G = gcd(a, b), L = a * b / G;
+      if (Math.random() < 0.5) {
+        const common = factorsOf(G);
+        return { ask: `${a} 和 ${b} 的最大公因数是多少？`, ans: String(G), tip: `先列出 ${Math.min(a, b)} 的因数，再看哪些也是 ${Math.max(a, b)} 的因数`,
+          why: `${a} 的因数：${factorsOf(a).join("、")}；${b} 的因数：${factorsOf(b).join("、")}；公因数 ${common.join("、")}，最大是 ${G}` };
+      }
+      const big = Math.max(a, b), small = Math.min(a, b);
+      const list = Array.from({ length: L / big }, (_, i) => big * (i + 1));
+      return { ask: `${a} 和 ${b} 的最小公倍数是多少？`, ans: String(L), tip: `从大数 ${big} 的倍数里，找第一个也是 ${small} 的倍数的`,
+        why: `${big} 的倍数：${list.join("、")}……，${L} 第一个是 ${small} 的倍数，最小公倍数是 ${L}` };
+    });
+  </script>
+</body>
+</html>

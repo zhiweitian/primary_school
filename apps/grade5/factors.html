@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>因数和倍数</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, shuffle } = G1;
+    const factorsOf = n => Array.from({ length: n }, (_, i) => i + 1).filter(i => n % i === 0);
+    const pairs = n => factorsOf(n).filter(i => i * i <= n).map(i => `${i} × ${n / i}`).join("，");
+    G1.quiz({ title: "因数和倍数", hint: "a × b = c，a 和 b 是 c 的因数，c 是 a 和 b 的倍数" }, () => {
+      const r = Math.random();
+      if (r < 0.35) {
+        const n = pick([12, 18, 20, 24, 28, 30, 32, 36, 40, 42, 45, 48, 54, 56, 60, 72]), fs = factorsOf(n);
+        const yes = pick(fs.filter(f => f > 1 && f < n));
+        const no = shuffle(Array.from({ length: n - 2 }, (_, i) => i + 2).filter(i => n % i)).slice(0, 3);
+        return { ask: `下面哪个数是 ${n} 的因数？`, ans: String(yes), choices: shuffle([yes, ...no]).map(v => ({ v, t: v })),
+          tip: `能整除 ${n} 的数就是 ${n} 的因数`, why: `${n} ÷ ${yes} = ${n / yes}，没有余数。${n} 的因数有：${fs.join("、")}` };
+      }
+      if (r < 0.65) {
+        const k = rand(3, 9), yes = k * rand(3, 12);
+        const no = new Set();
+        while (no.size < 3) { const x = rand(k + 1, k * 13); if (x % k && x !== yes) no.add(x); }
+        return { ask: `下面哪个数是 ${k} 的倍数？`, ans: String(yes), choices: shuffle([yes, ...no]).map(v => ({ v, t: v })),
+          tip: `${k} 的倍数就是 ${k} × 1、${k} × 2、${k} × 3……`, why: `${yes} = ${k} × ${yes / k}，是 ${k} 的倍数` };
+      }
+      const n = rand(6, 60), fs = factorsOf(n);
+      return { ask: `${n} 一共有几个因数？`, ans: String(fs.length), unit: "个",
+        tip: "一对一对地找：1 × ?，2 × ?……找到两个数碰头就停", why: `${pairs(n)}，因数有 ${fs.join("、")}，共 ${fs.length} 个` };
+    });
+  </script>
+</body>
+</html>

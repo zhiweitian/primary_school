@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>简便计算</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick } = G1;
+    const P = [
+      () => { const k = rand(3, 99); return [`25 × ${k} × 4`, 100 * k, "25 × 4 = 100，先把它们乘起来", `${k} × (25 × 4) = ${k} × 100 = ${100 * k}`]; },
+      () => { const k = rand(3, 99); return [`125 × ${k} × 8`, 1000 * k, "125 × 8 = 1000，先把它们乘起来", `${k} × (125 × 8) = ${k} × 1000 = ${1000 * k}`]; },
+      () => { const a = rand(12, 99); return [`${a} × 99`, a * 99, "99 = 100 − 1", `${a} × 100 − ${a} = ${a * 100} − ${a} = ${a * 99}`]; },
+      () => { const a = rand(12, 99); return [`${a} × 101`, a * 101, "101 = 100 + 1", `${a} × 100 + ${a} = ${a * 100} + ${a} = ${a * 101}`]; },
+      () => { const a = rand(11, 89), b = rand(10, 99); return [`${a} + ${b} + ${100 - a}`, 100 + b, `${a} + ${100 - a} 正好是 100`, `${a} + ${100 - a} = 100，100 + ${b} = ${100 + b}`]; },
+      () => { const x = rand(12, 99), a = rand(11, 89); return [`${x} × ${a} + ${x} × ${100 - a}`, x * 100, `两个乘法都有 ${x}，用乘法分配律`, `${x} × (${a} + ${100 - a}) = ${x} × 100 = ${x * 100}`]; },
+      () => { const a = rand(11, 89), n = rand(150, 999); return [`${n} − ${a} − ${100 - a}`, n - 100, "连续减两个数，等于减去它们的和", `${n} − (${a} + ${100 - a}) = ${n} − 100 = ${n - 100}`]; },
+      () => { const k = rand(2, 9) * 4; return [`25 × ${k}`, 25 * k, `把 ${k} 拆成 4 × ${k / 4}`, `25 × 4 × ${k / 4} = 100 × ${k / 4} = ${25 * k}`]; }
+    ];
+    G1.quiz({ title: "简便计算", hint: "找能凑成整十、整百、整千的数，用运算定律先算它们" }, () => {
+      const [e, v, tip, how] = pick(P)();
+      return { ask: `用简便方法计算：<br><span style="font-family:'Courier New',monospace;font-size:1.5rem;color:#a8dadc">${e}</span>`,
+        ans: String(v), tip, why: `${e} = ${how}` };
+    });
+  </script>
+</body>
+</html>

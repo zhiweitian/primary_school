@@ -271,17 +271,18 @@
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    const ONE = new URLSearchParams(location.search).get("d") === "1";
-    if (ONE) {
-      document.title = "竖式除以一位数";
-      document.querySelector("h1").textContent = "➗ 竖式除以一位数";
+    const D = new URLSearchParams(location.search).get("d");
+    const ONE = D === "1", TWO = D === "2";
+    if (ONE || TWO) {
+      document.title = ONE ? "竖式除以一位数" : "除数是两位数的除法";
+      document.querySelector("h1").textContent = "➗ " + document.title;
     }
 
     function randomProblem() {
       const divDigits = ONE ? 1 : Math.floor(Math.random() * 2) + 1;
       const qDigits = Math.floor(Math.random() * 3) + 1;
-      divisor = randomNumber(divDigits);
-      quotient = ONE ? 10 + Math.floor(Math.random() * 990) : randomNumber(qDigits);
+      divisor = TWO ? 11 + Math.floor(Math.random() * 89) : randomNumber(divDigits);
+      quotient = ONE ? 10 + Math.floor(Math.random() * 990) : TWO ? 2 + Math.floor(Math.random() * 98) : randomNumber(qDigits);
       remainder = 0;
       if (allowRemainderEl.checked) {
         remainder = Math.floor(Math.random() * divisor);

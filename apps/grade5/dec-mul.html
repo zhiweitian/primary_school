@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小数乘法</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, num } = G1;
+    G1.quiz({ title: "小数乘法", hint: "先当整数乘，再看两个因数一共有几位小数，积就有几位小数" }, () => {
+      const pa = rand(1, 2), pb = Math.random() < 0.4 ? 0 : rand(1, 2);
+      const ai = rand(2, pa === 2 ? 999 : 99), bi = pb ? rand(2, 99) : rand(2, 25);
+      const a = num(ai / 10 ** pa), b = num(bi / 10 ** pb);
+      const sa = (a.split(".")[1] || "").length, sb = (b.split(".")[1] || "").length;
+      const ia = Math.round(+a * 10 ** sa), ib = Math.round(+b * 10 ** sb), r = num(ia * ib / 10 ** (sa + sb));
+      return { ask: `<span style="font-family:'Courier New',monospace;font-size:1.5rem;color:#a8dadc">${a} × ${b} = ?</span>`,
+        ans: r, tip: `先算 ${ia} × ${ib}，再数一数因数一共几位小数`,
+        why: `${ia} × ${ib} = ${ia * ib}，因数一共 ${sa + sb} 位小数，所以积是 ${r}${String(ia * ib).endsWith("0") ? "（末尾的 0 可以去掉）" : ""}` };
+    });
+  </script>
+</body>
+</html>

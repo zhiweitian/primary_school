@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>认识百分数</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick, frac, fracIn, simp, num } = G1;
+    function grid(k) {
+      const S = 16;
+      let s = `<svg viewBox="0 0 ${10 * S + 2} ${10 * S + 2}" width="${10 * S + 2}" height="${10 * S + 2}">`;
+      for (let i = 0; i < 100; i++) s += `<rect x="${1 + (i % 10) * S}" y="${1 + Math.floor(i / 10) * S}" width="${S}" height="${S}" fill="${i < k ? "#ffd166" : "rgba(255,255,255,0.06)"}" stroke="rgba(168,218,220,0.4)"/>`;
+      return s + "</svg>";
+    }
+    G1.quiz({ title: "认识百分数", hint: "百分数表示一个数是另一个数的百分之几：35% = 35/100 = 0.35" }, () => {
+      const r = Math.random();
+      if (r < 0.2) {
+        const k = rand(1, 99);
+        return { ask: "整个正方形是 100 个小格，涂色部分占百分之几？", pic: grid(k), ans: String(k), unit: "%",
+          tip: "数一数：一行是 10 格", why: `涂了 ${k} 格，是 ${k}/100，也就是 ${k}%` };
+      }
+      if (r < 0.4) {
+        const p = pick([rand(1, 99), rand(101, 250), rand(1, 99) + 0.5]);
+        return { ask: `${p}% 化成小数是多少？`, ans: num(p / 100), tip: "去掉 %，小数点向左移两位", why: `${p}% = ${num(p / 100)}` };
+      }
+      if (r < 0.6) {
+        const x = num(pick([rand(1, 99) / 100, rand(1, 9) / 10, rand(101, 250) / 100, rand(1, 999) / 1000]));
+        return { ask: `${x} 化成百分数是百分之几？`, ans: num(+x * 100), unit: "%", tip: "小数点向右移两位，添上 %", why: `${x} = ${num(+x * 100)}%` };
+      }
+      const d = pick([2, 4, 5, 10, 20, 25, 50]), [n, D] = simp(rand(1, d - 1), d), p = n * 100 / D;
+      if (r < 0.8) return { ask: `${frac(n, D)} 化成百分数是百分之几？`, ans: String(p), unit: "%", tip: `把分母化成 100，或者先算 ${n} ÷ ${D}`, why: `${n}/${D} = ${p}/100 = ${p}%` };
+      return { ask: `${p}% 化成最简分数是多少？`, fill: fracIn(), ans: [String(n), String(D)], check: v => +v[0] === n && +v[1] === D,
+        tip: `先写成 ${p}/100，再约分`, why: `${p}% = ${p}/100 = ${n}/${D}` };
+    });
+  </script>
+</body>
+</html>

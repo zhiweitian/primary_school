@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分数的基本性质</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, frac, gcd, bar } = G1;
+    G1.quiz({ title: "分数的基本性质", hint: "分子和分母同时乘或除以相同的数（0 除外），分数的大小不变" }, hint => {
+      let n, d;
+      do { d = rand(2, 9); n = rand(1, d - 1); } while (gcd(n, d) > 1);
+      const k = rand(2, 6), r = Math.random();
+      const pic = hint && d * k <= 24 ? `<div style="display:flex;flex-direction:column;gap:4px">${bar(d, n, 240)}${bar(d * k, n * k, 240)}</div>` : "";
+      if (r < 0.4) return { ask: `${frac(n, d)} = ${frac("?", d * k)}，? 是几？`, pic, ans: String(n * k),
+        tip: `分母从 ${d} 变成 ${d * k}，乘了几？`, why: `分母乘了 ${k}，分子也乘 ${k}：${n} × ${k} = ${n * k}` };
+      if (r < 0.7) return { ask: `${frac(n, d)} = ${frac(n * k, "?")}，? 是几？`, pic, ans: String(d * k),
+        tip: `分子从 ${n} 变成 ${n * k}，乘了几？`, why: `分子乘了 ${k}，分母也乘 ${k}：${d} × ${k} = ${d * k}` };
+      const eq = Math.random() < 0.5, k2 = eq ? k : k + 1;
+      return { ask: `${frac(n, d)} 和 ${frac(n * k, d * k2)} 相等吗？`, ans: eq ? "yes" : "no", choices: [{ v: "yes", t: "相等" }, { v: "no", t: "不相等" }],
+        tip: "看分子和分母是不是乘了同一个数", why: eq ? `分子分母都乘了 ${k}，相等` : `分子乘了 ${k}，分母乘了 ${k2}，不一样，不相等` };
+    });
+  </script>
+</body>
+</html>

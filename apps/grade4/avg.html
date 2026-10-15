@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>平均数</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, pick } = G1;
+    const NAMES = ["小明", "小红", "小刚", "小丽", "小军"];
+
+    function bars(vals, avg) {
+      const S = 9, W = vals.length * 50 + 20, H = Math.max(...vals) * S + 40;
+      let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+      vals.forEach((v, i) => {
+        const x = 20 + i * 50, h = v * S;
+        s += `<rect x="${x}" y="${H - 20 - h}" width="34" height="${h}" rx="3" fill="#ffd166"/>
+          <text x="${x + 17}" y="${H - 24 - h}" text-anchor="middle" fill="#ddd" font-size="13">${v}</text>
+          <text x="${x + 17}" y="${H - 4}" text-anchor="middle" fill="#aaa" font-size="12">${NAMES[i]}</text>`;
+      });
+      if (avg) s += `<line x1="10" x2="${W}" y1="${H - 20 - avg * S}" y2="${H - 20 - avg * S}" stroke="#06d6a0" stroke-width="2" stroke-dasharray="6 4"/>`;
+      return s + "</svg>";
+    }
+
+    G1.quiz({ title: "平均数", hint: "平均数 = 总数 ÷ 份数；也可以想成「移多补少」，让每个一样多" }, hint => {
+      if (Math.random() < 0.65) {
+        const k = rand(3, 5), avg = rand(6, 16), vals = Array(k).fill(avg);
+        for (let i = 0; i < 6; i++) {
+          const a = rand(0, k - 1), b = rand(0, k - 1), d = rand(1, 4);
+          if (a !== b && vals[b] - d >= 2) { vals[a] += d; vals[b] -= d; }
+        }
+        const sum = vals.reduce((x, y) => x + y, 0);
+        return { ask: `${k} 位同学投篮，投中的个数如下。平均每人投中几个？`, pic: bars(vals, hint && avg), ans: String(avg), unit: "个",
+          tip: "绿线是平均数：高出来的部分正好能补到矮的地方", why: `(${vals.join(" + ")}) ÷ ${k} = ${sum} ÷ ${k} = ${avg}（个）` };
+      }
+      const avg = rand(80, 95), x = rand(avg - 10, 100), y = rand(Math.max(avg - 10, 3 * avg - x - 100), 100), z = 3 * avg - x - y;
+      return { ask: `三次测验平均分是 ${avg} 分，前两次是 ${x} 分和 ${y} 分，第三次是多少分？`, ans: String(z), unit: "分",
+        tip: "先算三次一共多少分：平均分 × 3", why: `${avg} × 3 = ${3 * avg}，${3 * avg} − ${x} − ${y} = ${z}（分）` };
+    });
+  </script>
+</body>
+</html>

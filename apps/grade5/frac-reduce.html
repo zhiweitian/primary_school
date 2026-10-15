@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>约分和通分</title>
+  <link rel="stylesheet" href="../grade1/g1.css">
+</head>
+<body>
+  <script src="../../practice-stats-config.js"></script>
+  <script src="../../practice-stats-store.js"></script>
+  <script src="../../play-wallet.js"></script>
+  <script src="../grade1/g1.js"></script>
+  <script>
+    const { rand, frac, fracIn, simp, gcd } = G1;
+    const proper = () => { let n, d; do { d = rand(2, 12); n = rand(1, d - 1); } while (gcd(n, d) > 1); return [n, d]; };
+    G1.quiz({ title: "约分和通分", hint: "约分：分子分母同时除以公因数，直到是最简分数；通分：化成分母相同的分数" }, () => {
+      const r = Math.random();
+      if (r < 0.4) {
+        const [n, d] = proper(), k = rand(2, 9);
+        return { ask: `把 ${frac(n * k, d * k)} 约成最简分数`, fill: fracIn(), ans: [String(n), String(d)],
+          check: v => +v[0] === n && +v[1] === d, tip: `找 ${n * k} 和 ${d * k} 的最大公因数`,
+          why: `${n * k} 和 ${d * k} 的最大公因数是 ${gcd(n * k, d * k)}，约分得 ${n}/${d}` };
+      }
+      let [a, b] = proper(), [c, d] = proper();
+      while (b === d) [c, d] = proper();
+      const L = b * d / gcd(b, d);
+      if (r < 0.7) return { ask: `把 ${frac(a, b)} 和 ${frac(c, d)} 通分（用最小公倍数作分母）`,
+        fill: `${fracIn()}<span class="op">和</span>${fracIn()}`, ans: [String(a * L / b), String(L), String(c * L / d), String(L)],
+        check: v => +v[0] === a * L / b && +v[1] === L && +v[2] === c * L / d && +v[3] === L, tip: `先找 ${b} 和 ${d} 的最小公倍数`,
+        why: `${b} 和 ${d} 的最小公倍数是 ${L}：${a}/${b} = ${a * L / b}/${L}，${c}/${d} = ${c * L / d}/${L}` };
+      const x = a * L / b, y = c * L / d, ans = x > y ? ">" : x < y ? "<" : "=";
+      return { ask: `<span style="font-size:1.6rem;color:#a8dadc">${frac(a, b)} ○ ${frac(c, d)}</span>`, ans,
+        choices: [">", "<", "="].map(s => ({ v: s, t: s === "<" ? "&lt;" : s })), tip: "分母不同，先通分再比分子",
+        why: `通分：${x}/${L} 和 ${y}/${L}，所以 ${a}/${b} ${ans === "<" ? "<" : ans} ${c}/${d}` };
+    });
+  </script>
+</body>
+</html>
