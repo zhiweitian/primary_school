@@ -16,7 +16,7 @@
     N("carry", "进位加法", 1, "上册", "20以内的进位加法", g1("carry.html"), ["num20"]),
     N("borrow", "退位减法", 1, "下册", "20以内的退位减法", g1("borrow.html"), ["carry"]),
     N("word20", "加减问题", 1, "下册", "20以内的退位减法", g1("word20.html"), ["borrow"]),
-    N("num100", "100以内认数", 1, "下册", "100以内数的认识", g1("num100.html")),
+    N("num100", "100以内认数", 1, "下册", "100以内数的认识", g1("num100.html"), ["num20"]),
     N("cmp100", "比较大小", 1, "下册", "100以内数的认识", g1("cmp100.html"), ["num100"]),
     N("mental100", "口算加减", 1, "下册", "100以内的口算加、减法", g1("mental100.html"), ["cmp100"]),
     N("written", "竖式加减", 1, "下册", "100以内的笔算加、减法", g1("written.html"), ["mental100"]),
@@ -24,7 +24,7 @@
     N("solid", "立体图形", 1, "上册", "认识立体图形", g1("solid.html")),
     N("plane", "平面图形", 1, "下册", "认识平面图形", g1("plane.html"), ["solid"]),
 
-    N("mul-know", "乘法的认识", 2, "上册", "1～6的表内乘法", g2("multiplication-meaning.html")),
+    N("mul-know", "乘法的认识", 2, "上册", "1～6的表内乘法", g2("multiplication-meaning.html"), ["add10"]),
     N("mul-table", "乘法口诀表", 2, "上册", "表内乘、除法", g2("multiplication-table.html"), ["mul-know"]),
     N("mul-word", "解决简单乘法实际问题", 2, "上册", "1～6的表内乘法", g2("multiplication-word.html"), ["mul-table"]),
     N("div-know", "除法的认识", 2, "上册", "1～6的表内除法", g2("division-meaning.html"), ["mul-know"]),
@@ -33,7 +33,7 @@
     N("div-word", "除法实际问题", 2, "上册", "1～6的表内除法", g2("division-word.html"), ["div-koujue"]),
     N("div-remainder", "有余数的除法", 2, "下册", "有余数的除法", g2("remainder-division.html"), ["div-koujue"]),
     N("clock", "认识时间", 2, "下册", "时间在哪里", g2("clock.html")),
-    N("compare-10000", "比较万以内数的大小", 2, "下册", "万以内数的认识", g2("compare-within-10000.html")),
+    N("compare-10000", "比较万以内数的大小", 2, "下册", "万以内数的认识", g2("compare-within-10000.html"), ["cmp100"]),
     N("round-add", "整百整千口算", 2, "下册", "万以内数的认识", g2("round-addsub.html"), ["compare-10000"]),
     N("approx-basics", "认识近似数", 2, "下册", "万以内数的认识", g2("approx-number-basics.html"), ["round-add"]),
     N("approx-desc", "用近似数描述数量", 2, "下册", "万以内数的认识", g2("approx-describe-quantity.html"), ["approx-basics"]),
@@ -127,49 +127,35 @@
     grades: { 1: "一年级", 2: "二年级", 3: "三年级", 4: "四年级", 5: "五年级", 6: "六年级" },
     nodes: Object.fromEntries(nodes.map((n) => [n.id, n])),
     routes: [
-      { grade: 1, name: "20以内加减", rows: [["num10"], ["add10"], ["num20"], ["carry"], ["borrow"], ["word20"]] },
-      { grade: 1, name: "100以内", rows: [["num100"], ["cmp100"], ["mental100"], ["written"], ["word100"]] },
-      { grade: 1, name: "图形", rows: [["solid"], ["plane"]] },
-
-      { grade: 2, name: "表内乘除", rows: [["mul-know"], ["mul-table", "div-know"], ["mul-word", "mul-div-rel"], ["div-koujue"], ["div-word", "div-remainder"]] },
-      { grade: 2, name: "万以内数", rows: [["compare-10000"], ["round-add"], ["approx-basics"], ["approx-desc"], ["estimate"]] },
-      { grade: 2, name: "长度", rows: [["len-know"], ["len-convert"], ["len-word"]] },
-      { grade: 2, name: "时间", rows: [["clock"]] },
-      { grade: 2, name: "分类", rows: [["classify"]] },
-
-      { grade: 3, name: "乘一位数", rows: [["mul-table", "written"], ["mul-oral10"], ["mul-guided"], ["mul-vertical"], ["mul-mental1"]] },
-      { grade: 3, name: "除以一位数", rows: [["div-remainder"], ["div-oral"], ["div-vertical"]] },
-      { grade: 3, name: "分数", rows: [["div-know"], ["frac-intro"], ["frac-compare"], ["frac-addsub-same"], ["frac-of-qty"]] },
-      { grade: 3, name: "小数", rows: [["frac-intro"], ["dec-intro"], ["dec-compare"], ["dec-addsub1"]] },
-      { grade: 3, name: "周长和面积", rows: [["len-word"], ["perimeter"], ["area-rect"], ["area-units"]] },
-      { grade: 3, name: "单位", rows: [["len-convert"], ["len-mm-km", "mass"]] },
-      { grade: 3, name: "时间", rows: [["clock"], ["time-24"]] },
-      { grade: 3, name: "混合运算", rows: [["div-word"], ["mix-op"]] },
-      { grade: 3, name: "角", rows: [["plane"], ["angle-know"]] },
-
-      { grade: 4, name: "乘两位数", rows: [["mul-mental1"], ["mul-vertical2"], ["mul-mental2"]] },
-      { grade: 4, name: "除以两位数", rows: [["div-vertical", "mul-vertical2"], ["div-2digit"]] },
-      { grade: 4, name: "大数", rows: [["compare-10000"], ["num-read"], ["approx-big"]] },
-      { grade: 4, name: "运算律", rows: [["mix-op"], ["order-ops"], ["laws"], ["laws-simplify"]] },
-      { grade: 4, name: "小数", rows: [["dec-addsub1"], ["dec-meaning"], ["dec-shift", "dec-addsub"]] },
-      { grade: 4, name: "数量关系", rows: [["mul-word", "div-word"], ["qty-model"], ["avg"]] },
-      { grade: 4, name: "角和图形", rows: [["angle-know"], ["angle-measure", "parallel"], ["triangle"]] },
-
-      { grade: 5, name: "小数乘除", rows: [["dec-shift", "mul-vertical2"], ["dec-mul"], ["dec-div"]] },
-      { grade: 5, name: "因数和倍数", rows: [["div-remainder"], ["factors"], ["div-rules", "prime"], ["gcd-lcm"]] },
-      { grade: 5, name: "分数", rows: [["frac-of-qty"], ["frac-meaning"], ["frac-improper", "frac-basic"], ["frac-reduce"], ["frac-addsub", "frac-dec"]] },
-      { grade: 5, name: "方程", rows: [["laws"], ["letters"], ["equation"]] },
-      { grade: 5, name: "多边形面积", rows: [["area-rect", "triangle"], ["area-para"], ["area-tri"], ["area-trap"]] },
-      { grade: 5, name: "长方体", rows: [["area-rect"], ["surf-cuboid", "vol-cuboid"]] },
-      { grade: 5, name: "图形运动", rows: [["plane"], ["symmetry"]] },
-
-      { grade: 6, name: "分数乘除", rows: [["frac-reduce", "frac-improper"], ["frac-mul"], ["reciprocal"], ["frac-div"], ["frac-word"]] },
-      { grade: 6, name: "百分数", rows: [["frac-dec"], ["percent"], ["percent-app"]] },
-      { grade: 6, name: "比和比例", rows: [["frac-div", "equation"], ["ratio"], ["ratio-share", "proportion"], ["scale", "direct-inverse"]] },
-      { grade: 6, name: "圆", rows: [["perimeter", "dec-mul"], ["circle-c"], ["circle-a"]] },
-      { grade: 6, name: "圆柱圆锥", rows: [["circle-a", "vol-cuboid"], ["cylinder"], ["cone"]] },
-      { grade: 6, name: "负数", rows: [["dec-compare"], ["negative"]] },
-      { grade: 6, name: "位置", rows: [["position"]] }
+      { name: "整数", rows: [
+        ["num10"], ["add10"], ["num20"],
+        ["carry", "num100"], ["borrow", "cmp100"], ["word20", "mental100"],
+        [null, "written"], [null, "word100"], [null, "compare-10000"],
+        ["round-add", "num-read"], ["approx-basics", "approx-big"], ["approx-desc", null], ["estimate"]
+      ] },
+      { name: "乘除", rows: [
+        ["mul-know"], ["mul-table", "div-know"], ["mul-word", "mul-div-rel"],
+        ["mul-oral10", "div-koujue"], ["mul-guided", "div-remainder"], ["mul-vertical", "div-word"],
+        ["mul-mental1", "div-oral"], ["mul-vertical2", "div-vertical"], ["mul-mental2", "div-2digit"]
+      ] },
+      { name: "运算和方程", rows: [["mix-op"], ["order-ops"], ["laws"], ["laws-simplify", "letters"], [null, "equation"]] },
+      { name: "数量关系", rows: [["qty-model"], ["avg"]] },
+      { name: "因数和倍数", rows: [["factors"], ["gcd-lcm", "div-rules"], [null, "prime"]] },
+      { name: "分数、百分数和比", rows: [
+        ["frac-intro"], ["frac-compare"], ["frac-addsub-same"], ["frac-of-qty"], ["frac-meaning"],
+        ["frac-improper", "frac-basic"], ["frac-mul", "frac-reduce"], ["reciprocal", "frac-addsub"],
+        ["frac-div", "frac-dec"], ["frac-word", "percent"], ["ratio", "percent-app"],
+        ["ratio-share", null], ["proportion"], ["direct-inverse", "scale"]
+      ] },
+      { name: "小数", rows: [["dec-intro"], ["dec-compare"], ["dec-addsub1", "negative"], ["dec-meaning", null], ["dec-shift", "dec-addsub"], ["dec-mul", null], ["dec-div"]] },
+      { name: "图形", rows: [["solid"], ["plane"], ["angle-know", "symmetry"], ["angle-measure", null], ["parallel"], ["triangle"]] },
+      { name: "长度和面积", rows: [["len-know"], ["len-convert"], ["len-word", "len-mm-km"], ["perimeter", null], ["area-rect"], ["area-units"], ["area-para"], ["area-tri"], ["area-trap"]] },
+      { name: "长方体", rows: [["surf-cuboid", "vol-cuboid"]] },
+      { name: "圆和圆柱", rows: [["circle-c"], ["circle-a"], ["cylinder"], ["cone"]] },
+      { name: "质量", rows: [["mass"]] },
+      { name: "时间", rows: [["clock"], ["time-24"]] },
+      { name: "分类", rows: [["classify"]] },
+      { name: "位置", rows: [["position"]] }
     ]
   };
 })();

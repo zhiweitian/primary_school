@@ -29,7 +29,6 @@
       padding: 0.32rem 0.7rem; border: 1px solid #ccc; border-radius: 6px;
       background: #fff; font-size: 0.78rem; cursor: pointer;
     }
-    #grade-select { padding: 0.32rem 0.5rem; }
     .stats { font-size: 0.72rem; color: #aaa; margin-left: auto; }
     .use-mask {
       display: none; position: fixed; inset: 0; z-index: 20;
@@ -128,6 +127,7 @@
       display: block; width: 2px; height: 18px; margin: 0 auto;
       background: #ddd;
     }
+    .track.lanes-2 .g-row.one,
     .track.lanes-2 .g-join.merge { grid-template-columns: 1fr; }
     .g-join.merge svg { display: block; width: 100%; height: 24px; }
     .g-join.merge path { fill: none; stroke: #ddd; stroke-width: 2; }
@@ -138,8 +138,8 @@
     <h1>人教版小学数学 · 先修知识树</h1>
     <p class="subtitle" id="edition-label"></p>
     <div class="toolbar">
-      <select id="grade-select" class="btn" aria-label="年级"></select>
       <span class="wallet" id="walletChip">积分 0</span>
+      <button class="btn" id="deduct-btn" type="button">扣 5 分</button>
       <button class="btn" id="play-btn" type="button">玩 10 分钟</button>
       <button class="btn" id="use-log" type="button">使用记录</button>
       <span class="stats" id="stats"></span>
@@ -168,14 +168,12 @@
   <script src="../practice-stats-config.js"></script>
   <script src="../practice-stats-store.js"></script>
   <script src="../play-wallet.js"></script>
-  <script src="math-tree.js?v=3"></script>
+  <script src="math-tree.js?v=5"></script>
   <script>
     const data = window.MATH_TREE;
     const defs = data.nodes;
-    const GRADE_LS = "ps-tree-grade";
     const CREDIT_LS = "ps-route-credit";
     const MASTERED = (window.PS_CONFIG && PS_CONFIG.masteredAt) || 90;
-    let grade = "1";
 
     function appHref(id) {
       const app = defs[id].app;
@@ -266,7 +264,7 @@
 
     function card(id, nextId, credit) {
       const def = defs[id];
-      const gradeTag = String(def.grade) === grade ? "" : `<span class="grade">${data.grades[def.grade]}</span>`;
+      const gradeTag = `<span class="grade">${data.grades[def.grade]}</span>`;
       if (!def.app) {
         return `<div class="card idle"><span class="face" aria-hidden="true">${faceOf(id)}</span>${gradeTag}<div class="name">${def.name}</div><div class="meta">${def.unit}</div><div class="tag">练习稍后</div></div>`;
       }
@@ -296,8 +294,15 @@
     }
 
     function join(prev, row, lanes) {
-      if (prev.length > 1 && row.length === 1) {
-        return `<div class="g-join merge" aria-hidden="true"><svg viewBox="0 0 200 24" preserveAspectRatio="none"><path d="M50 0 V24"/><path d="M150 0 V12 H50"/></svg></div>`;
+      const svg = (d) => `<div class="g-join merge" aria-hidden="true"><svg viewBox="0 0 200 24" preserveAspectRatio="none">${d}</svg></div>`;
+      const n = (a) => a.filter(Boolean).length;
+      if (prev.length === 1 && row.length === 1) return svg(`<path d="M100 0 V24"/>`);
+      if (n(prev) > 1 && row.length === 1) return svg(`<path d="M50 0 V12 H100 V24"/><path d="M150 0 V12 H100"/>`);
+      if (prev.length === 1 && n(row) > 1) return svg(`<path d="M100 0 V12 H50 V24"/><path d="M100 12 H150 V24"/>`);
+      if (n(prev) === 1 && n(row) > 1) {
+        return prev[0]
+          ? svg(`<path d="M50 0 V24"/><path d="M50 12 H150 V24"/>`)
+          : svg(`<path d="M150 0 V24"/><path d="M150 12 H50 V24"/>`);
       }
       const stems = [];
       for (let c = 0; c < lanes; c++) {
@@ -308,20 +313,22 @@
 
     function renderRoutes() {
       const credit = syncCredit();
-      const routes = data.routes.filter(r => String(r.grade) === grade);
+      const routes = data.routes;
       const html = routes.map(route => {
-        const ids = route.rows.flat();
+        const ids = route.rows.flat().filter(Boolean);
         const nextId = ids.find(id => opened(id, credit) && !cleared(id, credit) && !mastered(PracticeStats.get(id))) || null;
-        const live = ids.filter(id => defs[id].app && String(defs[id].grade) === grade);
+        const live = ids.filter(id => defs[id].app);
         const done = live.filter(id => cleared(id, credit)).length;
         const prog = live.length ? `${done}/${live.length} 关` : "练习稍后";
         const lanes = Math.max(...route.rows.map(r => r.length));
         const body = route.rows.map((row, i) => {
+          const one = row.length === 1;
           const cells = [];
-          for (let c = 0; c < lanes; c++) {
+          const n = one ? 1 : lanes;
+          for (let c = 0; c < n; c++) {
             cells.push(`<div class="cell">${row[c] ? card(row[c], nextId, credit) : ""}</div>`);
           }
-          return (i ? join(route.rows[i - 1], row, lanes) : "") + `<div class="g-row">${cells.join("")}</div>`;
+          return (i ? join(route.rows[i - 1], row, lanes) : "") + `<div class="g-row${one ? " one" : ""}">${cells.join("")}</div>`;
         }).join("");
         return `<section class="track${lanes > 1 ? " lanes-2" : ""}"><div class="track-head"><h2>${route.name}</h2><span class="prog">${prog}</span></div><div class="graph">${body}</div></section>`;
       }).join("");
@@ -332,7 +339,7 @@
 
     function updateChrome() {
       document.getElementById("edition-label").textContent =
-        data.edition + " · 从上往下打关 · 右上角标了年级的是别的年级的先修";
+        data.edition + " · 从上往下打关 · 一条线从低年级接到高年级 · 右上角是年级";
       const w = window.PlayWallet ? PlayWallet.get() : 0;
       const cost = window.PlayWallet ? PlayWallet.COST : 40;
       document.getElementById("walletChip").textContent = "积分 " + w;
@@ -340,6 +347,7 @@
       const playing = window.PlayWallet && PlayWallet.isPlayActive();
       const left = playing ? PlayWallet.playLeftMs() : 0;
       playBtn.disabled = !playing && w + 1e-9 < cost;
+      document.getElementById("deduct-btn").disabled = w + 1e-9 < 5;
       playBtn.textContent = playing
         ? "剩余 " + Math.floor(left / 60000) + ":" + String(Math.floor(left / 1000) % 60).padStart(2, "0")
         : "玩 10 分钟";
@@ -347,27 +355,6 @@
     }
     window.addEventListener("ps-wallet", updateChrome);
     window.addEventListener("ps-play", updateChrome);
-
-    function setGrade(g) {
-      grade = data.grades[g] ? String(g) : "1";
-      document.getElementById("grade-select").value = grade;
-      try { localStorage.setItem(GRADE_LS, grade); } catch (_) {}
-      updateChrome();
-      renderRoutes();
-    }
-
-    function savedGrade() {
-      try {
-        const g = localStorage.getItem(GRADE_LS);
-        if (g && data.grades[g]) return g;
-      } catch (_) {}
-      return "1";
-    }
-
-    const gradeSelect = document.getElementById("grade-select");
-    gradeSelect.innerHTML = Object.entries(data.grades)
-      .map(([g, name]) => `<option value="${g}">${name}</option>`).join("");
-    gradeSelect.addEventListener("change", e => setGrade(e.target.value));
 
     window.addEventListener("focus", () => {
       PracticeStats.refresh().then(renderRoutes);
@@ -409,6 +396,11 @@
       document.getElementById("use-mask").classList.add("show");
     }
 
+    document.getElementById("deduct-btn").onclick = () => {
+      if (!window.PlayWallet || PlayWallet.get() + 1e-9 < 5) return;
+      PlayWallet.spend(5);
+      updateChrome();
+    };
     document.getElementById("play-btn").onclick = () => {
       if (!window.PlayWallet) return;
       if (PlayWallet.isPlayActive()) return;
@@ -426,7 +418,8 @@
     setInterval(updateChrome, 1000);
 
     PracticeStats.init("../data/practice-stats.json").then(() => {
-      setGrade(savedGrade());
+      updateChrome();
+      renderRoutes();
     });
   </script>
 </body>
