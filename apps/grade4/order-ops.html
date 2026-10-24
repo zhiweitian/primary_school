@@ -12,23 +12,63 @@
   <script src="../../play-wallet.js"></script>
   <script src="../grade1/g1.js"></script>
   <script>
-    const { rand, pick } = G1;
-    const T = [
-      () => { const a = rand(10, 99), b = rand(2, 9), c = rand(2, 9); return [`${a} + ${b} × ${c}`, a + b * c, `${b} × ${c} = ${b * c}`]; },
-      () => { const a = rand(2, 30), b = rand(2, 30), c = rand(2, 9); return [`(${a} + ${b}) × ${c}`, (a + b) * c, `${a} + ${b} = ${a + b}`]; },
-      () => { const b = rand(2, 9), c = rand(2, 9), a = b * c + rand(1, 60); return [`${a} − ${b} × ${c}`, a - b * c, `${b} × ${c} = ${b * c}`]; },
-      () => { const c = rand(2, 9), k = rand(2, 12), b = rand(1, 50); return [`${b} + ${c * k} ÷ ${c}`, b + k, `${c * k} ÷ ${c} = ${k}`]; },
-      () => { const c = rand(2, 9), k = rand(2, 9), b = rand(1, 40); return [`(${b + c * k} − ${b}) ÷ ${c}`, k, `${b + c * k} − ${b} = ${c * k}`]; },
-      () => { const a = rand(2, 9), b = rand(5, 40), c = rand(1, b - 1); return [`${a} × (${b} − ${c})`, a * (b - c), `${b} − ${c} = ${b - c}`]; },
-      () => { const b = rand(2, 9), c = rand(2, 9), d = rand(1, 20), a = rand(d, 60); return [`${a} + ${b} × ${c} − ${d}`, a + b * c - d, `${b} × ${c} = ${b * c}`]; },
-      () => { const b = rand(10, 40), c = rand(5, 30), a = b + c + rand(1, 60); return [`${a} − (${b} + ${c})`, a - b - c, `${b} + ${c} = ${b + c}`]; },
-      () => { const c = rand(2, 6), k = rand(2, 9), a = rand(1, c * k - 1), d = rand(2, 9); return [`(${a} + ${c * k - a}) ÷ ${c} × ${d}`, k * d, `${a} + ${c * k - a} = ${c * k}`]; }
-    ];
-    G1.quiz({ title: "四则运算顺序", hint: "有括号先算括号里的；没有括号先算乘除，再算加减；同一级从左往右" }, () => {
-      const [e, v, first] = pick(T)();
-      return { ask: `<span style="font-family:'Courier New',monospace;font-size:1.5rem;color:#a8dadc">${e} = ?</span>`,
-        ans: String(v), tip: `第一步先算：${first.split(" = ")[0]}`, why: `先算 ${first}，最后得 ${v}` };
+    const { rand, pick, $, box, okBtn, bindOk, same, finish, resetShell, boot, fresh } = G1;
+    const S = (show, steps) => ({
+      show, cur: show, steps,
+      why: steps.map(x => `${x.part} = ${x.ans}`).join("，"),
+      key: show
     });
+    const T = [
+      () => { const a = rand(10, 40), b = rand(2, 9), c = rand(2, 9); return S(`${a} + ${b} × ${c}`, [{ part: `${b} × ${c}`, ans: b * c }, { part: `${a} + ${b * c}`, ans: a + b * c }]); },
+      () => { const a = rand(2, 20), b = rand(2, 20), c = rand(2, 9); return S(`(${a} + ${b}) × ${c}`, [{ part: `${a} + ${b}`, ans: a + b }, { part: `${a + b} × ${c}`, ans: (a + b) * c }]); },
+      () => { const b = rand(2, 9), c = rand(2, 9), a = b * c + rand(5, 50); return S(`${a} − ${b} × ${c}`, [{ part: `${b} × ${c}`, ans: b * c }, { part: `${a} − ${b * c}`, ans: a - b * c }]); },
+      () => { const c = rand(2, 9), k = rand(2, 12), b = rand(1, 40); return S(`${b} + ${c * k} ÷ ${c}`, [{ part: `${c * k} ÷ ${c}`, ans: k }, { part: `${b} + ${k}`, ans: b + k }]); },
+      () => { const c = rand(2, 9), k = rand(2, 9), b = rand(1, 30); return S(`(${b + c * k} − ${b}) ÷ ${c}`, [{ part: `${b + c * k} − ${b}`, ans: c * k }, { part: `${c * k} ÷ ${c}`, ans: k }]); },
+      () => { const a = rand(2, 9), b = rand(6, 30), c = rand(1, b - 1); return S(`${a} × (${b} − ${c})`, [{ part: `${b} − ${c}`, ans: b - c }, { part: `${a} × ${b - c}`, ans: a * (b - c) }]); },
+      () => { const b = rand(2, 9), c = rand(2, 9), d = rand(1, 15), a = rand(d, 50); return S(`${a} + ${b} × ${c} − ${d}`, [{ part: `${b} × ${c}`, ans: b * c }, { part: `${a} + ${b * c}`, ans: a + b * c }, { part: `${a + b * c} − ${d}`, ans: a + b * c - d }]); },
+      () => { const b = rand(10, 30), c = rand(5, 25), a = b + c + rand(2, 40); return S(`${a} − (${b} + ${c})`, [{ part: `${b} + ${c}`, ans: b + c }, { part: `${a} − ${b + c}`, ans: a - b - c }]); },
+      () => { const c = rand(2, 6), k = rand(2, 8), a = rand(1, c * k - 1), d = rand(2, 8); return S(`(${a} + ${c * k - a}) ÷ ${c} × ${d}`, [{ part: `${a} + ${c * k - a}`, ans: c * k }, { part: `${c * k} ÷ ${c}`, ans: k }, { part: `${k} × ${d}`, ans: k * d }]); }
+    ];
+    function paint(expr, part) {
+      const p = `(${part})`;
+      if (expr.includes(p)) return expr.replace(p, `<span class="hl">${p}</span>`);
+      return expr.replace(part, `<span class="hl">${part}</span>`);
+    }
+    function sub(expr, part, v) {
+      const p = `(${part})`;
+      if (expr.includes(p)) return expr.replace(p, String(v));
+      return expr.replace(part, String(v));
+    }
+    let q, step;
+    function show() {
+      const s = q.steps[step], last = step === q.steps.length - 1;
+      q.ans = String(s.ans);
+      $("card").innerHTML = `<div class="ask">${last ? "最后得数" : step ? "再算这一步" : "先算这一步"}</div>
+        <div class="eq">${paint(q.cur, s.part)}</div>
+        <div class="fill"><span class="t">${s.part} =</span>${box("l")}</div>${okBtn()}`;
+      bindOk(v => {
+        if (!same(v[0], s.ans)) return finish(false, q.why, render);
+        if (last) return finish(true, "", render);
+        q.cur = sub(q.cur, s.part, s.ans);
+        step++;
+        show();
+      });
+    }
+    function render() {
+      resetShell();
+      q = fresh(() => pick(T)());
+      window.q = q;
+      step = 0;
+      show();
+    }
+    document.body.insertAdjacentHTML("afterbegin", `<div class="container"><h1>四则运算顺序</h1>
+      <p class="hint">有括号先算括号里的；没有括号先乘除、后加减；同一级从左往右。每一步写出这一步的公式。</p>
+      <div class="stats"><div><div class="stat-label">做题数</div><div class="stat-value" id="totalDone">0</div></div>
+      <div><div class="stat-label">熟练度</div><div class="stat-value prof" id="proficiency">—</div></div></div>
+      <div class="card" id="card"></div><div class="status" id="status"></div>
+      <button class="btn-next" id="nextBtn">下一题 →</button></div>`);
+    window.render = render;
+    boot(render);
   </script>
 </body>
 </html>

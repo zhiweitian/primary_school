@@ -1,0 +1,10 @@
+---
+description: 改完后立刻提交并推送
+alwaysApply: true
+---
+
+# 改完就提交推送
+
+完成用户交代的代码改动后，立刻 `git commit` 并 `git push`，不要等用户再说「提交」或「push」。
+
+不要提交 `data/practice-stats.json`、密钥和无关文件。
