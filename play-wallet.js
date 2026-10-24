@@ -57,6 +57,21 @@
     try { global.dispatchEvent(new Event("ps-play")); } catch (_) {}
   }
 
+  const MEMORY = [
+    "multiplication-table.html",
+    "table-division.html",
+    "length-units.html",
+    "length-convert.html",
+    "length-mm-km.html",
+    "mass-units.html",
+    "area-units.html",
+    "solid.html",
+    "plane.html"
+  ];
+  function isMemory() {
+    return !!global.WALLET_MEMORY || MEMORY.some(f => location.pathname.endsWith("/" + f));
+  }
+
   const PlayWallet = {
     COST,
     PLAY_MS,
@@ -119,7 +134,9 @@
       p.record = function (correct) {
         const r = origRecord(correct);
         const d = global.WALLET_POINTS != null ? Number(global.WALLET_POINTS) : 1;
-        if (d > 0) PlayWallet.add(correct ? 2 * d : -d);
+        if (!(d > 0)) return r;
+        if (correct) PlayWallet.add(2 * d);
+        else if (!isMemory()) PlayWallet.add(-d);
         return r;
       };
       return p;
