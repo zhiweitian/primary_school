@@ -61,11 +61,12 @@
     COST,
     PLAY_MS,
     get() {
-      return load().balance || 0;
+      const b = load().balance;
+      return typeof b === "number" && isFinite(b) ? b : 0;
     },
     add(delta) {
       const n = Number(delta);
-      if (!(n > 0)) return this.get();
+      if (!isFinite(n) || n === 0) return this.get();
       const s = load();
       s.balance = round((s.balance || 0) + n);
       save(s);
@@ -80,7 +81,8 @@
       return s.balance;
     },
     set(balance) {
-      const s = { balance: round(Math.max(0, Number(balance) || 0)) };
+      const n = Number(balance);
+      const s = { balance: round(isFinite(n) ? n : 0) };
       save(s);
       return s.balance;
     },
@@ -116,10 +118,8 @@
       const origRecord = p.record.bind(p);
       p.record = function (correct) {
         const r = origRecord(correct);
-        if (correct) {
-          const d = global.WALLET_POINTS != null ? Number(global.WALLET_POINTS) : 1;
-          if (d > 0) PlayWallet.add(d);
-        }
+        const d = global.WALLET_POINTS != null ? Number(global.WALLET_POINTS) : 1;
+        if (d > 0) PlayWallet.add(correct ? 2 * d : -d);
         return r;
       };
       return p;

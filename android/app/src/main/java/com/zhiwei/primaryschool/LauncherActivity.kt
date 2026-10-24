@@ -111,10 +111,10 @@ class LauncherActivity : AppCompatActivity() {
 
             override fun onPageFinished(v: WebView, url: String) {
                 v.evaluateJavascript(
-                    "window.PlayWallet?PlayWallet.get():-1"
+                    "window.PlayWallet?PlayWallet.get():null"
                 ) { raw ->
-                    val n = raw?.trim('"')?.toDoubleOrNull() ?: -1.0
-                    if (n >= 0) {
+                    val n = raw?.trim('"')?.toDoubleOrNull()
+                    if (n != null) {
                         Prefs.setBalance(n)
                         updateBar()
                     }

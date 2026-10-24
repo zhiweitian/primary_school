@@ -29,7 +29,7 @@ object Prefs {
 
     fun balance(): Double = Double.fromBits(sp().getLong("bal", 0.0.toBits()))
     fun setBalance(v: Double) {
-        val n = (max(0.0, v) * 4).roundToInt() / 4.0
+        val n = (v * 4).roundToInt() / 4.0
         sp().edit().putLong("bal", n.toBits()).apply()
     }
 
