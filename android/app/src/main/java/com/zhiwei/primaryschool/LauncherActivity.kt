@@ -455,6 +455,9 @@ class LauncherActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun playStarts(): String = Prefs.playStartsJson()
+
+        @JavascriptInterface
         fun startPlay() {
             runOnUiThread {
                 if (!Perms.readyForPlay(this@LauncherActivity)) {

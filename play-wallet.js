@@ -30,12 +30,23 @@
   const STARTS_LS = "ps-play-starts";
 
   function loadStarts() {
+    let a = [];
     try {
-      const a = JSON.parse(localStorage.getItem(STARTS_LS) || "[]");
-      return Array.isArray(a) ? a.filter(x => typeof x === "number") : [];
-    } catch (_) {
-      return [];
-    }
+      a = JSON.parse(localStorage.getItem(STARTS_LS) || "[]");
+    } catch (_) {}
+    if (!Array.isArray(a)) a = [];
+    try {
+      if (global.PrimarySchool && typeof global.PrimarySchool.playStarts === "function") {
+        const extra = JSON.parse(global.PrimarySchool.playStarts() || "[]");
+        if (Array.isArray(extra)) a = a.concat(extra);
+      }
+    } catch (_) {}
+    const all = a.map(Number).filter(t => t > 0).sort((x, y) => x - y);
+    const out = [];
+    all.forEach(t => {
+      if (!out.length || t - out[out.length - 1] > 2000) out.push(t);
+    });
+    return out;
   }
 
   function logStart() {

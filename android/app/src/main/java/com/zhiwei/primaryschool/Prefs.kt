@@ -6,6 +6,7 @@ import android.os.SystemClock
 import java.security.MessageDigest
 import kotlin.math.max
 import kotlin.math.roundToInt
+import org.json.JSONArray
 
 object Prefs {
     const val POINT_COST = 40.0
@@ -45,6 +46,7 @@ object Prefs {
     }
 
     fun startPlay() {
+        logPlayStart()
         val left = PLAY_MS
         sp().edit()
             .putBoolean("play", true)
@@ -88,6 +90,19 @@ object Prefs {
     fun setHoldKiosk(v: Boolean) {
         sp().edit().putBoolean("holdKiosk", v).apply()
     }
+
+    fun logPlayStart(at: Long = System.currentTimeMillis()) {
+        val arr = try {
+            JSONArray(sp().getString("playStarts", "[]") ?: "[]")
+        } catch (_: Exception) {
+            JSONArray()
+        }
+        arr.put(at)
+        while (arr.length() > 200) arr.remove(0)
+        sp().edit().putString("playStarts", arr.toString()).apply()
+    }
+
+    fun playStartsJson(): String = sp().getString("playStarts", "[]") ?: "[]"
 
     fun lastBeat(): Long = sp().getLong("beat", 0L)
     fun touchBeat() {
