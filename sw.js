@@ -1,4 +1,4 @@
-const CACHE = "ps-v55";
+const CACHE = "ps-v56";
 const PRECACHE = [
   "./",
   "./index.html",
