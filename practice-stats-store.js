@@ -361,14 +361,14 @@
 
   function overall(ids) {
     const list = (ids && ids.length) ? ids : Object.keys(ensureCache().nodes);
+    if (!list.length) return { proficiency: 0, done: 0, total: 0 };
     let sum = 0, done = 0;
     list.forEach(id => {
       const s = get(id);
-      if (!s.total && s.proficiency == null) return;
-      done++;
+      if (s.total || s.proficiency != null) done++;
       sum += s.proficiency == null ? 0 : s.proficiency;
     });
-    return { proficiency: done ? Math.round(sum / done) : null, done, total: list.length };
+    return { proficiency: +(sum / list.length).toFixed(2), done, total: list.length };
   }
 
   function format(nodeId) {

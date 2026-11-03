@@ -143,7 +143,7 @@
     <h1>人教版小学数学 · 先修知识树</h1>
     <p class="subtitle" id="edition-label"></p>
     <div class="toolbar">
-      <span class="overall" id="overallChip">总熟练度 —</span>
+      <span class="overall" id="overallChip">总熟练度 0%</span>
       <span class="wallet" id="walletChip">积分 0</span>
       <button class="btn" id="deduct-btn" type="button">扣 5 分</button>
       <button class="btn" id="play-btn" type="button">玩 10 分钟</button>
@@ -291,7 +291,7 @@
       if (!def.app) {
         return `<div class="card idle"><span class="face" aria-hidden="true">${faceOf(id)}</span>${gradeTag}<div class="name">${def.name}</div><div class="meta">${def.unit}</div><div class="tag">练习稍后</div></div>`;
       }
-      const s = PracticeStats.get(id);
+      const s = statsOf(id);
       const did = passed(s);
       const known = !did && credit.has(id);
       const full = mastered(s);
@@ -359,16 +359,13 @@
       document.getElementById("routes").innerHTML = `<div class="routes-inner cols-${cols}">${html}</div>`;
       document.getElementById("stats").textContent = routes.length + " 条路线";
       const live = Object.keys(defs).filter(id => defs[id].app);
-      let sum = 0, done = 0;
+      let sum = 0;
       live.forEach(id => {
         const s = statsOf(id);
-        if (!s.total && s.proficiency == null) return;
-        done++;
         sum += s.proficiency == null ? 0 : s.proficiency;
       });
-      document.getElementById("overallChip").textContent = done
-        ? "总熟练度 " + Math.round(sum / done) + "%"
-        : "总熟练度 —";
+      const avg = live.length ? +(sum / live.length).toFixed(2) : 0;
+      document.getElementById("overallChip").textContent = "总熟练度 " + avg + "%";
     }
 
     function updateChrome() {
