@@ -54,6 +54,11 @@
       background: #fff3e0; border: 1px solid #ffe0b2; border-radius: 6px;
       padding: 0.22rem 0.5rem; white-space: nowrap;
     }
+    .overall {
+      font-size: 0.72rem; color: #2e7d32; font-weight: 600;
+      background: #e8f5e9; border: 1px solid #c8dfb8; border-radius: 6px;
+      padding: 0.22rem 0.5rem; white-space: nowrap;
+    }
     .routes {
       flex: 1 1 0; overflow: auto; min-height: 0;
       padding: 0.9rem 1rem 2.2rem; -webkit-overflow-scrolling: touch;
@@ -138,6 +143,7 @@
     <h1>人教版小学数学 · 先修知识树</h1>
     <p class="subtitle" id="edition-label"></p>
     <div class="toolbar">
+      <span class="overall" id="overallChip">总熟练度 —</span>
       <span class="wallet" id="walletChip">积分 0</span>
       <button class="btn" id="deduct-btn" type="button">扣 5 分</button>
       <button class="btn" id="play-btn" type="button">玩 10 分钟</button>
@@ -335,6 +341,10 @@
       const cols = routes.length > 4 ? "many" : routes.length;
       document.getElementById("routes").innerHTML = `<div class="routes-inner cols-${cols}">${html}</div>`;
       document.getElementById("stats").textContent = routes.length + " 条路线";
+      const live = Object.keys(defs).filter(id => defs[id].app);
+      const o = PracticeStats.overall(live);
+      document.getElementById("overallChip").textContent =
+        o.proficiency == null ? "总熟练度 —" : "总熟练度 " + o.proficiency + "%";
     }
 
     function updateChrome() {

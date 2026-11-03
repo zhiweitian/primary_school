@@ -359,6 +359,18 @@
     };
   }
 
+  function overall(ids) {
+    const list = (ids && ids.length) ? ids : Object.keys(ensureCache().nodes);
+    if (!list.length) return { proficiency: null, done: 0, total: 0 };
+    let sum = 0, done = 0;
+    list.forEach(id => {
+      const s = get(id);
+      if (s.total) done++;
+      sum += s.proficiency == null ? 0 : s.proficiency;
+    });
+    return { proficiency: done ? Math.round(sum / list.length) : null, done, total: list.length };
+  }
+
   function format(nodeId) {
     const s = get(nodeId);
     if (!s.total) return "";
@@ -452,6 +464,7 @@
     reload,
     refresh,
     get,
+    overall,
     format,
     record,
     create,
