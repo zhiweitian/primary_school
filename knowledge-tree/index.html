@@ -241,7 +241,7 @@
       const credit = loadCredit();
       let changed = false;
       Object.keys(defs).forEach(id => {
-        if (!passed(PracticeStats.get(id))) return;
+        if (!passed(statsOf(id))) return;
         const stack = [...defs[id].deps];
         while (stack.length) {
           const d = stack.pop();
@@ -256,7 +256,7 @@
     }
 
     function cleared(id, credit) {
-      return !defs[id].app || passed(PracticeStats.get(id)) || credit.has(id);
+      return !defs[id].app || passed(statsOf(id)) || credit.has(id);
     }
 
     function opened(id, credit) {
@@ -272,7 +272,7 @@
         const cur = stack.pop();
         if (seen.has(cur)) continue;
         seen.add(cur);
-        if (passed(PracticeStats.get(cur))) return true;
+        if (passed(statsOf(cur))) return true;
         (KIDS[cur] || []).forEach(x => stack.push(x));
       }
       return false;
@@ -339,7 +339,7 @@
       const routes = data.routes;
       const html = routes.map(route => {
         const ids = route.rows.flat().filter(Boolean);
-        const nextId = ids.find(id => opened(id, credit) && !cleared(id, credit) && !mastered(PracticeStats.get(id))) || null;
+        const nextId = ids.find(id => opened(id, credit) && !cleared(id, credit) && !mastered(statsOf(id))) || null;
         const live = ids.filter(id => defs[id].app);
         const done = live.filter(id => cleared(id, credit)).length;
         const prog = live.length ? `${done}/${live.length} 关` : "练习稍后";
@@ -362,7 +362,8 @@
       let sum = 0;
       live.forEach(id => {
         const s = statsOf(id);
-        sum += s.proficiency == null ? 0 : s.proficiency;
+        if (mastered(s) || laterPassed(id) || credit.has(id)) sum += 100;
+        else sum += s.proficiency == null ? 0 : s.proficiency;
       });
       const avg = live.length ? +(sum / live.length).toFixed(2) : 0;
       document.getElementById("overallChip").textContent = "总熟练度 " + avg + "%";
