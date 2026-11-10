@@ -74,6 +74,7 @@ class LauncherActivity : AppCompatActivity() {
         grid.adapter = adapter
 
         btnPlay.setOnClickListener { tryPlay() }
+        findViewById<View>(R.id.btnLog).setOnClickListener { showPlayLog() }
         findViewById<View>(R.id.btnParent).setOnClickListener { parentGate() }
 
         val st = web.settings
@@ -110,6 +111,10 @@ class LauncherActivity : AppCompatActivity() {
             }
 
             override fun onPageFinished(v: WebView, url: String) {
+                v.evaluateJavascript(
+                    "window.PlayWallet&&PlayWallet.remember&&PlayWallet.remember(" + Prefs.playStartsJson() + ")",
+                    null
+                )
                 v.evaluateJavascript(
                     "window.PlayWallet?PlayWallet.get():null"
                 ) { raw ->
@@ -318,11 +323,29 @@ class LauncherActivity : AppCompatActivity() {
         }
         web.evaluateJavascript("window.PlayWallet&&PlayWallet.tryPlay()") { raw ->
             runOnUiThread {
-                if (raw != "true") {
-                    Toast.makeText(this, "满 ${Prefs.POINT_COST.toInt()} 分才能玩", Toast.LENGTH_SHORT).show()
-                }
+                if (raw == "true") Prefs.logPlayStart()
+                else Toast.makeText(this, "满 ${Prefs.POINT_COST.toInt()} 分才能玩", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun showPlayLog() {
+        val times = Prefs.playStartTimes()
+        if (times.isEmpty()) {
+            AlertDialog.Builder(this)
+                .setTitle("使用记录")
+                .setMessage("还没有花积分玩过")
+                .setPositiveButton("关闭", null)
+                .show()
+            return
+        }
+        val fmt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.CHINA)
+        val text = times.asReversed().joinToString("\n") { fmt.format(java.util.Date(it)) }
+        AlertDialog.Builder(this)
+            .setTitle("使用记录")
+            .setMessage(text)
+            .setPositiveButton("关闭", null)
+            .show()
     }
 
     private fun launchApp(info: ResolveInfo) {
@@ -456,6 +479,11 @@ class LauncherActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun playStarts(): String = Prefs.playStartsJson()
+
+        @JavascriptInterface
+        fun logPlay(at: String?) {
+            Prefs.logPlayStart(at?.toLongOrNull() ?: System.currentTimeMillis())
+        }
 
         @JavascriptInterface
         fun startPlay() {

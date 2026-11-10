@@ -29,31 +29,56 @@
   const PLAY_LS = "ps-play-until";
   const STARTS_LS = "ps-play-starts";
 
-  function loadStarts() {
-    let a = [];
+  function normalizeStarts(list) {
+    const all = (Array.isArray(list) ? list : []).map(Number).filter(t => t > 0).sort((x, y) => x - y);
+    const out = [];
+    all.forEach(t => {
+      if (!out.length || t - out[out.length - 1] > 2000) out.push(t);
+    });
+    return out.slice(-200);
+  }
+
+  function readLocalStarts() {
     try {
-      a = JSON.parse(localStorage.getItem(STARTS_LS) || "[]");
+      const a = JSON.parse(localStorage.getItem(STARTS_LS) || "[]");
+      return Array.isArray(a) ? a : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function writeLocalStarts(list) {
+    try { localStorage.setItem(STARTS_LS, JSON.stringify(normalizeStarts(list))); } catch (_) {}
+  }
+
+  function loadStarts() {
+    let a = readLocalStarts();
+    try {
+      if (global.PracticeStats && typeof global.PracticeStats.playStarts === "function") {
+        a = a.concat(global.PracticeStats.playStarts());
+      }
     } catch (_) {}
-    if (!Array.isArray(a)) a = [];
     try {
       if (global.PrimarySchool && typeof global.PrimarySchool.playStarts === "function") {
         const extra = JSON.parse(global.PrimarySchool.playStarts() || "[]");
         if (Array.isArray(extra)) a = a.concat(extra);
       }
     } catch (_) {}
-    const all = a.map(Number).filter(t => t > 0).sort((x, y) => x - y);
-    const out = [];
-    all.forEach(t => {
-      if (!out.length || t - out[out.length - 1] > 2000) out.push(t);
-    });
-    return out;
+    return normalizeStarts(a);
   }
 
   function logStart() {
-    const a = loadStarts();
-    a.push(Date.now());
-    if (a.length > 200) a.splice(0, a.length - 200);
-    try { localStorage.setItem(STARTS_LS, JSON.stringify(a)); } catch (_) {}
+    const t = Date.now();
+    writeLocalStarts(readLocalStarts().concat(t));
+    try {
+      if (global.PracticeStats && typeof global.PracticeStats.logPlayStart === "function") {
+        global.PracticeStats.logPlayStart(t);
+      }
+    } catch (_) {}
+    try {
+      const b = global.PrimarySchool;
+      if (b && typeof b.logPlay === "function") b.logPlay(String(t));
+    } catch (_) {}
   }
 
   function playUntil() {
@@ -117,6 +142,16 @@
       return playLeftMs() > 0;
     },
     starts() {
+      return loadStarts();
+    },
+    remember(extra) {
+      if (!Array.isArray(extra) || !extra.length) return loadStarts();
+      writeLocalStarts(readLocalStarts().concat(extra));
+      try {
+        if (global.PracticeStats && typeof global.PracticeStats.rememberPlayStarts === "function") {
+          global.PracticeStats.rememberPlayStarts(extra);
+        }
+      } catch (_) {}
       return loadStarts();
     },
     tryPlay() {

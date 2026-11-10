@@ -42,6 +42,15 @@
             android:text="玩 10 分钟"
             android:textSize="13sp" />
 
+        <Button
+            android:id="@+id/btnLog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:minHeight="40dp"
+            android:text="使用记录"
+            android:textSize="13sp" />
+
         <ImageButton
             android:id="@+id/btnParent"
             android:layout_width="40dp"

@@ -97,9 +97,29 @@ object Prefs {
         } catch (_: Exception) {
             JSONArray()
         }
+        if (arr.length() > 0) {
+            val last = arr.optLong(arr.length() - 1)
+            if (at >= last && at - last < 3000L) return
+        }
         arr.put(at)
         while (arr.length() > 200) arr.remove(0)
-        sp().edit().putString("playStarts", arr.toString()).apply()
+        sp().edit().putString("playStarts", arr.toString()).commit()
+    }
+
+    fun playStartTimes(): List<Long> {
+        val arr = try {
+            JSONArray(playStartsJson())
+        } catch (_: Exception) {
+            JSONArray()
+        }
+        val out = ArrayList<Long>()
+        for (i in 0 until arr.length()) {
+            val t = arr.optLong(i)
+            if (t <= 0L) continue
+            if (out.isNotEmpty() && t - out.last() <= 3000L) continue
+            out.add(t)
+        }
+        return out
     }
 
     fun playStartsJson(): String = sp().getString("playStarts", "[]") ?: "[]"

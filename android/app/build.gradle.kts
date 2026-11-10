@@ -10,8 +10,8 @@ android {
         applicationId = "com.zhiwei.primaryschool"
         minSdk = 26
         targetSdk = 34
-        versionCode = 19
-        versionName = "2.8"
+        versionCode = 20
+        versionName = "2.9"
     }
     buildTypes {
         release {

@@ -20,7 +20,7 @@
   }
 
   function emptyStore() {
-    return { nodes: {} };
+    return { nodes: {}, playStarts: [] };
   }
 
   let downstreamOf = {};
@@ -134,6 +134,49 @@
     return last;
   }
 
+  const PEAK_RULE = 1;
+  const MASTER_LINE = () => (CFG.masteredAt || 90) / 100;
+
+  // 第一次练到线上算 1 次。之后只有隔了足够久、熟练度自己掉到线下，再练回去才加一次。
+  // 同一次练习里对错来回穿过 90%，不加。
+  function peaksOf(recent) {
+    const line = MASTER_LINE();
+    const H = CFG.halfLifeDays || 277;
+    const r = recent || [];
+    let peaks = 0;
+    let level = 0;
+    let prevAt = 0;
+    for (let i = 0; i < r.length; i++) {
+      const at = entryAt(r[i]) || 0;
+      let faded = level;
+      if (level > 0 && at > prevAt && prevAt) {
+        faded = level * Math.exp(-((at - prevAt) / 86400000) / H);
+      }
+      const after = ownBase(r.slice(0, i + 1)) || 0;
+      if (after >= line && peaks === 0) peaks = 1;
+      else if (after >= line && level >= line && faded < line) peaks++;
+      level = after;
+      if (at) prevAt = at;
+    }
+    return peaks;
+  }
+
+  function slowOf(peaks) {
+    const extra = Math.max(0, (peaks || 0) - 1);
+    return Math.pow(CFG.remasterSlow || 2, extra);
+  }
+
+  function peakCount(nodeId, recent) {
+    const node = ensureCache().nodes[nodeId];
+    if (node && node.peakRule === PEAK_RULE && node.peaks != null) return node.peaks;
+    const n = peaksOf(recent);
+    if (node) {
+      node.peaks = n;
+      node.peakRule = PEAK_RULE;
+    }
+    return n;
+  }
+
   function displayScore(nodeId, recent) {
     const own = ownBase(recent);
     const events = downstreamEvents(nodeId);
@@ -148,7 +191,7 @@
     const S = strength(recent);
     const last = lastAt(recent, events);
     const age = last ? Math.max(0, (Date.now() - last) / 86400000) : 0;
-    const H = CFG.halfLifeDays || 14;
+    const H = (CFG.halfLifeDays || 277) * slowOf(peakCount(nodeId, recent));
     return Math.min(1, base * Math.exp(-age / (H * S)));
   }
 
@@ -174,15 +217,35 @@
     } catch (_) {}
   }
 
+  function copyNode(n) {
+    if (!n) return null;
+    const out = { total: n.total || 0, recent: [...(n.recent || [])], passed: !!n.passed };
+    if (n.peaks != null) out.peaks = n.peaks || 0;
+    if (n.peakRule != null) out.peakRule = n.peakRule;
+    return out;
+  }
+
   function mergeNodes(a, b) {
-    if (!a) return b ? { total: b.total || 0, recent: [...(b.recent || [])], passed: !!b.passed } : null;
-    if (!b) return { total: a.total || 0, recent: [...(a.recent || [])], passed: !!a.passed };
+    if (!a) return copyNode(b);
+    if (!b) return copyNode(a);
     const total = Math.max(a.total || 0, b.total || 0);
     let recent;
     if ((a.total || 0) > (b.total || 0)) recent = a.recent || [];
     else if ((b.total || 0) > (a.total || 0)) recent = b.recent || [];
     else recent = (b.recent?.length || 0) >= (a.recent?.length || 0) ? (b.recent || []) : (a.recent || []);
-    return { total, recent: [...recent], passed: !!(a.passed || b.passed) };
+    const out = { total, recent: [...recent], passed: !!(a.passed || b.passed) };
+    if (a.peaks != null || b.peaks != null) out.peaks = Math.max(a.peaks || 0, b.peaks || 0);
+    if (a.peakRule != null || b.peakRule != null) out.peakRule = Math.max(a.peakRule || 0, b.peakRule || 0);
+    return out;
+  }
+
+  function normalizeStarts(list) {
+    const a = (Array.isArray(list) ? list : []).map(Number).filter(t => t > 0).sort((x, y) => x - y);
+    const out = [];
+    a.forEach(t => {
+      if (!out.length || t - out[out.length - 1] > 2000) out.push(t);
+    });
+    return out.slice(-200);
   }
 
   // 旧版按树里的位置记熟练度，一、二年级位置重号的归二年级。
@@ -232,6 +295,7 @@
       const merged = mergeNodes(nodesA[id], nodesB[id]);
       if (merged) out.nodes[id] = merged;
     });
+    out.playStarts = normalizeStarts([].concat(a?.playStarts || [], b?.playStarts || []));
     return migratePaths(out);
   }
 
@@ -384,11 +448,32 @@
     n.total += 1;
     n.recent.push({ ok: correct ? 1 : 0, at: Date.now() });
     n.scanned = false;
+    n.peaks = peaksOf(n.recent);
+    n.peakRule = PEAK_RULE;
     stampPassed(n);
     store.nodes[nodeId] = n;
     commitStore(store);
     scheduleSave();
     return get(nodeId);
+  }
+
+  function playStartList() {
+    return normalizeStarts(ensureCache().playStarts);
+  }
+
+  function rememberPlayStarts(list) {
+    const store = ensureCache();
+    const prev = normalizeStarts(store.playStarts);
+    const merged = normalizeStarts(prev.concat(list || []));
+    if (merged.length === prev.length && merged.every((t, i) => t === prev[i])) return merged;
+    store.playStarts = merged;
+    commitStore(store);
+    scheduleSave();
+    return merged;
+  }
+
+  function logPlayStart(at) {
+    return rememberPlayStarts([Number(at) || Date.now()]);
   }
 
   function nodeId(customId) {
@@ -469,7 +554,10 @@
     record,
     create,
     nodeId,
-    setDownstream
+    setDownstream,
+    playStarts: playStartList,
+    logPlayStart,
+    rememberPlayStarts
   };
   global.Proficiency = { create, nodeId, WINDOW };
 })(window);
