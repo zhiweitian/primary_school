@@ -177,9 +177,9 @@
     return n;
   }
 
-  function displayScore(nodeId, recent) {
+  function displayScore(nodeId, recent, ownOnly) {
     const own = ownBase(recent);
-    const events = downstreamEvents(nodeId);
+    const events = ownOnly ? [] : downstreamEvents(nodeId);
     const slice = (recent || []).slice(-WINDOW);
     const empty = WINDOW - slice.length;
     let filled = 0;
@@ -412,12 +412,15 @@
 
   function get(nodeId) {
     const n = ensureCache().nodes[nodeId];
-    if (!n) return { total: 0, proficiency: null, own: null, passed: false };
+    if (!n) return { total: 0, proficiency: null, own: null, ownLive: null, ever: false, passed: false };
     stampPassed(n);
     const own = pct(ownBase(n.recent));
+    const ownLive = pct(displayScore(nodeId, n.recent, true));
     return {
       total: n.total || 0,
       own,
+      ownLive,
+      ever: !!n.passed || peakCount(nodeId, n.recent) >= 1,
       passed: !!n.passed,
       proficiency: pct(displayScore(nodeId, n.recent))
     };

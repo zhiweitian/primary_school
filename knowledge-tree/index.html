@@ -221,7 +221,7 @@
     }
 
     function mastered(s) {
-      return s.proficiency != null && s.proficiency >= MASTERED;
+      return !!(s && s.ownLive != null && s.ownLive >= MASTERED);
     }
 
     function laterOf() {
@@ -272,7 +272,7 @@
         const cur = stack.pop();
         if (seen.has(cur)) continue;
         seen.add(cur);
-        if (passed(statsOf(cur))) return true;
+        if (statsOf(cur).ever) return true;
         (KIDS[cur] || []).forEach(x => stack.push(x));
       }
       return false;
