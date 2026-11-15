@@ -151,9 +151,18 @@
       inp.onkeydown = e => { if (e.key === "Enter") check(); };
     }
 
+    function parseAns(raw) {
+      const s = String(raw || "").trim().replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0));
+      if (!/^\d+$/.test(s)) return null;
+      return parseInt(s, 10);
+    }
+
     function check() {
-      if (answered) return;
-      const got = +document.getElementById("ans").value;
+      if (answered || !q) return;
+      const input = document.getElementById("ans");
+      if (!input) return;
+      const got = parseAns(input.value);
+      if (got == null) return;
       const ok = got === q.quotient;
       answered = true;
       document.getElementById("ans").disabled = true;
@@ -168,7 +177,7 @@
         st.className = "status ok";
         timer = setTimeout(render, AUTO_MS);
       } else {
-        st.textContent = tip;
+        st.textContent = "答错了。" + tip;
         st.className = "status err";
         document.getElementById("nextBtn").classList.add("show");
       }

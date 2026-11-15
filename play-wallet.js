@@ -95,7 +95,6 @@
 
   const MEMORY = [
     "multiplication-table.html",
-    "table-division.html",
     "length-units.html",
     "length-convert.html",
     "length-mm-km.html",
