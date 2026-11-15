@@ -35,6 +35,7 @@
       background: rgba(0,0,0,0.35); align-items: center; justify-content: center; padding: 1rem;
     }
     #use-mask { z-index: 21; }
+    #lock-mask { z-index: 22; }
     .use-mask.show { display: flex; }
     .use-box {
       width: min(420px, 96vw); max-height: 80vh; overflow: auto;
@@ -90,12 +91,22 @@
     .track.lanes-2 .g-row,
     .track.lanes-2 .g-join { grid-template-columns: 1fr 1fr; }
     .cell { display: flex; justify-content: center; min-width: 0; }
+    .card-box { position: relative; width: 100%; }
     .card {
       position: relative; display: block; text-decoration: none; color: inherit;
       margin-top: 0.55rem; padding: 1.15rem 0.5rem 0.5rem;
       width: 100%; min-height: 3.5rem; text-align: center;
       background: #fff; border: 1px solid #e8e4de; border-radius: 8px;
     }
+    .card-box .card { padding-bottom: 1.65rem; }
+    .lock-btn {
+      position: absolute; right: 0.4rem; bottom: 0.32rem; z-index: 2;
+      border: 1px solid #e0d6c8; background: #fff; color: #8a7a6a;
+      border-radius: 999px; font-size: 0.62rem; line-height: 1.4;
+      padding: 0.04rem 0.42rem; cursor: pointer;
+    }
+    .lock-actions { display: flex; gap: 0.5rem; margin-top: 0.9rem; }
+    .lock-actions .btn { flex: 1; }
     .card .face {
       position: absolute; top: -0.7rem; left: 50%;
       transform: translateX(-50%);
@@ -160,6 +171,16 @@
       <button class="btn use-close" id="use-close" type="button">关闭</button>
     </div>
   </div>
+  <div class="use-mask" id="lock-mask">
+    <div class="use-box">
+      <h3 id="lock-title">锁住这一关</h3>
+      <p class="empty" id="lock-text"></p>
+      <div class="lock-actions">
+        <button class="btn" id="lock-cancel" type="button">取消</button>
+        <button class="btn" id="lock-ok" type="button">锁住</button>
+      </div>
+    </div>
+  </div>
   <div class="use-mask" id="play-mask">
     <div class="use-box">
       <h3>自由时间</h3>
@@ -179,6 +200,7 @@
     const data = window.MATH_TREE;
     const defs = data.nodes;
     const CREDIT_LS = "ps-route-credit";
+    const LOCK_LS = "ps-hand-lock";
     const MASTERED = (window.PS_CONFIG && PS_CONFIG.masteredAt) || 90;
     function fileKey(app) {
       return ((app || "").split("?")[0].split("/").pop() || "").replace(/\.html$/, "");
@@ -214,6 +236,19 @@
 
     function saveCredit(set) {
       try { localStorage.setItem(CREDIT_LS, JSON.stringify([...set])); } catch (_) {}
+    }
+
+    function loadLocks() {
+      try {
+        const a = JSON.parse(localStorage.getItem(LOCK_LS) || "[]");
+        return new Set(Array.isArray(a) ? a : []);
+      } catch (_) {
+        return new Set();
+      }
+    }
+
+    function saveLocks(set) {
+      try { localStorage.setItem(LOCK_LS, JSON.stringify([...set])); } catch (_) {}
     }
 
     function passed(s) {
@@ -265,19 +300,6 @@
       return deps.every(d => cleared(d, credit));
     }
 
-    function laterPassed(id) {
-      const stack = [...(KIDS[id] || [])];
-      const seen = new Set();
-      while (stack.length) {
-        const cur = stack.pop();
-        if (seen.has(cur)) continue;
-        seen.add(cur);
-        if (statsOf(cur).ever) return true;
-        (KIDS[cur] || []).forEach(x => stack.push(x));
-      }
-      return false;
-    }
-
     const FACES = ["🐻", "🐥", "🦊", "🐼", "🐸", "🐯", "🐰", "🐨"];
     function faceOf(id) {
       let h = 0;
@@ -285,7 +307,7 @@
       return FACES[(h >>> 0) % FACES.length];
     }
 
-    function card(id, nextId, credit) {
+    function card(id, nextId, credit, locks) {
       const def = defs[id];
       const gradeTag = `<span class="grade">${data.grades[def.grade]}</span>`;
       if (!def.app) {
@@ -295,14 +317,14 @@
       const did = passed(s);
       const known = !did && credit.has(id);
       const full = mastered(s);
-      const locked = laterPassed(id);
+      const held = locks.has(id);
       let cls = "card";
       let tag;
       if (!opened(id, credit)) cls += " shut";
-      if (full || locked) {
+      if (full || held) {
         cls += " full";
         if (did) cls += " done";
-        tag = did ? "已过" : "已会";
+        tag = held ? "已锁" : (did ? "已过" : "已会");
       }
       else if (did) { cls += " done"; tag = "复习"; }
       else if (known) { cls += " known"; tag = "已会"; }
@@ -310,10 +332,13 @@
       else tag = s.total ? "进行中" : "可练";
       const meta = s.total
         ? `${s.total}题 · ${s.proficiency == null ? "—" : s.proficiency + "%"}`
-        : known || locked ? "后面的关已经过了" : full ? "已经会了" : "点进去练";
+        : known ? "后面的关已经过了" : held ? "已经锁住" : full ? "已经会了" : "点进去练";
       const body = `<span class="face" aria-hidden="true">${faceOf(id)}</span>${gradeTag}<div class="name">${def.name}</div><div class="meta">${meta}</div><div class="tag">${tag}</div>`;
-      if (full || locked) return `<div class="${cls}">${body}</div>`;
-      return `<a class="${cls}" href="${appHref(id)}">${body}</a>`;
+      const btn = `<button type="button" class="lock-btn" data-lock="${id}"${held ? ' data-open="1"' : ""}>${held ? "打开" : "锁住"}</button>`;
+      const face = (full || held)
+        ? `<div class="${cls}">${body}</div>`
+        : `<a class="${cls}" href="${appHref(id)}">${body}</a>`;
+      return `<div class="card-box">${face}${btn}</div>`;
     }
 
     function join(prev, row, lanes) {
@@ -336,10 +361,11 @@
 
     function renderRoutes() {
       const credit = syncCredit();
+      const locks = loadLocks();
       const routes = data.routes;
       const html = routes.map(route => {
         const ids = route.rows.flat().filter(Boolean);
-        const nextId = ids.find(id => opened(id, credit) && !cleared(id, credit) && !mastered(statsOf(id))) || null;
+        const nextId = ids.find(id => opened(id, credit) && !cleared(id, credit) && !mastered(statsOf(id)) && !locks.has(id)) || null;
         const live = ids.filter(id => defs[id].app);
         const done = live.filter(id => cleared(id, credit)).length;
         const prog = live.length ? `${done}/${live.length} 关` : "练习稍后";
@@ -349,7 +375,7 @@
           const cells = [];
           const n = one ? 1 : lanes;
           for (let c = 0; c < n; c++) {
-            cells.push(`<div class="cell">${row[c] ? card(row[c], nextId, credit) : ""}</div>`);
+            cells.push(`<div class="cell">${row[c] ? card(row[c], nextId, credit, locks) : ""}</div>`);
           }
           return (i ? join(route.rows[i - 1], row, lanes) : "") + `<div class="g-row${one ? " one" : ""}">${cells.join("")}</div>`;
         }).join("");
@@ -362,7 +388,7 @@
       let sum = 0;
       live.forEach(id => {
         const s = statsOf(id);
-        if (mastered(s) || laterPassed(id) || credit.has(id)) sum += 100;
+        if (mastered(s) || locks.has(id) || credit.has(id)) sum += 100;
         else sum += s.proficiency == null ? 0 : s.proficiency;
       });
       const avg = live.length ? +(sum / live.length).toFixed(2) : 0;
@@ -446,6 +472,42 @@
     };
     document.getElementById("use-mask").onclick = e => {
       if (e.target.id === "use-mask") document.getElementById("use-mask").classList.remove("show");
+    };
+
+    let pendingLock = null;
+    document.getElementById("routes").addEventListener("click", e => {
+      const btn = e.target.closest(".lock-btn");
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const id = btn.dataset.lock;
+      const opening = btn.dataset.open === "1";
+      pendingLock = { id, opening };
+      document.getElementById("lock-title").textContent = opening ? "打开这一关" : "锁住这一关";
+      document.getElementById("lock-text").textContent = opening
+        ? "打开「" + defs[id].name + "」后，可以再点进去练。"
+        : "锁住「" + defs[id].name + "」后，就不能再点进去练。";
+      document.getElementById("lock-ok").textContent = opening ? "打开" : "锁住";
+      document.getElementById("lock-mask").classList.add("show");
+    });
+    document.getElementById("lock-cancel").onclick = () => {
+      pendingLock = null;
+      document.getElementById("lock-mask").classList.remove("show");
+    };
+    document.getElementById("lock-mask").onclick = e => {
+      if (e.target.id !== "lock-mask") return;
+      pendingLock = null;
+      document.getElementById("lock-mask").classList.remove("show");
+    };
+    document.getElementById("lock-ok").onclick = () => {
+      if (!pendingLock) return;
+      const set = loadLocks();
+      if (pendingLock.opening) set.delete(pendingLock.id);
+      else set.add(pendingLock.id);
+      saveLocks(set);
+      pendingLock = null;
+      document.getElementById("lock-mask").classList.remove("show");
+      renderRoutes();
     };
     setInterval(updateChrome, 1000);
 
