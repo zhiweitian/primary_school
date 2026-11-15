@@ -441,7 +441,7 @@
   function format(nodeId) {
     const s = get(nodeId);
     if (!s.total) return "";
-    const p = s.proficiency == null ? "—" : s.proficiency + "%";
+    const p = s.ownLive == null ? "—" : s.ownLive + "%";
     return `${s.total}题 · ${p}`;
   }
 
@@ -522,7 +522,7 @@
           pullLocal();
           const s = this.stats();
           if (totalEl) totalEl.textContent = s.total;
-          if (profEl) profEl.textContent = s.proficiency == null ? "—" : s.proficiency + "%";
+          if (profEl) profEl.textContent = s.ownLive == null ? "—" : s.ownLive + "%";
         };
         listeners.add(render);
         render();
